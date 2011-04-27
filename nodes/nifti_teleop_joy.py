@@ -3,7 +3,7 @@ import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
 from geometry_msgs.msg import Twist
 from joy.msg import Joy
-from nifti_ros_drivers.msg import FlippersState
+from nifti_ros_drivers.msg import FlippersState, Brake, RobotStatus
 from math import pi
 
 
@@ -18,11 +18,11 @@ class NiftiTeleopJoy(object):
 		# joystick buttons
 		self.deadman_button = rospy.get_param('~deadman_button', 1)
 		self.run_button = rospy.get_param('~run_button', 0)
-		self.flipper_buttons = [
-				rospy.get_param('~front_left_flipper_button', 4),
-				rospy.get_param('~rear_left_flipper_button', 6),
-				rospy.get_param('~front_right_flipper_button', 5),
-				rospy.get_param('~rear_right_flipper_button', 7)]
+		self.brake_button = rospy.get_param('~differential_brake_button', 8)
+		self.flipper_button_fl = rospy.get_param('~front_left_flipper_button', 4)
+		self.flipper_button_fr = rospy.get_param('~front_right_flipper_button', 5)
+		self.flipper_button_rl = rospy.get_param('~rear_left_flipper_button', 6)
+		self.flipper_button_rr = rospy.get_param('~rear_right_flipper_button', 7)
 		self.flipper_axis = rospy.get_param('~flipper_axis', 5)
 		# speed limits
 		self.max_lin_vel = rospy.get_param('~max_linear', 0.3)
@@ -36,20 +36,30 @@ class NiftiTeleopJoy(object):
 		flipper_topic = rospy.get_param('~teleop_flippers_cmd',
 				'/flippers_cmd')
 		self.flippers_pub = rospy.Publisher(flipper_topic, FlippersState)
-		rospy.Subscriber('joy', Joy, self.joyCallBack)
 		self.flippers_ok = False
+		brake_topic = rospy.get_param('~teleop_brake', '/brake')
 		rospy.Subscriber('flippers_state', FlippersState, self.flippersCallBack)
+		self.brake_pub = rospy.Publisher(brake_topic, Brake)
+		self.brake_ok = False
+		rospy.Subscriber('robot_status', RobotStatus, self.statusCallBack)
+		rospy.Subscriber('joy', Joy, self.joyCallBack)
+
+
+	def statusCallBack(self, robot_status):
+		self.brake_on = robot_status.brake.on
+		self.brake_ok = True
 
 
 	def flippersCallBack(self, flippers):
-		self.flippers = [flippers.a0, flippers.a1, flippers.a2, flippers.a3]
+		self.flippers = flippers
 		self.flippers_ok = True
 			
 
 	def joyCallBack(self, joy):
 		self.cmdvel_cb(joy)
 		self.flipper_cb(joy)
-
+		self.brake_cb(joy)
+	
 
 	def cmdvel_cb(self, joy):
 		tw = Twist()
@@ -76,20 +86,37 @@ class NiftiTeleopJoy(object):
 			
 	def flipper_cb(self, joy):
 		if joy.buttons[self.deadman_button]\
-				and any([joy.buttons[b] for b in self.flipper_buttons])\
+				and any([joy.buttons[self.flipper_button_fl],
+						joy.buttons[self.flipper_button_fr],
+						joy.buttons[self.flipper_button_rl],
+						joy.buttons[self.flipper_button_rr]]) \
 				and joy.axes[self.flipper_axis]:
 			if not self.flippers_ok:
 				rospy.logwarn('Flipper command disabled since no FlippersState message received.')
-			fs = FlippersState()
-			for i, b in enumerate(self.flipper_buttons):
-				a = self.flippers[i]
-				if joy.buttons[b]:
-					a += joy.axes[self.flipper_axis]*self.flipper_increment
-				setattr(fs, 'a%d'%i, a)
-			self.flippers_pub.publish(fs)
+			else:
+				fs = FlippersState(self.flippers.frontLeft, self.flippers.frontRight,
+						self.flippers.rearLeft, self.flippers.rearRight)
+				if joy.buttons[self.flipper_button_fl]:
+					fs.frontLeft += joy.axes[self.flipper_axis]*self.flipper_increment
+				if joy.buttons[self.flipper_button_fr]:
+					fs.frontRight += joy.axes[self.flipper_axis]*self.flipper_increment
+				if joy.buttons[self.flipper_button_rl]:
+					fs.rearLeft += joy.axes[self.flipper_axis]*self.flipper_increment
+				if joy.buttons[self.flipper_button_rr]:
+					fs.rearRight += joy.axes[self.flipper_axis]*self.flipper_increment
+				self.flippers_pub.publish(fs)
 		#else:
 		#	pass	# we don't publish constantly
 
+	
+	def brake_cb(self, joy):
+		if joy.buttons[self.deadman_button] and joy.buttons[self.brake_button]:
+			if not self.brake_ok:
+				rospy.logwarn('Flipper command disabled since no RobotStatus message received.')
+			else:
+				self.brake_pub.publish(not self.brake_on)
+		#else:
+		#	pass
 
 
 
