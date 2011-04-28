@@ -2,8 +2,9 @@
 import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Bool
 from joy.msg import Joy
-from nifti_ros_drivers.msg import FlippersState, Brake, RobotStatus
+from nifti_ros_drivers.msg import FlippersState, Brake, RobotStatus, ScanningSpeed
 from math import pi
 
 
@@ -15,21 +16,25 @@ class NiftiTeleopJoy(object):
 		# joystick axes
 		self.lin_vel_axis = rospy.get_param('~axis_linear', 1)
 		self.ang_vel_axis = rospy.get_param('~axis_angular', 0)
+		self.flipper_axis = rospy.get_param('~flipper_axis', 5)
+		self.scanning_speed_axis = rospy.get_param('~scanning_speed_axis', 4)
 		# joystick buttons
 		self.deadman_button = rospy.get_param('~deadman_button', 1)
 		self.run_button = rospy.get_param('~run_button', 0)
+		self.enable_button = rospy.get_param('~enable_button', 9)
 		self.brake_button = rospy.get_param('~differential_brake_button', 8)
 		self.flipper_button_fl = rospy.get_param('~front_left_flipper_button', 4)
 		self.flipper_button_fr = rospy.get_param('~front_right_flipper_button', 5)
 		self.flipper_button_rl = rospy.get_param('~rear_left_flipper_button', 6)
 		self.flipper_button_rr = rospy.get_param('~rear_right_flipper_button', 7)
-		self.flipper_axis = rospy.get_param('~flipper_axis', 5)
 		# speed limits
 		self.max_lin_vel = rospy.get_param('~max_linear', 0.3)
 		self.max_ang_vel = rospy.get_param('~max_angular', 0.8)
 		self.max_lin_vel_run = rospy.get_param('~max_linear_run', 0.55)
 		self.max_ang_vel_run = rospy.get_param('~max_angular_run', 2.75)
 		self.flipper_increment = rospy.get_param('~flipper_increment', 5*pi/180.)
+		self.max_scanning_speed = rospy.get_param('~max_scanning_speed', 1.25)
+		self.scanning_speed_increment = rospy.get_param('~scanning_speed_increment', 0.25)
 		# publisher and subscribers
 		command_topic = rospy.get_param('~teleop_cmd_vel', '/cmd_vel')
 		self.cmdvel_pub = rospy.Publisher(command_topic, Twist)
@@ -43,10 +48,16 @@ class NiftiTeleopJoy(object):
 		self.brake_ok = False
 		rospy.Subscriber('robot_status', RobotStatus, self.statusCallBack)
 		rospy.Subscriber('joy', Joy, self.joyCallBack)
+		enable_topic = rospy.get_param('~teleop_enable', '/enable')
+		self.enable_pub = rospy.Publisher(enable_topic, Bool)
+		self.scanning_speed = None
+		scanning_speed_topic = rospy.get_param('~teleop_scanning_speed', '/scanning_speed_cmd')
+		self.scanning_speed_pub = rospy.Publisher(scanning_speed_topic, ScanningSpeed)
 
 
 	def statusCallBack(self, robot_status):
 		self.brake_on = robot_status.brake.on
+		self.scanning_speed = robot_status.scanning_speed
 		self.brake_ok = True
 
 
@@ -59,6 +70,8 @@ class NiftiTeleopJoy(object):
 		self.cmdvel_cb(joy)
 		self.flipper_cb(joy)
 		self.brake_cb(joy)
+		self.enable_cb(joy)
+		self.scanning_speed_cb(joy)
 	
 
 	def cmdvel_cb(self, joy):
@@ -117,6 +130,20 @@ class NiftiTeleopJoy(object):
 				self.brake_pub.publish(not self.brake_on)
 		#else:
 		#	pass
+
+
+	def enable_cb(self, joy):
+		if joy.buttons[self.deadman_button] and joy.buttons[self.enable_button]:
+			self.enable_pub.publish(True)
+		#else:
+		#	pass
+
+	def scanning_speed_cb(self, joy):
+		if joy.buttons[self.deadman_button] and joy.axes[self.scanning_speed_axis]:
+			v = min(self.max_scanning_speed,
+					abs(self.scanning_speed+self.scanning_speed_increment*joy.axes[self.scanning_speed_axis]))
+			print 'asking for ', v
+			self.scanning_speed_pub.publish(v)
 
 
 
