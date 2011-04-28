@@ -32,9 +32,9 @@ class NiftiTeleopJoy(object):
 		self.max_ang_vel = rospy.get_param('~max_angular', 0.8)
 		self.max_lin_vel_run = rospy.get_param('~max_linear_run', 0.55)
 		self.max_ang_vel_run = rospy.get_param('~max_angular_run', 2.75)
-		self.flipper_increment = rospy.get_param('~flipper_increment', 5*pi/180.)
-		self.max_scanning_speed = rospy.get_param('~max_scanning_speed', 1.25)
-		self.scanning_speed_increment = rospy.get_param('~scanning_speed_increment', 0.25)
+		self.flipper_increment = rospy.get_param('~flipper_increment', 10*pi/180.)
+		self.max_scanning_speed = rospy.get_param('~max_scanning_speed', 1.20)
+		self.scanning_speed_increment = rospy.get_param('~scanning_speed_increment', 0.2)
 		# publisher and subscribers
 		command_topic = rospy.get_param('~teleop_cmd_vel', '/cmd_vel')
 		self.cmdvel_pub = rospy.Publisher(command_topic, Twist)
@@ -107,8 +107,11 @@ class NiftiTeleopJoy(object):
 			if not self.flippers_ok:
 				rospy.logwarn('Flipper command disabled since no FlippersState message received.')
 			else:
-				fs = FlippersState(self.flippers.frontLeft, self.flippers.frontRight,
-						self.flippers.rearLeft, self.flippers.rearRight)
+				fs = FlippersState()
+				fs.frontLeft = self.flippers.frontLeft
+				fs.frontRight = self.flippers.frontRight
+				fs.rearLeft = self.flippers.rearLeft
+				fs.rearRight = self.flippers.rearRight
 				if joy.buttons[self.flipper_button_fl]:
 					fs.frontLeft += joy.axes[self.flipper_axis]*self.flipper_increment
 				if joy.buttons[self.flipper_button_fr]:
@@ -117,6 +120,11 @@ class NiftiTeleopJoy(object):
 					fs.rearLeft += joy.axes[self.flipper_axis]*self.flipper_increment
 				if joy.buttons[self.flipper_button_rr]:
 					fs.rearRight += joy.axes[self.flipper_axis]*self.flipper_increment
+				#rospy.loginfo('d_FL: %f, d_FR: %f, d_RL:%f, d_RR:%f'%
+				#		(fs.frontLeft - self.flippers.frontLeft,
+				#		fs.frontRight - self.flippers.frontRight,
+				#		fs.rearLeft - self.flippers.rearLeft,
+				#		fs.rearRight - self.flippers.rearRight))
 				self.flippers_pub.publish(fs)
 		#else:
 		#	pass	# we don't publish constantly

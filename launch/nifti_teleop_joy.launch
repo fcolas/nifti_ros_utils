@@ -9,5 +9,5 @@
 		name="nifti_robot_node" output="screen" />
 
 	<node pkg="nifti_teleop" type="nifti_teleop_joy.py"
-		name="nifti_teleop_joy" />
+		name="nifti_teleop_joy" output="screen" />
 </launch>
