@@ -172,7 +172,7 @@ class HistoryJoystick(Joy):
 		'''Check if a given button is currently pressed down.'''
 		try:
 			return self.buttons[button_id]
-		except AttributeError:
+		except TypeError:
 			# no joystick messages yet?
 			return False
 
@@ -181,7 +181,7 @@ class HistoryJoystick(Joy):
 		try:
 			return self.buttons[button_id] and\
 					not self.old_buttons[button_id]
-		except AttributeError:
+		except (AttributeError, TypeError), e:
 			# not enough joystick messages yet?
 			return False
 		
@@ -190,7 +190,7 @@ class HistoryJoystick(Joy):
 		try:
 			return not self.buttons[button_id] and\
 					self.old_buttons[button_id]
-		except AttributeError:
+		except (AttributeError, TypeError), e:
 			# not enough joystick messages yet?
 			return False
 	
@@ -199,7 +199,7 @@ class HistoryJoystick(Joy):
 		try:
 			return self.buttons[button_id] != \
 					self.old_buttons[button_id]
-		except AttributeError:
+		except (TypeError, AttributeError), e:
 			# not enough joystick messages yet?
 			return False
 
@@ -208,7 +208,7 @@ class HistoryJoystick(Joy):
 		try:
 			return self.axes[axis_id] != \
 					self.old_axes[axis_id]
-		except AttributeError:
+		except (TypeError, AttributeError), e:
 			# no joystick messages yet?
 			return False
 
@@ -217,7 +217,7 @@ class HistoryJoystick(Joy):
 		try:
 			return self.axes[axis_id] and \
 					not self.old_axes[axis_id]
-		except AttributeError:
+		except (TypeError, AttributeError), e:
 			# no joystick messages yet?
 			return False
 
