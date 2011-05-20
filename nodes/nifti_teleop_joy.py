@@ -270,13 +270,17 @@ class HistoryJoystick(Joy):
 
 	## Instantiate a HistoryJoystick object
 	def __init__(self):
+		## Current state of the buttons
 		self.buttons = None
+		## Current state of the axes
 		self.axes = None
 
 	## To be called with each new joystick data.
 	def update(self, joy):
 		'''To be called with each new joystick data.'''
+		## Previous state of the buttons
 		self.old_buttons = self.buttons
+		## Previous state of the axes
 		self.old_axes = self.axes
 		self.buttons = joy.buttons
 		self.axes = joy.axes
