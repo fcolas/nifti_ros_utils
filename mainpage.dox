@@ -2,14 +2,31 @@
 \mainpage
 \htmlinclude manifest.html
 
-\b nifti_teleop is ... 
+\b nifti_teleop is the package of teleoperation of the NIFTi robot.
+
+To date, there is only a single node, \b nifti_teleop_joy allowing the
+user to control the robot with a joystick. This node just instantiates the
+nifti_teleop_joy::NiftiTeleopJoy class.
+
+There are several launchers provided for convenience in the <a
+href="../../../launch">launch directory</a>:
+- <a href="../../../launch/nifti_teleop_joy.launch">nifti_teleop_joy.launch</a>:
+	- joy_node to handle the joystick,
+	- nifti_robot_node to handle the robot,
+	- nifti_teleop_joy to link them both;
+- <a href="../../../launch/nifti_simu.launch">nifti_simu.launch</a>: same as
+  above plus rviz;
+- <a
+  href="../../../launch/nifti_joy_laser_rviz.launch">nifti_joy_laser_rviz.launch</a>:
+  same as above plus LMS100 to handle the laser.
+
+With the launch files, there is also a list of all the parameters for nifti_teleop_joy in <a
+href="../../../launch/default_teleop_joy.yaml">default_teleop_joy.yaml</a>. You
+should copy it and adapt it to your taste or joystick but not overwrite it.
 
 <!-- 
 Provide an overview of your package.
 -->
-
-
-\section codeapi Code API
 
 <!--
 Provide links to specific auto-generated API documentation within your
