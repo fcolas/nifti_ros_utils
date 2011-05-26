@@ -9,7 +9,10 @@ import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, Float64
 from joy.msg import Joy
+from topic_tools.srv import MuxAdd, MuxSelect
+
 from nifti_ros_drivers.msg import FlippersState, RobotStatus
+
 from math import pi
 
 ## Joystick teleoperation class
@@ -21,7 +24,7 @@ class NiftiTeleopJoy(object):
 	'''
 	
 	## Instantiate a NiftiTeleopJoy object
-	def __init__(self):
+	def __init__(self, mux_topic=None):
 		# joystick
 		## proxy to enhance the Joy message with more functionalities (see
 		# HistoryJoystick for details)
@@ -87,8 +90,15 @@ class NiftiTeleopJoy(object):
 		# @param ~flipper_increment (default: 10*pi/180)
 		self.flipper_increment = rospy.get_param('~flipper_increment', 10*pi/180.)
 		# topic names
-		# name of the velocity command topic of the robot driver
-		command_topic = rospy.get_param('~cmd_vel_topic', '/cmd_vel')
+		## topic with which to mux
+		self.mux_topic = rospy.get_param('~cmd_vel_mux_topic', None)
+		# name of the default velocity command topic of the robot driver
+		if self.mux_topic:
+			default_out = '~cmd_vel'
+		else:
+			default_out = '/cmd_vel'
+		## name of the velocity command topic of the robot driver
+		self.command_topic = rospy.get_param('~cmd_vel_topic', default_out)
 		# name of the flipper command topic of the robot driver
 		flippers_cmd_topic = rospy.get_param('~flippers_cmd_topic',
 				'/flippers_cmd')
@@ -108,7 +118,7 @@ class NiftiTeleopJoy(object):
 		# publisher and subscribers
 		## publisher for the velocity command topic
 		# @param ~cmd_vel_topic (default: '/cmd_vel')
-		self.cmdvel_pub = rospy.Publisher(command_topic, Twist)
+		self.cmdvel_pub = rospy.Publisher(self.command_topic, Twist)
 		## publisher for the flipper command topic
 		# @param ~flipper_cmd_topic (default: '/flippers_cmd')
 		self.flippers_pub = rospy.Publisher(flippers_cmd_topic, FlippersState)
@@ -130,7 +140,19 @@ class NiftiTeleopJoy(object):
 		## publisher for the scanning speed command topic
 		# @param ~scanning_speed_topic (default: '/scanning_speed_cmd')
 		self.scanning_speed_pub = rospy.Publisher(scanning_speed_topic, Float64)
-
+		# setting up muxing with upwards velocity commands
+		if self.mux_topic:
+			try:
+				mux_add = rospy.ServiceProxy('mux/add', MuxAdd)
+				rospy.wait_for_service('mux/add', 10)
+				mux_add(self.mux_topic)
+				## service proxy to change outpuc topic of the mux
+				self.mux_select = rospy.ServiceProxy('mux/select', MuxSelect)
+				rospy.wait_for_service('mux/select', 10)
+				self.mux_select(self.mux_topic)
+			except rospy.ROSException:
+				rospy.logwarn("Timeout when waiting for mux: proceeding without it.")
+				self.mux_topic = None
 
 	## Listen to the status of the robot.
 	def statusCallBack(self, robot_status):
@@ -172,6 +194,17 @@ class NiftiTeleopJoy(object):
 		self.brake_jcb(self.joy)
 		self.enable_jcb(self.joy)
 		self.scanning_speed_jcb(self.joy)
+		if self.mux_topic:
+			self.mux_jcb(self.joy)
+
+
+	## Handle mux topic selection based on the joystick input.
+	def mux_jcb(self, joy):
+		if joy.pressed(self.deadman_button):
+			self.mux_select(self.command_topic)
+		elif joy.released(self.deadman_button):
+			self.mux_select(self.mux_topic)
+			
 
 
 	## Handle velocity command based on the joystick input.

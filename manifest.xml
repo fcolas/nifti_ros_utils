@@ -12,6 +12,7 @@
   <depend package="geometry_msgs"/>
   <depend package="joy"/>
   <depend package="nifti_ros_drivers"/>
+  <depend package="topic_tools"/>
 
 </package>
 
