@@ -252,11 +252,12 @@ class NiftiTeleopJoy(object):
 					fs.rearLeft += joy.axes[self.flipper_axis]*self.flipper_increment
 				if joy.buttons[self.flipper_button_rr]:
 					fs.rearRight += joy.axes[self.flipper_axis]*self.flipper_increment
-				#rospy.loginfo('d_FL: %f, d_FR: %f, d_RL:%f, d_RR:%f'%
-				#		(fs.frontLeft - self.flippers.frontLeft,
-				#		fs.frontRight - self.flippers.frontRight,
-				#		fs.rearLeft - self.flippers.rearLeft,
-				#		fs.rearRight - self.flippers.rearRight))
+				rospy.loginfo('increment: %f'%self.flipper_increment)
+				rospy.loginfo('d_FL: %f, d_FR: %f, d_RL:%f, d_RR:%f'%
+						(fs.frontLeft - self.flippers.frontLeft,
+						fs.frontRight - self.flippers.frontRight,
+						fs.rearLeft - self.flippers.rearLeft,
+						fs.rearRight - self.flippers.rearRight))
 				self.flippers_pub.publish(fs)
 			except AttributeError:
 				rospy.logwarn('Flipper command ignored since no FlippersState message received.')
@@ -381,7 +382,7 @@ class HistoryJoystick(Joy):
 
 	## Check if a given axis has just been released (transition anything
 	# else->0).
-	def axis_touched(self, axis_id):
+	def axis_released(self, axis_id):
 		'''Check if a given axis has just been released has (transition anything
 		else->0).'''
 		try:
