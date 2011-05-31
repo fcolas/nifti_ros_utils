@@ -57,6 +57,10 @@ class NiftiTeleopJoy(object):
 		self.brake_button = rospy.get_param('~differential_brake_button', 8)
 		## button to select the front left flipper
 		# @param ~deadman_button (default: 4)
+		
+		# TODO: finish test
+		self.flipper_button_reset = rospy.get_param('~front_left_flipper_button', 3)
+		
 		self.flipper_button_fl = rospy.get_param('~front_left_flipper_button', 4)
 		## button to select the front right flipper
 		# @param ~deadman_button (default: 5)
@@ -88,7 +92,7 @@ class NiftiTeleopJoy(object):
 		self.scanning_speed_increment = rospy.get_param('~scanning_speed_increment', 0.2)
 		## flipper angle increment when moving them (in rad)
 		# @param ~flipper_increment (default: 10*pi/180)
-		self.flipper_increment = rospy.get_param('~flipper_increment', 10*pi/180.)
+		self.flipper_increment = rospy.get_param('~flipper_increment', 20*pi/180.)
 		# topic names
 		## topic with which to mux
 		self.mux_topic = rospy.get_param('~cmd_vel_mux_topic', None)
@@ -140,6 +144,13 @@ class NiftiTeleopJoy(object):
 		## publisher for the scanning speed command topic
 		# @param ~scanning_speed_topic (default: '/scanning_speed_cmd')
 		self.scanning_speed_pub = rospy.Publisher(scanning_speed_topic, Float64)
+		
+		#TODO: test ongoing for new flipper control
+		self.fs = FlippersState()
+		self.fs.frontLeft = 0.0 
+		self.fs.frontRight = 0.0
+		self.fs.rearLeft = 0.0
+		self.fs.rearRight = 0.0
 		# setting up muxing with upwards velocity commands
 		if self.mux_topic:
 			try:
@@ -233,32 +244,36 @@ class NiftiTeleopJoy(object):
 	def flipper_jcb(self, joy):
 		'''Handle flippers command based on the joystick input.'''
 		if joy.buttons[self.deadman_button]\
-				and any([joy.buttons[self.flipper_button_fl],
+				and ((any([joy.buttons[self.flipper_button_fl],
 						joy.buttons[self.flipper_button_fr],
 						joy.buttons[self.flipper_button_rl],
 						joy.buttons[self.flipper_button_rr]]) \
-				and joy.axis_touched(self.flipper_axis):
+				and joy.axis_touched(self.flipper_axis)) or joy.buttons[self.flipper_button_reset]):
 			try:
-				fs = FlippersState()
-				fs.frontLeft = self.flippers.frontLeft
-				fs.frontRight = self.flippers.frontRight
-				fs.rearLeft = self.flippers.rearLeft
-				fs.rearRight = self.flippers.rearRight
+				#fs = FlippersState()
+				#fs.frontLeft = self.flippers.frontLeft
+				#fs.frontRight = self.flippers.frontRight
+				#fs.rearLeft = self.flippers.rearLeft
+				#fs.rearRight = self.flippers.rearRight
 				if joy.buttons[self.flipper_button_fl]:
-					fs.frontLeft += joy.axes[self.flipper_axis]*self.flipper_increment
+					self.fs.frontLeft -= joy.axes[self.flipper_axis]*self.flipper_increment
 				if joy.buttons[self.flipper_button_fr]:
-					fs.frontRight += joy.axes[self.flipper_axis]*self.flipper_increment
+					self.fs.frontRight -= joy.axes[self.flipper_axis]*self.flipper_increment
 				if joy.buttons[self.flipper_button_rl]:
-					fs.rearLeft += joy.axes[self.flipper_axis]*self.flipper_increment
+					self.fs.rearLeft += joy.axes[self.flipper_axis]*self.flipper_increment
 				if joy.buttons[self.flipper_button_rr]:
-					fs.rearRight += joy.axes[self.flipper_axis]*self.flipper_increment
-				rospy.loginfo('increment: %f'%self.flipper_increment)
-				rospy.loginfo('d_FL: %f, d_FR: %f, d_RL:%f, d_RR:%f'%
-						(fs.frontLeft - self.flippers.frontLeft,
-						fs.frontRight - self.flippers.frontRight,
-						fs.rearLeft - self.flippers.rearLeft,
-						fs.rearRight - self.flippers.rearRight))
-				self.flippers_pub.publish(fs)
+					self.fs.rearRight += joy.axes[self.flipper_axis]*self.flipper_increment
+				if joy.buttons[self.flipper_button_reset]:
+					self.fs.frontLeft = 0.0 
+					self.fs.frontRight = 0.0
+					self.fs.rearLeft = 0.0
+					self.fs.rearRight = 0.0
+				#rospy.loginfo('d_FL: %f, d_FR: %f, d_RL:%f, d_RR:%f'%
+				#		(self.frontLeft ,
+				#		self.fs.frontRight,
+				#		self.fs.rearLeft,
+				#		self.fs.rearRight))
+				self.flippers_pub.publish(self.fs)
 			except AttributeError:
 				rospy.logwarn('Flipper command ignored since no FlippersState message received.')
 
@@ -286,8 +301,10 @@ class NiftiTeleopJoy(object):
 		if joy.buttons[self.deadman_button] and\
 				joy.axis_touched(self.scanning_speed_axis):
 			try:
-				v = min(self.max_scanning_speed,
-						abs(self.scanning_speed+self.scanning_speed_increment*joy.axes[self.scanning_speed_axis]))
+				v = self.scanning_speed+self.scanning_speed_increment*joy.axes[self.scanning_speed_axis]
+
+				v = max(0, v)
+				v = min(self.max_scanning_speed, v)
 				self.scanning_speed_pub.publish(v)
 			except AttributeError:
 				rospy.logwarn('Scanning speed change command ignored since no\
