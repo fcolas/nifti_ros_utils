@@ -147,10 +147,10 @@ class NiftiTeleopJoy(object):
 		
 		#TODO: test ongoing for new flipper control
 		self.fs = FlippersState()
-		self.fs.frontLeft = 0.0 
-		self.fs.frontRight = 0.0
-		self.fs.rearLeft = 0.0
-		self.fs.rearRight = 0.0
+		self.fs.frontLeft = None 
+		self.fs.frontRight = None
+		self.fs.rearLeft = None
+		self.fs.rearRight = None
 		# setting up muxing with upwards velocity commands
 		if self.mux_topic:
 			try:
@@ -178,6 +178,13 @@ class NiftiTeleopJoy(object):
 		'''Listen to the flippers state.'''
 		## state of the flippers
 		self.flippers = flippers
+
+		def roundFlipperValue(angle, inc=1.0*self.flipper_increment):
+			return inc*round(angle/inc)
+		self.fs.frontLeft = roundFlipperValue(flippers.frontLeft)
+		self.fs.frontRight = roundFlipperValue(flippers.frontRight)
+		self.fs.rearLeft = roundFlipperValue(flippers.rearLeft)
+		self.fs.rearRight = roundFlipperValue(flippers.rearRight)
 			
 
 	## Callback for a joystick message.
@@ -250,11 +257,6 @@ class NiftiTeleopJoy(object):
 						joy.buttons[self.flipper_button_rr]]) \
 				and joy.axis_touched(self.flipper_axis)) or joy.buttons[self.flipper_button_reset]):
 			try:
-				#fs = FlippersState()
-				#fs.frontLeft = self.flippers.frontLeft
-				#fs.frontRight = self.flippers.frontRight
-				#fs.rearLeft = self.flippers.rearLeft
-				#fs.rearRight = self.flippers.rearRight
 				if joy.buttons[self.flipper_button_fl]:
 					self.fs.frontLeft -= joy.axes[self.flipper_axis]*self.flipper_increment
 				if joy.buttons[self.flipper_button_fr]:
@@ -274,7 +276,7 @@ class NiftiTeleopJoy(object):
 				#		self.fs.rearLeft,
 				#		self.fs.rearRight))
 				self.flippers_pub.publish(self.fs)
-			except AttributeError:
+			except (TypeError, AttributeError), e:
 				rospy.logwarn('Flipper command ignored since no FlippersState message received.')
 
 
