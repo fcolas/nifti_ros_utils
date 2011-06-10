@@ -313,7 +313,7 @@ class NiftiTeleopJoy(object):
 		if joy.buttons[self.deadman_button] and\
 				joy.axis_touched(self.scanning_speed_axis):
 			try:
-				v = self.scanning_speed+self.scanning_speed_increment*joy.axes[self.scanning_speed_axis]
+				v = self.scanning_speed-self.scanning_speed_increment*joy.axes[self.scanning_speed_axis]
 				if v<0.:
 					v = 0.
 					self.laser_center_pub.publish(True)
