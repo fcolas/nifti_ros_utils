@@ -86,16 +86,19 @@ class NiftiTeleopJoy(object):
 		self.max_lin_vel = rospy.get_param('/max_linear', 0.3)
 		## maximum angular velocity (in rad/s)
 		# @param /max_angular (default: 0.8)
-		self.max_ang_vel = rospy.get_param('/max_angular', 0.8)
+		self.max_ang_vel = rospy.get_param('/max_angular', 1.0)
 		## maximum linear velocity with run button down (in m/s)
 		# @param /max_linear_run (default: 0.55)
-		self.max_lin_vel_run = rospy.get_param('/max_linear_run', 0.55)
+		self.max_lin_vel_run = rospy.get_param('/max_linear_run', 0.6)
 		## maximum angular velocity with run button down (in rad/s)
 		# @param /max_angular_run (default: 2.75)
-		self.max_ang_vel_run = rospy.get_param('/max_angular_run', 2.75)
+		self.max_ang_vel_run = rospy.get_param('/max_angular_run', 2.0)
 		## maximum scanning speed (in rad/s)
 		# @param /max_scanning_speed (default: 1.20)
 		self.max_scanning_speed = rospy.get_param('/max_scanning_speed', 1.20)
+		## tracks distance (in m)
+		# @param /tracks_distance (default: 0.397)
+		self.tracks_distance = rospy.get_param('/tracks_distance', 0.397)
 		## scanning speed increment when changing it (in rad/s)
 		# @param ~scanning_speed_increment (default: 0.2)
 		self.scanning_speed_increment = rospy.get_param('~scanning_speed_increment', 0.2)
@@ -246,8 +249,24 @@ class NiftiTeleopJoy(object):
 			else:
 				lin_scale = self.max_lin_vel
 				ang_scale = self.max_ang_vel
-			tw.linear.x = lin_scale*joy.axes[self.lin_vel_axis]
-			tw.angular.z = ang_scale*joy.axes[self.ang_vel_axis]
+			# limit tracks speed
+			v = lin_scale*joy.axes[self.lin_vel_axis]
+			w = ang_scale*joy.axes[self.ang_vel_axis]
+			l = v - w*self.tracks_distance/2.
+			r = v + w*self.tracks_distance/2.
+			Z = 1.
+			if abs(l)>self.max_lin_vel_run:
+				Z = abs(l)/self.max_lin_vel_run
+			if abs(r)>self.max_lin_vel_run:
+				Z = abs(r)/self.max_lin_vel_run
+			r = r / Z
+			l = l / Z
+			v = (l + r)/2.
+			w = (r - l)/self.tracks_distance
+			
+			tw.linear.x = v
+			tw.angular.z = w
+			
 			self.cmdvel_pub.publish(tw)
 		elif joy.released(self.deadman_button):	# make sure we ask the robot to stop
 			tw.linear.x = 0.0

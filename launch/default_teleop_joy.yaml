@@ -4,6 +4,7 @@ max_angular: 1.0
 max_linear_run: 0.6
 max_angular_run: 2.0
 max_scanning_speed: 1.20
+tracks_distance: 0.397
 
 nifti_teleop_joy: {
 	# joystick axes
