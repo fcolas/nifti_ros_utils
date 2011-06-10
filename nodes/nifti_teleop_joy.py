@@ -25,10 +25,18 @@ class NiftiTeleopJoy(object):
 	
 	## Instantiate a NiftiTeleopJoy object
 	def __init__(self, mux_topic=None):
+		## current flippers state
+		self.fs = FlippersState()
+		self.fs.frontLeft = None 
+		self.fs.frontRight = None
+		self.fs.rearLeft = None
+		self.fs.rearRight = None
+
 		# joystick
 		## proxy to enhance the Joy message with more functionalities (see
 		# HistoryJoystick for details)
 		self.joy = HistoryJoystick()
+		
 		# joystick axes
 		## axis for linear velocity
 		# @param ~axis_linear (default: 1)
@@ -42,6 +50,7 @@ class NiftiTeleopJoy(object):
 		## axis for scanning velocity
 		# @param ~scanning_speed_axis (default: 4)
 		self.scanning_speed_axis = rospy.get_param('~scanning_speed_axis', 4)
+		
 		# joystick buttons
 		## deadman button
 		# @param ~deadman_button (default: 1)
@@ -55,12 +64,11 @@ class NiftiTeleopJoy(object):
 		## button to toggle the differential brake
 		# @param ~differential_brake_button (default: 8)
 		self.brake_button = rospy.get_param('~differential_brake_button', 8)
+		## button to reset flippers to flat position
+		# @param ~flipper_reset_button (default: 3)
+		self.flipper_reset_button = rospy.get_param('~flipper_reset_button', 3)
 		## button to select the front left flipper
 		# @param ~deadman_button (default: 4)
-		
-		# TODO: finish test
-		self.flipper_button_reset = rospy.get_param('~front_left_flipper_button', 3)
-		
 		self.flipper_button_fl = rospy.get_param('~front_left_flipper_button', 4)
 		## button to select the front right flipper
 		# @param ~deadman_button (default: 5)
@@ -71,6 +79,7 @@ class NiftiTeleopJoy(object):
 		## button to select the rear right flipper
 		# @param ~deadman_button (default: 7)
 		self.flipper_button_rr = rospy.get_param('~rear_right_flipper_button', 7)
+		
 		# speed limits
 		## maximum linear velocity (in m/s)
 		# @param /max_linear (default: 0.3)
@@ -93,6 +102,7 @@ class NiftiTeleopJoy(object):
 		## flipper angle increment when moving them (in rad)
 		# @param ~flipper_increment (default: 10*pi/180)
 		self.flipper_increment = rospy.get_param('~flipper_increment', 20*pi/180.)
+		
 		# topic names
 		## topic with which to mux
 		self.mux_topic = rospy.get_param('~cmd_vel_mux_topic', None)
@@ -119,6 +129,9 @@ class NiftiTeleopJoy(object):
 		robot_status_topic = rospy.get_param('~robot_status_topic', '/robot_status')
 		# name of the joystick topic published by joy_node
 		joy_topic = rospy.get_param('~joy_topic', '/joy')
+		# name of the joystick topic published by joy_node
+		laser_center_topic = rospy.get_param('~laser_center_topic', '/laser_center')
+		
 		# publisher and subscribers
 		## publisher for the velocity command topic
 		# @param ~cmd_vel_topic (default: '/cmd_vel')
@@ -144,13 +157,10 @@ class NiftiTeleopJoy(object):
 		## publisher for the scanning speed command topic
 		# @param ~scanning_speed_topic (default: '/scanning_speed_cmd')
 		self.scanning_speed_pub = rospy.Publisher(scanning_speed_topic, Float64)
+		## publisher for the laser centering command topic
+		# @param ~laser_center_topic (default: '/laser_center')
+		self.laser_center_pub = rospy.Publisher(laser_center_topic, Bool)
 		
-		#TODO: test ongoing for new flipper control
-		self.fs = FlippersState()
-		self.fs.frontLeft = None 
-		self.fs.frontRight = None
-		self.fs.rearLeft = None
-		self.fs.rearRight = None
 		# setting up muxing with upwards velocity commands
 		if self.mux_topic:
 			try:
@@ -255,7 +265,7 @@ class NiftiTeleopJoy(object):
 						joy.buttons[self.flipper_button_fr],
 						joy.buttons[self.flipper_button_rl],
 						joy.buttons[self.flipper_button_rr]]) \
-				and joy.axis_touched(self.flipper_axis)) or joy.buttons[self.flipper_button_reset]):
+				and joy.axis_touched(self.flipper_axis)) or joy.buttons[self.flipper_reset_button]):
 			try:
 				if joy.buttons[self.flipper_button_fl]:
 					self.fs.frontLeft -= joy.axes[self.flipper_axis]*self.flipper_increment
@@ -265,7 +275,7 @@ class NiftiTeleopJoy(object):
 					self.fs.rearLeft += joy.axes[self.flipper_axis]*self.flipper_increment
 				if joy.buttons[self.flipper_button_rr]:
 					self.fs.rearRight += joy.axes[self.flipper_axis]*self.flipper_increment
-				if joy.buttons[self.flipper_button_reset]:
+				if joy.buttons[self.flipper_reset_button]:
 					self.fs.frontLeft = 0.0 
 					self.fs.frontRight = 0.0
 					self.fs.rearLeft = 0.0
@@ -304,9 +314,11 @@ class NiftiTeleopJoy(object):
 				joy.axis_touched(self.scanning_speed_axis):
 			try:
 				v = self.scanning_speed+self.scanning_speed_increment*joy.axes[self.scanning_speed_axis]
-
-				v = max(0, v)
-				v = min(self.max_scanning_speed, v)
+				if v<0.:
+					v = 0.
+					self.laser_center_pub.publish(True)
+				else:
+					v = min(self.max_scanning_speed, v)
 				self.scanning_speed_pub.publish(v)
 			except AttributeError:
 				rospy.logwarn('Scanning speed change command ignored since no\
