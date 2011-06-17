@@ -1,0 +1,76 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+\b nifti_robot_driver is the package containing the node to handle the
+NIFTi platform.
+It provides access to all the features of the robot through ROS messages.
+
+This package is built around the \b NiftiRobot class and launch its NiftiRobot::run()
+method.
+
+\b nifti_robot_node just instantiates this class.
+
+\section interface Commmunication interface in ROS
+
+\subsection topics Published topics and tfs
+The node (and class) is publishing topics and \c /tf transformations at \a loop_rate Hz.
+
+\subsubsection pub_topics Topics
+- \c /robot_status (<a href="msg/RobotStatus.html">RobotStatus</a>): describes the status of the robot,
+- \c /flippers_state (<a href="msg/FlippersState.html">FlippersState</a>): the 4
+  angles of the flippers,
+- \c /odom (<a
+  href="http://www.ros.org/doc/api/nav_msgs/html/msg/Odometry.html">nav_msgs::Odometry</a>):
+  2D odometry.
+
+\subsubsection pub_tf Transformations
+- \c /odom -> \c /base_link (rough 2D odometry),
+- \c /base_link -> \c /left_track and \c /right_track (based on the
+  differential configuration),
+- \c /left_track -> \c /front_left_flipper and \c /rear_left_flipper, 
+- \c /right_track -> \c /front_right_flipper and \c /rear_right_flipper, 
+- \c /base_link -> \c /laser (based on nrGetScannerAngle).
+
+\subsection sub_topics Subscribed topics
+The node (and class) subscribes to a set of topics to listen to commands:
+
+- \c /cmd_vel (<a href="http://www.ros.org/doc/api/geometry_msgs/html/msg/Twist.html">geometry_msgs::Twist</a>): velocity command,
+- \c /enable (<a
+  href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>): (re)enable motors if they are in some fault state,
+- \c /flippers_cmd (<a href="msg/FlippersState.html">FlippersState</a>): flippers position command,
+- \c /scanning_speed_cmd (<a
+  href="http://www.ros.org/doc/api/std_msgs/html/msg/Float64.html">std_msgs::Float64</a>): speed of the rolling laser,
+- \c /brake (<a
+  href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>): enable of disable the differential brake.
+- \c /laser_center (<a
+  href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>):
+  request the laser scanner to go in middle position.
+
+\section simu Simulation of the NIFTi robot
+In order to test the driver without the rover, I implemented a simulation
+library (nifti_robot_simulation.c). This interface can still be used by setting the \a USE_SIMULATION
+flag to \c true in \c cmake (with \c ccmake for example).
+
+
+
+<!-- 
+Provide an overview of your package.
+-->
+
+
+<!-- \section codeapi Code API
+-->
+<!--
+Provide links to specific auto-generated API documentation within your
+package that is of particular interest to a reader. Doxygen will
+document pretty much every part of your code, so do your best here to
+point the reader to the actual API.
+
+If your codebase is fairly large or has different sets of APIs, you
+should use the doxygen 'group' tag to keep these APIs together. For
+example, the roscpp documentation has 'libros' group.
+-->
+
+
+*/
