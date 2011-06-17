@@ -1,0 +1,5 @@
+float64 battery_level
+int32 battery_status
+bool brake_on
+float64 scanning_speed
+ControllersStatus controllers_status
