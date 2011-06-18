@@ -11,7 +11,7 @@ from std_msgs.msg import Bool, Float64
 from joy.msg import Joy
 from topic_tools.srv import MuxAdd, MuxSelect
 
-from nifti_ros_drivers.msg import FlippersState, RobotStatus
+from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus
 
 from math import pi
 
