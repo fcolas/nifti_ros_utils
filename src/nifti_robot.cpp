@@ -54,7 +54,9 @@ NiftiRobot::NiftiRobot():
 	// Configuration publisher
 	configuration_broadcaster(),
 	flippers_state_pub(n.advertise<nifti_robot_driver_msgs::FlippersState>
-			("flippers_state", 50))
+			("flippers_state", 50)),
+	currents_pub(n.advertise<nifti_robot_driver_msgs::Currents>
+			("currents", 50))
 	// subscribers are initialized at the end, after nrInit
 {
 
@@ -478,6 +480,9 @@ void NiftiRobot::update_robot_state()
 	int brake_on;
 	double scanning_speed;
 	nifti_robot_driver_msgs::RobotStatus robot_status;
+	nifti_robot_driver_msgs::Currents currents;
+	double current;
+
 
 	battery_level = -1.0;
 	NR_CHECK_AND_RETURN(nrGetBatteryLevel, &battery_level, &battery_status);
@@ -499,6 +504,21 @@ void NiftiRobot::update_robot_state()
 	robot_status.controllers_status.flipper_rear_right = controllers_status[6];
 	
 	robot_status_pub.publish(robot_status);
+
+	NR_CHECK_AND_RETURN(nrReadDOFCurrent, &current, ID_TRACK_LEFT);
+	currents.trackLeft=current;
+	NR_CHECK_AND_RETURN(nrReadDOFCurrent, &current, ID_TRACK_RIGHT);
+	currents.trackRight=current;
+	NR_CHECK_AND_RETURN(nrReadDOFCurrent, &current, ID_FLIPPER_FRONT_LEFT);
+	currents.frontLeft=current;
+	NR_CHECK_AND_RETURN(nrReadDOFCurrent, &current, ID_FLIPPER_FRONT_RIGHT);
+	currents.frontRight=current;
+	NR_CHECK_AND_RETURN(nrReadDOFCurrent, &current, ID_FLIPPER_REAR_LEFT);
+	currents.rearLeft=current;
+	NR_CHECK_AND_RETURN(nrReadDOFCurrent, &current, ID_FLIPPER_REAR_RIGHT);
+	currents.rearRight=current;
+	
+	currents_pub.publish(currents);
 
 }
 

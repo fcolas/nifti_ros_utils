@@ -178,6 +178,37 @@ int nrSetFlippers(double fL, double fR, double rL,
 	RETURN_ERROR;
 }
 
+/* Set flipper angles [\a rad]. All flippers has the same referential coordinate. They all rotate around the \a Y-axis.
+ *  That means negative values for front flippers makes the flipper to move up.
+ *  \param[in] angle Angle to be set [\a rad].
+ *  \param[in] object Object id. Possible object id are: ID_FLIPPER_FRONT_LEFT, ID_FLIPPER_FRONT_RIGHT,
+ *  ID_FLIPPER_REAR_LEFT, ID_FLIPPER_REAR_RIGHT.*/
+int nrSetFlipper(double angle, int object)
+{
+	GETPRINT("nrSetFlipper(angle=%f, object=%s)\n", angle, CTRL_NAMES[object]);
+	switch (object){
+	case ID_FLIPPER_FRONT_LEFT:
+		frontLeft = update_flipper(frontLeft, angle);
+		break;
+	case ID_FLIPPER_FRONT_RIGHT:
+		frontRight = update_flipper(frontRight, angle);
+		break;
+	case ID_FLIPPER_REAR_RIGHT:
+		rearRight = update_flipper(rearRight, angle);
+		break;
+	case ID_FLIPPER_REAR_LEFT:
+		rearLeft = update_flipper(rearLeft, angle);
+		break;
+	default:
+		SETPRINT("nrSetFlipper called with wrong object ID: %d.\n", object);
+	}
+	RETURN_ERROR;
+
+
+}
+
+
+
 /* get flippers angles
 */
 int nrGetFlippers(double *fL, double *fR, double *rL,
@@ -283,6 +314,20 @@ int nrGetScannerAngle(double *val)
 	//printf("laser: %f -> %f\n", laser_pos, out_angle);
 	GETPRINT("nrGetScannerAngle(*val=%f)\n", out_angle);
 	*val = out_angle;
+	RETURN_ERROR;
+}
+
+/* Get the active current of the motors [\a A]. Use the object ID_xxx defined in types.h.
+ *
+ * ID_CORE; ID_TRACK_LEFT; ID_TRACK_RIGHT; ID_FLIPPER_FRONT_LEFT;
+ * ID_FLIPPER_FRONT_RIGHT; ID_FLIPPER_REAR_LEFT; ID_FLIPPER_REAR_RIGHT; ID_CTRL_MAX
+ *
+ *  \param[out] *iq Actual active current of the motors in [\a A].
+ *  \param[in] object The objects id are defined in the types.h only. */
+int nrReadDOFCurrent(double *iq, int object)
+{
+	GETPRINT("nrReadDOFCurrent(*iq=0A, object=%s)\n", CTRL_NAMES[object]);
+	*iq = 0.0;
 	RETURN_ERROR;
 }
 

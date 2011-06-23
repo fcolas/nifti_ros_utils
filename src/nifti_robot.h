@@ -19,6 +19,7 @@
 
 #include <nifti_robot_driver_msgs/FlippersState.h>
 #include <nifti_robot_driver_msgs/RobotStatus.h>
+#include <nifti_robot_driver_msgs/Currents.h>
 
 //! Maximum scanning speed for the laser
 #define MAX_SCANNING_SPEED 1.20
@@ -171,8 +172,11 @@ protected:
 	//! Configuration publisher
 	tf::TransformBroadcaster configuration_broadcaster;
 
-	//! FlipperState publisher
+	//! Flippertate publisher
 	ros::Publisher flippers_state_pub;
+
+	//! Current readings
+	ros::Publisher currents_pub;
 
 	// subscribers
 	//! Subscriber to a velocity command
