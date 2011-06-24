@@ -28,6 +28,7 @@ nifti_teleop_joy: {
 	# topic names
 	cmd_vel_topic: '/cmd_vel',
 	flippers_cmd_topic: '/flippers_cmd',
+	flipper_cmd_topic: '/flipper_cmd',
 	flippers_state_topic: '/flippers_state',
 	brake_topic: '/brake',
 	enable_topic: '/enable',

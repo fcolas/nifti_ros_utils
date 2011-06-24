@@ -11,9 +11,15 @@ from std_msgs.msg import Bool, Float64
 from joy.msg import Joy
 from topic_tools.srv import MuxAdd, MuxSelect
 
-from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus
+from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus, FlipperCommand
 
 from math import pi
+
+# TODO: should be part of the message definition
+ID_FLIPPER_FRONT_LEFT=3
+ID_FLIPPER_FRONT_RIGHT=4
+ID_FLIPPER_REAR_LEFT=5
+ID_FLIPPER_REAR_RIGHT=6
 
 ## Joystick teleoperation class
 class NiftiTeleopJoy(object):
@@ -116,9 +122,12 @@ class NiftiTeleopJoy(object):
 			default_out = '/cmd_vel'
 		## name of the velocity command topic of the robot driver
 		self.command_topic = rospy.get_param('~cmd_vel_topic', default_out)
-		# name of the flipper command topic of the robot driver
+		# name of the all flippers command topic of the robot driver
 		flippers_cmd_topic = rospy.get_param('~flippers_cmd_topic',
 				'/flippers_cmd')
+		# name of the individual flipper command topic of the robot driver
+		flipper_cmd_topic = rospy.get_param('~flipper_cmd_topic',
+				'/flipper_cmd')
 		# name of the flippers state topic published by the robot driver
 		flippers_state_topic = rospy.get_param('~flippers_state_topic',
 				'/flippers_state')
@@ -139,9 +148,12 @@ class NiftiTeleopJoy(object):
 		## publisher for the velocity command topic
 		# @param ~cmd_vel_topic (default: '/cmd_vel')
 		self.cmdvel_pub = rospy.Publisher(self.command_topic, Twist)
-		## publisher for the flipper command topic
-		# @param ~flipper_cmd_topic (default: '/flippers_cmd')
+		## publisher for the all flippers command topic
+		# @param ~flippers_cmd_topic (default: '/flippers_cmd')
 		self.flippers_pub = rospy.Publisher(flippers_cmd_topic, FlippersState)
+		## publisher for the individual flipper command topic
+		# @param ~flipper_cmd_topic (default: '/flipper_cmd')
+		self.flipper_pub = rospy.Publisher(flipper_cmd_topic, FlipperCommand)
 		## subscriber to the flippers state topic published by the robot driver
 		# @param ~flippers_state_topic (default: '/flippers_state')
 		rospy.Subscriber(flippers_state_topic, FlippersState, self.flippersCallBack)
@@ -189,8 +201,8 @@ class NiftiTeleopJoy(object):
 	## Listen to the flippers state.
 	def flippersCallBack(self, flippers):
 		'''Listen to the flippers state.'''
-		## state of the flippers
-		self.flippers = flippers
+		# state of the flippers
+		#self.flippers = flippers
 
 		def roundFlipperValue(angle, inc=1.0*self.flipper_increment):
 			return inc*round(angle/inc)
@@ -279,34 +291,44 @@ class NiftiTeleopJoy(object):
 	## Handle flippers command based on the joystick input.
 	def flipper_jcb(self, joy):
 		'''Handle flippers command based on the joystick input.'''
-		if joy.buttons[self.deadman_button]\
-				and ((any([joy.buttons[self.flipper_button_fl],
-						joy.buttons[self.flipper_button_fr],
-						joy.buttons[self.flipper_button_rl],
-						joy.buttons[self.flipper_button_rr]]) \
-				and joy.axis_touched(self.flipper_axis)) or joy.buttons[self.flipper_reset_button]):
-			try:
-				if joy.buttons[self.flipper_button_fl]:
-					self.fs.frontLeft -= joy.axes[self.flipper_axis]*self.flipper_increment
-				if joy.buttons[self.flipper_button_fr]:
-					self.fs.frontRight -= joy.axes[self.flipper_axis]*self.flipper_increment
-				if joy.buttons[self.flipper_button_rl]:
-					self.fs.rearLeft += joy.axes[self.flipper_axis]*self.flipper_increment
-				if joy.buttons[self.flipper_button_rr]:
-					self.fs.rearRight += joy.axes[self.flipper_axis]*self.flipper_increment
-				if joy.buttons[self.flipper_reset_button]:
-					self.fs.frontLeft = 0.0 
-					self.fs.frontRight = 0.0
-					self.fs.rearLeft = 0.0
-					self.fs.rearRight = 0.0
-				#rospy.loginfo('d_FL: %f, d_FR: %f, d_RL:%f, d_RR:%f'%
-				#		(self.frontLeft ,
-				#		self.fs.frontRight,
-				#		self.fs.rearLeft,
-				#		self.fs.rearRight))
+		if joy.buttons[self.deadman_button]:
+			if joy.pressed(self.flipper_reset_button):	# flat button
+				self.fs.frontLeft = 0.0
+				self.fs.frontRight = 0.0
+				self.fs.rearLeft = 0.0
+				self.fs.rearRight = 0.0
 				self.flippers_pub.publish(self.fs)
-			except (TypeError, AttributeError), e:
-				rospy.logwarn('Flipper command ignored since no FlippersState message received.')
+			elif joy.axis_touched(self.flipper_axis):
+				try:
+					if all([joy.buttons[self.flipper_button_fl],
+							joy.buttons[self.flipper_button_fr],
+							joy.buttons[self.flipper_button_rl],
+							joy.buttons[self.flipper_button_rr]]):
+						self.fs.frontLeft -= joy.axes[self.flipper_axis]*self.flipper_increment
+						self.fs.frontRight -= joy.axes[self.flipper_axis]*self.flipper_increment
+						self.fs.rearLeft += joy.axes[self.flipper_axis]*self.flipper_increment
+						self.fs.rearRight += joy.axes[self.flipper_axis]*self.flipper_increment
+						self.flippers_pub.publish(self.fs)
+					else:	# individual control
+						flipperMotion = FlipperCommand()
+						if joy.buttons[self.flipper_button_fl]:
+							flipperMotion.object_id = ID_FLIPPER_FRONT_LEFT
+							flipperMotion.angle = self.fs.frontLeft - joy.axes[self.flipper_axis]*self.flipper_increment
+							self.flipper_pub.publish(flipperMotion)
+						if joy.buttons[self.flipper_button_fr]:
+							flipperMotion.object_id = ID_FLIPPER_FRONT_RIGHT
+							flipperMotion.angle = self.fs.frontRight - joy.axes[self.flipper_axis]*self.flipper_increment
+							self.flipper_pub.publish(flipperMotion)
+						if joy.buttons[self.flipper_button_rl]:
+							flipperMotion.object_id = ID_FLIPPER_REAR_LEFT
+							flipperMotion.angle = self.fs.rearLeft + joy.axes[self.flipper_axis]*self.flipper_increment
+							self.flipper_pub.publish(flipperMotion)
+						if joy.buttons[self.flipper_button_rr]:
+							flipperMotion.object_id = ID_FLIPPER_REAR_RIGHT
+							flipperMotion.angle = self.fs.rearRight + joy.axes[self.flipper_axis]*self.flipper_increment
+							self.flipper_pub.publish(flipperMotion)
+				except (TypeError, AttributeError), e:
+					rospy.logwarn('Flipper command ignored since no FlippersState message received.')
 
 
 	## Handle brake command based on the joystick input.
