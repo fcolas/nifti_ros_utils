@@ -185,7 +185,7 @@ int nrSetFlippers(double fL, double fR, double rL,
  *  ID_FLIPPER_REAR_LEFT, ID_FLIPPER_REAR_RIGHT.*/
 int nrSetFlipper(double angle, int object)
 {
-	GETPRINT("nrSetFlipper(angle=%f, object=%s)\n", angle, CTRL_NAMES[object]);
+	SETPRINT("nrSetFlipper(angle=%f, object=%s)\n", angle, CTRL_NAMES[object]);
 	switch (object){
 	case ID_FLIPPER_FRONT_LEFT:
 		frontLeft = update_flipper(frontLeft, angle);
@@ -200,7 +200,7 @@ int nrSetFlipper(double angle, int object)
 		rearLeft = update_flipper(rearLeft, angle);
 		break;
 	default:
-		SETPRINT("nrSetFlipper called with wrong object ID: %d.\n", object);
+		printf("ERROR: nrSetFlipper called with wrong object ID: %d.\n", object);
 	}
 	RETURN_ERROR;
 

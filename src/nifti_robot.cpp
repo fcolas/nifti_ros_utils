@@ -176,8 +176,10 @@ NiftiRobot::NiftiRobot():
 	cmd_vel_sub = n.subscribe("cmd_vel", 1, &NiftiRobot::cmd_vel_cb, this);
 	// enable command
 	enable_sub = n.subscribe("enable", 1, &NiftiRobot::enable_cb, this);
-	// flippers command
+	// all flippers command
 	flippers_sub = n.subscribe("flippers_cmd", 1, &NiftiRobot::flippers_cb, this);
+	// individual flipper command
+	flipper_sub = n.subscribe("flipper_cmd", 4, &NiftiRobot::flipper_cb, this);
 	// scanning speed command
 	scanning_speed_sub = n.subscribe("scanning_speed_cmd", 1, &NiftiRobot::scanning_speed_cb, this);
 	// brake command
@@ -228,13 +230,22 @@ void NiftiRobot::enable_cb(const std_msgs::Bool& on)
 
 
 /*
- * Callback for flippers command
+ * Callback for all flippers command
  */
 void NiftiRobot::flippers_cb(const nifti_robot_driver_msgs::FlippersState& flippers)
 {
 	ROS_DEBUG_STREAM("received flippers command: " << flippers);
 	NR_CHECK_AND_RETURN(nrSetFlippers, flippers.frontLeft, flippers.frontRight,
 			flippers.rearLeft, flippers.rearRight);
+}
+
+/*
+ * Callback for individual flipper command
+ */
+void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipperCommand)
+{
+	ROS_DEBUG_STREAM("received individual flipper command: " << flipperCommand);
+	NR_CHECK_AND_RETURN(nrSetFlipper, flipperCommand.angle, flipperCommand.object_id);
 }
 
 /*

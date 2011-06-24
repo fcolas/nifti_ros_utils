@@ -20,6 +20,7 @@
 #include <nifti_robot_driver_msgs/FlippersState.h>
 #include <nifti_robot_driver_msgs/RobotStatus.h>
 #include <nifti_robot_driver_msgs/Currents.h>
+#include <nifti_robot_driver_msgs/FlipperCommand.h>
 
 //! Maximum scanning speed for the laser
 #define MAX_SCANNING_SPEED 1.20
@@ -103,8 +104,11 @@ protected:
 	//! Callback for enable command
 	void enable_cb(const std_msgs::Bool& on);
 
-	//! Callback for flippers command
+	//! Callback for all flippers command
 	void flippers_cb(const nifti_robot_driver_msgs::FlippersState& flippers);
+
+	//! Callback for individual flipper command
+	void flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipperCommand);
 
 	//! Callback for setting scanning speed
 	void scanning_speed_cb(const std_msgs::Float64& scanning_speed);
@@ -185,8 +189,11 @@ protected:
 	//! Subscriber to a enable command
 	ros::Subscriber enable_sub;
 	
-	//! Subscriber to a flipper command
+	//! Subscriber to a simulatenous flippers command
 	ros::Subscriber flippers_sub;
+
+	//! Subscriber to an individual flipper command
+	ros::Subscriber flipper_sub;
 	
 	//! Subscriber to a command to change the scanning speed
 	ros::Subscriber scanning_speed_sub;
