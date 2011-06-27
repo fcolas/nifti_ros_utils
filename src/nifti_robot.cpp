@@ -563,6 +563,7 @@ void NiftiRobot::run(){
 		loop_rate.sleep();
 		ros::spinOnce();
 	}
+	NR_CHECK_AND_RETURN(nrEnable, 0);
 
 }
 
