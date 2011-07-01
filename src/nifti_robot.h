@@ -14,6 +14,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Int32.h>
+#include <diagnostic_updater/diagnostic_updater.h>
 
 #include <librover/librover.h>
 
@@ -24,6 +25,15 @@
 
 //! Maximum scanning speed for the laser
 #define MAX_SCANNING_SPEED 1.20
+
+
+//! Diagnostic messages for the battery
+const char BATTERY_DIAG_MSG[][32] = {
+	"OK",
+	"Warning",
+	"Critical"
+};
+
 
 /** \brief Class to handle the NIFTi robot.
  *
@@ -96,6 +106,12 @@ protected:
 	//! Physical configuration transforms
 	std::vector<geometry_msgs::TransformStamped> configuration_tfs;
 
+	//! Battery state
+	int battery_status;
+
+	//! Battery level
+	double battery_level;
+
 
 	// callbacks
 	//! Callback for velocity command
@@ -164,6 +180,12 @@ protected:
 
 
 	// publishers
+	//! Diagnostics publisher
+	diagnostic_updater::Updater diagnostic_pub;
+
+	//! Battery diagnostics
+	void diag_batt(diagnostic_updater::DiagnosticStatusWrapper& stat);
+
 	//! 2D odometry publisher in tf
 	tf::TransformBroadcaster odom_broadcaster_2d;
 	

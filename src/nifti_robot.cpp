@@ -34,6 +34,10 @@ NiftiRobot::NiftiRobot():
 	//rear_left_offset((180-11.1)*M_PI/180.),
 	//? angle offset of the rear right flipper
 	//rear_right_offset((180-11.1)*M_PI/180.),
+	// Battery status
+	battery_status(-1),
+	// Battery level
+	battery_level(-1),
 	// Name of the odometry frame
 	odom_frame("/odom"),
 	// Name of the robot frame
@@ -44,6 +48,8 @@ NiftiRobot::NiftiRobot():
 	omni_frame("/omni"),
 	// Name of the imu frame
 	imu_frame("/imu"),
+	// diagnostics publisher
+	//diagnostic_pub(), // Doesn't work!?
 	// 2D odometry publisher in tf
 	odom_broadcaster_2d(),
 	// 2D odometry publisher in message
@@ -166,6 +172,13 @@ NiftiRobot::NiftiRobot():
 	imu_tf.transform.rotation = tmp_rot;
 	configuration_tfs.push_back(imu_tf);
 
+	// setting up diagnostics
+	//diagnostic_updater::Updater tmp_up;
+	//diagnostic_pub = tmp_up;
+    diagnostic_pub.add("Battery status", this, &NiftiRobot::diag_batt);
+    diagnostic_pub.setHardwareID("none");
+
+	
 
 	/*
 	 * initialize and subscribe the listeners
@@ -485,8 +498,6 @@ void NiftiRobot::update_config()
  */
 void NiftiRobot::update_robot_state()
 {
-	double battery_level;
-	int battery_status;
 	int controllers_status[7];
 	int brake_on;
 	double scanning_speed;
@@ -533,6 +544,19 @@ void NiftiRobot::update_robot_state()
 
 }
 
+/*
+ * Battery diagnostics
+ */
+void NiftiRobot::diag_batt(diagnostic_updater::DiagnosticStatusWrapper& stat)
+{
+	if (battery_status>-1)
+		stat.summary(battery_status, BATTERY_DIAG_MSG[battery_status]);
+	else
+		stat.summary(2, "No battery information.");
+	
+	stat.add("battery level", battery_level);
+    
+}
 
 /*
  * Update all
@@ -542,6 +566,7 @@ void NiftiRobot::update_all()
 	update_robot_state();
 	update_config();
 	update_2d_odom();
+	diagnostic_pub.update();
 }
 
 
