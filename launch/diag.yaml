@@ -3,4 +3,4 @@ analyzers:
     type: GenericAnalyzer
     path: Robot
     find_and_remove_prefix: 'nifti_robot_node'
-    num_items: 1
+    num_items: 8
