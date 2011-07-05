@@ -175,8 +175,15 @@ NiftiRobot::NiftiRobot():
 	// setting up diagnostics
 	//diagnostic_updater::Updater tmp_up;
 	//diagnostic_pub = tmp_up;
-    diagnostic_pub.add("Battery status", this, &NiftiRobot::diag_batt);
     diagnostic_pub.setHardwareID("none");
+    diagnostic_pub.add("Battery", this, &NiftiRobot::diag_batt);
+    diagnostic_pub.add("Core", this, &NiftiRobot::diag_core);
+    diagnostic_pub.add("Left track", this, &NiftiRobot::diag_left_track);
+    diagnostic_pub.add("Right track", this, &NiftiRobot::diag_right_track);
+    diagnostic_pub.add("Front left flipper", this, &NiftiRobot::diag_front_left_flipper);
+    diagnostic_pub.add("Front right flipper", this, &NiftiRobot::diag_front_right_flipper);
+    diagnostic_pub.add("Rear left flipper", this, &NiftiRobot::diag_rear_left_flipper);
+    diagnostic_pub.add("Rear right flipper", this, &NiftiRobot::diag_rear_right_flipper);
 
 	
 
@@ -498,7 +505,7 @@ void NiftiRobot::update_config()
  */
 void NiftiRobot::update_robot_state()
 {
-	int controllers_status[7];
+	//int controllers_status[7];
 	int brake_on;
 	double scanning_speed;
 	nifti_robot_driver_msgs::RobotStatus robot_status;
@@ -517,13 +524,19 @@ void NiftiRobot::update_robot_state()
 	robot_status.battery_status = battery_status;
 	robot_status.brake_on = brake_on;
 	robot_status.scanning_speed = scanning_speed;
-	robot_status.controllers_status.core = controllers_status[0];
-	robot_status.controllers_status.track_left = controllers_status[1];
-	robot_status.controllers_status.track_right = controllers_status[2];
-	robot_status.controllers_status.flipper_front_left = controllers_status[3];
-	robot_status.controllers_status.flipper_front_right = controllers_status[4];
-	robot_status.controllers_status.flipper_rear_left = controllers_status[5];
-	robot_status.controllers_status.flipper_rear_right = controllers_status[6];
+	robot_status.controllers_status.core = controllers_status[ID_CORE];
+	robot_status.controllers_status.track_left =
+			controllers_status[ID_TRACK_LEFT];
+	robot_status.controllers_status.track_right =
+			controllers_status[ID_TRACK_RIGHT];
+	robot_status.controllers_status.flipper_front_left =
+			controllers_status[ID_FLIPPER_FRONT_LEFT];
+	robot_status.controllers_status.flipper_front_right =
+			controllers_status[ID_FLIPPER_FRONT_RIGHT];
+	robot_status.controllers_status.flipper_rear_left =
+			controllers_status[ID_FLIPPER_REAR_LEFT];
+	robot_status.controllers_status.flipper_rear_right =
+			controllers_status[ID_FLIPPER_REAR_RIGHT];
 	
 	robot_status_pub.publish(robot_status);
 
@@ -556,6 +569,41 @@ void NiftiRobot::diag_batt(diagnostic_updater::DiagnosticStatusWrapper& stat)
 	
 	stat.add("battery level", battery_level);
     
+}
+
+/*
+ * Controllers diagnostics
+ */
+void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status)
+{
+	int e;
+	e = SR_GET_ERROR(status);
+	stat.summary(2*e, e?"Error":"OK");
+	stat.add("error flag", e);
+	stat.add("servo drive status", SR_GET_SERVO_DRIVE_STATUS(status));
+	stat.add("motor on", SR_GET_MOTOR_ON(status));
+}
+
+void NiftiRobot::diag_core(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+	diag_ctrl(stat, controllers_status[ID_CORE]);
+}
+void NiftiRobot::diag_left_track(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+	diag_ctrl(stat, controllers_status[ID_TRACK_LEFT]);
+}
+void NiftiRobot::diag_right_track(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+	diag_ctrl(stat, controllers_status[ID_TRACK_RIGHT]);
+}
+void NiftiRobot::diag_front_left_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_LEFT]);
+}
+void NiftiRobot::diag_front_right_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_RIGHT]);
+}
+void NiftiRobot::diag_rear_left_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_LEFT]);
+}
+void NiftiRobot::diag_rear_right_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_RIGHT]);
 }
 
 /*

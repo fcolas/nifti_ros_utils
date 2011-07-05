@@ -112,6 +112,8 @@ protected:
 	//! Battery level
 	double battery_level;
 
+	//! Status for each controller
+	int controllers_status[ID_CTRL_MAX];
 
 	// callbacks
 	//! Callback for velocity command
@@ -185,6 +187,27 @@ protected:
 
 	//! Battery diagnostics
 	void diag_batt(diagnostic_updater::DiagnosticStatusWrapper& stat);
+
+	//! Diagnostic for the core controller
+	void diag_core(diagnostic_updater::DiagnosticStatusWrapper& stat);
+
+	//! Diagnostic for the left track controller
+	void diag_left_track(diagnostic_updater::DiagnosticStatusWrapper& stat);
+
+	//! Diagnostic for the right track controller
+	void diag_right_track(diagnostic_updater::DiagnosticStatusWrapper& stat);
+
+	//! Diagnostic for the front left flipper controller
+	void diag_front_left_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat);
+
+	//! Diagnostic for the front right flipper controller
+	void diag_front_right_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat);
+
+	//! Diagnostic for the rear left flipper controller
+	void diag_rear_left_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat);
+
+	//! Diagnostic for the rear right flipper controller
+	void diag_rear_right_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat);
 
 	//! 2D odometry publisher in tf
 	tf::TransformBroadcaster odom_broadcaster_2d;
