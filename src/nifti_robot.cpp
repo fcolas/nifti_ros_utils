@@ -4,6 +4,13 @@
 #include <math.h>
 
 
+#define NR_CHECK_AND_RETURN(nrFn, ...) do {if (int e=nrFn(__VA_ARGS__))\
+		{ROS_WARN_STREAM("Error " << e << " (" << CAN_Error_Messages[e]\
+			<< ") while calling " << #nrFn <<\
+			".");return;}}while (0)
+
+#define GET_BIT(status, bit) (((status) & (1 << (bit))) >> (bit))
+
 std::string CAN_Error_Messages[6]=
 		{"No error",
 		 "Open error",
@@ -12,10 +19,37 @@ std::string CAN_Error_Messages[6]=
 		 "Send error",
 		 "Receive error"};
 
-#define NR_CHECK_AND_RETURN(nrFn, ...) do {if (int e=nrFn(__VA_ARGS__))\
-		{ROS_WARN_STREAM("Error " << e << " (" << CAN_Error_Messages[e]\
-			<< ") while calling " << #nrFn <<\
-			".");return;}}while (0)
+std::string servo_drive_status_messages[8]=
+		{"OK (000b)",
+		 "Under voltage (001b)",
+		 "Over voltage (010b)",
+		 "unknown (011b)",
+		 "unknown (100b)",
+		 "Short circuit (101b)",
+		 "Overheating (110b)",
+		 "unknown (111b)"};
+
+std::string MO_messages[2]=
+		{"Disabled",
+		 "Enabled"};
+
+std::string UM_messages[8]=
+		{"unknown (0)",
+		 "Torque control (1)",
+		 "Speed control (2)",
+		 "Micro-stepper (3)",
+		 "Dual feedback position control (4)",
+		 "Single loop position control (5)",
+		 "unknown (6)",
+		 "unknown (7)"};
+
+std::string MS_messages[4]=
+		{"Motor position stabilized (0)",
+		 "Reference stationary or motor off (1)",
+		 "Reference dynamically controlled (2)",
+		 "Reserved (3)"};
+
+
 
 NiftiRobot::NiftiRobot():
 	// Lateral distance between center of both tracks
@@ -574,14 +608,30 @@ void NiftiRobot::diag_batt(diagnostic_updater::DiagnosticStatusWrapper& stat)
 /*
  * Controllers diagnostics
  */
+
 void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status)
 {
-	int e;
-	e = SR_GET_ERROR(status);
-	stat.summary(2*e, e?"Error":"OK");
-	stat.add("error flag", e);
-	stat.add("servo drive status", SR_GET_SERVO_DRIVE_STATUS(status));
-	stat.add("motor on", SR_GET_MOTOR_ON(status));
+	if (SR_GET_ERROR(status))
+		stat.summary(2, "Error");
+	else if (!SR_GET_MOTOR_ON(status))
+		stat.summary(1, "Motor disabled");
+	else
+		stat.summary(0, "OK");
+	stat.add("Error flag", SR_GET_ERROR(status));
+	stat.add("Servo drive status",
+			servo_drive_status_messages[SR_GET_SERVO_DRIVE_STATUS(status)]);
+	stat.add("Motor on (MO)", MO_messages[SR_GET_MOTOR_ON(status)]);
+	stat.add("Unit mode (UM)", UM_messages[(status&0x0380)>>7]);
+	stat.add("Gain scheduling on", GET_BIT(status, 10));
+	stat.add("Program running", GET_BIT(status, 12));
+	stat.add("Motion status (MS)", MS_messages[(status&0x0C00)>>14]);
+	stat.add("Stopped by a limit", GET_BIT(status, 28));
+	stat.add("Error in user program",  GET_BIT(status, 29));
+	char stat_name[10];
+	for (int i=0;i<32;i++) {
+		sprintf(stat_name, "Bit %d", i);
+		stat.add(stat_name, GET_BIT(status, i));
+	}
 }
 
 void NiftiRobot::diag_core(diagnostic_updater::DiagnosticStatusWrapper& stat) {
