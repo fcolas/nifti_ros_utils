@@ -608,6 +608,31 @@ void NiftiRobot::diag_batt(diagnostic_updater::DiagnosticStatusWrapper& stat)
 /*
  * Controllers diagnostics
  */
+void sprintf_binary8(char* buffer, char value) {
+	sprintf(buffer, "%s%s%s%s.%s%s%s%s",
+		(GET_BIT(value, 7)?"1":"0"),
+		(GET_BIT(value, 6)?"1":"0"),
+		(GET_BIT(value, 5)?"1":"0"),
+		(GET_BIT(value, 4)?"1":"0"),
+		(GET_BIT(value, 3)?"1":"0"),
+		(GET_BIT(value, 2)?"1":"0"),
+		(GET_BIT(value, 1)?"1":"0"),
+		(GET_BIT(value, 0)?"1":"0"));
+}
+
+void sprintf_binary32(char* buffer, int value) {
+	char buf3[10];
+	char buf2[10];
+	char buf1[10];
+	char buf0[10];
+	sprintf_binary8(buf3, (value&0xff000000)>>24);
+	sprintf_binary8(buf2, (value&0x00ff0000)>>16);
+	sprintf_binary8(buf1, (value&0x0000ff00)>>8);
+	sprintf_binary8(buf0, (value&0x000000ff)>>0);
+	sprintf(buffer, "%s:%s:%s:%s", buf3, buf2, buf1, buf0);
+
+}
+
 
 void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status)
 {
@@ -622,16 +647,19 @@ void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status)
 			servo_drive_status_messages[SR_GET_SERVO_DRIVE_STATUS(status)]);
 	stat.add("Motor on (MO)", MO_messages[SR_GET_MOTOR_ON(status)]);
 	stat.add("Unit mode (UM)", UM_messages[(status&0x0380)>>7]);
-	stat.add("Gain scheduling on", GET_BIT(status, 10));
-	stat.add("Program running", GET_BIT(status, 12));
-	stat.add("Motion status (MS)", MS_messages[(status&0x0C00)>>14]);
-	stat.add("Stopped by a limit", GET_BIT(status, 28));
+//	stat.add("Gain scheduling on", GET_BIT(status, 10));
+//	stat.add("Program running", GET_BIT(status, 12));
+//	stat.add("Motion status (MS)", MS_messages[(status&0x0C00)>>14]);
+//	stat.add("Stopped by a limit", GET_BIT(status, 28));
 	stat.add("Error in user program",  GET_BIT(status, 29));
-	char stat_name[10];
-	for (int i=0;i<32;i++) {
-		sprintf(stat_name, "Bit %d", i);
-		stat.add(stat_name, GET_BIT(status, i));
-	}
+	char buffer[40];
+	sprintf_binary32(buffer, status);
+	stat.add("Status register", buffer);
+//	char stat_name[10];
+//	for (int i=0;i<32;i++) {
+//		sprintf(stat_name, "Bit %d", i);
+//		stat.add(stat_name, GET_BIT(status, i));
+//	}
 }
 
 void NiftiRobot::diag_core(diagnostic_updater::DiagnosticStatusWrapper& stat) {
