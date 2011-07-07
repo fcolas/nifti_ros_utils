@@ -5,50 +5,13 @@
 
 
 #define NR_CHECK_AND_RETURN(nrFn, ...) do {if (int e=nrFn(__VA_ARGS__))\
-		{ROS_WARN_STREAM("Error " << e << " (" << CAN_Error_Messages[e]\
+		{ROS_WARN_STREAM("Error " << e << " (" << CAN_error_messages[e]\
 			<< ") while calling " << #nrFn <<\
 			".");return;}}while (0)
 
-#define GET_BIT(status, bit) (((status) & (1 << (bit))) >> (bit))
+#define GET_BIT(status, bit) (((status) >> (bit)) & 1)
 
-std::string CAN_Error_Messages[6]=
-		{"No error",
-		 "Open error",
-		 "Setup error",
-		 "Close error",
-		 "Send error",
-		 "Receive error"};
-
-std::string servo_drive_status_messages[8]=
-		{"OK (000b)",
-		 "Under voltage (001b)",
-		 "Over voltage (010b)",
-		 "unknown (011b)",
-		 "unknown (100b)",
-		 "Short circuit (101b)",
-		 "Overheating (110b)",
-		 "unknown (111b)"};
-
-std::string MO_messages[2]=
-		{"Disabled",
-		 "Enabled"};
-
-std::string UM_messages[8]=
-		{"unknown (0)",
-		 "Torque control (1)",
-		 "Speed control (2)",
-		 "Micro-stepper (3)",
-		 "Dual feedback position control (4)",
-		 "Single loop position control (5)",
-		 "unknown (6)",
-		 "unknown (7)"};
-
-std::string MS_messages[4]=
-		{"Motor position stabilized (0)",
-		 "Reference stationary or motor off (1)",
-		 "Reference dynamically controlled (2)",
-		 "Reserved (3)"};
-
+static struct EC_messages EC_messages;
 
 
 NiftiRobot::NiftiRobot():
@@ -541,6 +504,7 @@ void NiftiRobot::update_robot_state()
 {
 	//int controllers_status[7];
 	int brake_on;
+	int err = 0;
 	double scanning_speed;
 	nifti_robot_driver_msgs::RobotStatus robot_status;
 	nifti_robot_driver_msgs::Currents currents;
@@ -550,6 +514,11 @@ void NiftiRobot::update_robot_state()
 	battery_level = -1.0;
 	NR_CHECK_AND_RETURN(nrGetBatteryLevel, &battery_level, &battery_status);
 	NR_CHECK_AND_RETURN(nrGetControllersStatus, controllers_status);
+	for (int i=0; i<ID_CTRL_MAX; err+=SR_GET_ERROR(controllers_status[i++]));
+	if (err)
+		NR_CHECK_AND_RETURN(nrGetControllersError, controllers_error);
+	else
+		for (int i=0; i<ID_CTRL_MAX; controllers_error[i++]=0);
 	NR_CHECK_AND_RETURN(nrGetBrake, &brake_on);
 	NR_CHECK_AND_RETURN(nrGetScanningSpeed, &scanning_speed);
 	//ROS_INFO_STREAM("Scanning_speed: " << scanning_speed);
@@ -571,6 +540,19 @@ void NiftiRobot::update_robot_state()
 			controllers_status[ID_FLIPPER_REAR_LEFT];
 	robot_status.controllers_status.flipper_rear_right =
 			controllers_status[ID_FLIPPER_REAR_RIGHT];
+	robot_status.controllers_error.core = controllers_error[ID_CORE];
+	robot_status.controllers_error.track_left =
+			controllers_error[ID_TRACK_LEFT];
+	robot_status.controllers_error.track_right =
+			controllers_error[ID_TRACK_RIGHT];
+	robot_status.controllers_error.flipper_front_left =
+			controllers_error[ID_FLIPPER_FRONT_LEFT];
+	robot_status.controllers_error.flipper_front_right =
+			controllers_error[ID_FLIPPER_FRONT_RIGHT];
+	robot_status.controllers_error.flipper_rear_left =
+			controllers_error[ID_FLIPPER_REAR_LEFT];
+	robot_status.controllers_error.flipper_rear_right =
+			controllers_error[ID_FLIPPER_REAR_RIGHT];
 	
 	robot_status_pub.publish(robot_status);
 
@@ -597,7 +579,7 @@ void NiftiRobot::update_robot_state()
 void NiftiRobot::diag_batt(diagnostic_updater::DiagnosticStatusWrapper& stat)
 {
 	if (battery_status>-1)
-		stat.summary(battery_status, BATTERY_DIAG_MSG[battery_status]);
+		stat.summary(battery_status, battery_messages[battery_status]);
 	else
 		stat.summary(2, "No battery information.");
 	
@@ -634,14 +616,16 @@ void sprintf_binary32(char* buffer, int value) {
 }
 
 
-void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status)
+void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status,
+		int error)
 {
-	if (SR_GET_ERROR(status))
-		stat.summary(2, "Error");
-	else if (!SR_GET_MOTOR_ON(status))
+	if (SR_GET_ERROR(status)) {
+		stat.summary(2, "Error: "+EC_messages.get(error));
+	} else if (!SR_GET_MOTOR_ON(status))
 		stat.summary(1, "Motor disabled");
 	else
 		stat.summary(0, "OK");
+	stat.add("Error code (EC)", EC_messages.get(error));//TODO
 	stat.add("Error flag", SR_GET_ERROR(status));
 	stat.add("Servo drive status",
 			servo_drive_status_messages[SR_GET_SERVO_DRIVE_STATUS(status)]);
@@ -663,25 +647,25 @@ void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status)
 }
 
 void NiftiRobot::diag_core(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_CORE]);
+	diag_ctrl(stat, controllers_status[ID_CORE], controllers_error[ID_CORE]);
 }
 void NiftiRobot::diag_left_track(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_TRACK_LEFT]);
+	diag_ctrl(stat, controllers_status[ID_TRACK_LEFT], controllers_error[ID_TRACK_LEFT]);
 }
 void NiftiRobot::diag_right_track(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_TRACK_RIGHT]);
+	diag_ctrl(stat, controllers_status[ID_TRACK_RIGHT], controllers_error[ID_TRACK_RIGHT]);
 }
 void NiftiRobot::diag_front_left_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_LEFT]);
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_LEFT], controllers_error[ID_FLIPPER_FRONT_LEFT]);
 }
 void NiftiRobot::diag_front_right_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_RIGHT]);
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_RIGHT], controllers_error[ID_FLIPPER_FRONT_RIGHT]);
 }
 void NiftiRobot::diag_rear_left_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_LEFT]);
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_LEFT], controllers_error[ID_FLIPPER_REAR_LEFT]);
 }
 void NiftiRobot::diag_rear_right_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_RIGHT]);
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_RIGHT], controllers_error[ID_FLIPPER_REAR_RIGHT]);
 }
 
 /*

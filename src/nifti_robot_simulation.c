@@ -255,7 +255,8 @@ int nrGetControllersStatus(int status[])
 {
 	int i;
 	GETPRINT("nrGetControllerStatus()\n");
-	for(i=0; i<ID_CTRL_MAX; status[i++]=0);
+	//for(i=0; i<ID_CTRL_MAX; status[i++]=0);
+	for(i=0; i<ID_CTRL_MAX; status[i++]=rand());
 	RETURN_ERROR;
 }
 
@@ -264,7 +265,8 @@ int nrGetControllersError(int error[])
 {
 	int i;
 	GETPRINT("nrGetControllerError()\n");
-	for(i=0; i<ID_CTRL_MAX; error[i++]=0);
+	//for(i=0; i<ID_CTRL_MAX; error[i++]=0);
+	for(i=0; i<ID_CTRL_MAX; error[i++]=(int)(200.0*rand()/RAND_MAX));
 	RETURN_ERROR;
 }
 

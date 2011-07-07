@@ -23,16 +23,10 @@
 #include <nifti_robot_driver_msgs/Currents.h>
 #include <nifti_robot_driver_msgs/FlipperCommand.h>
 
+#include "nifti_robot_messages.h"
+
 //! Maximum scanning speed for the laser
 #define MAX_SCANNING_SPEED 1.20
-
-
-//! Diagnostic messages for the battery
-const char BATTERY_DIAG_MSG[][32] = {
-	"OK",
-	"Warning",
-	"Critical"
-};
 
 
 /** \brief Class to handle the NIFTi robot.
@@ -114,6 +108,9 @@ protected:
 
 	//! Status for each controller
 	int controllers_status[ID_CTRL_MAX];
+
+	//! Status for each controller
+	int controllers_error[ID_CTRL_MAX];
 
 	// callbacks
 	//! Callback for velocity command
