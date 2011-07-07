@@ -11,6 +11,11 @@ from std_msgs.msg import Bool, Float64
 from joy.msg import Joy
 from topic_tools.srv import MuxAdd, MuxSelect
 
+#TODO: in test - service for 3D point cloud
+roslib.load_manifest('laser_assembler')
+from laser_assembler.srv import *
+from sensor_msgs.msg import PointCloud
+
 from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus, FlipperCommand
 
 from math import pi
@@ -86,6 +91,11 @@ class NiftiTeleopJoy(object):
 		# @param ~deadman_button (default: 7)
 		self.flipper_button_rr = rospy.get_param('~rear_right_flipper_button', 7)
 		
+		#in test
+		self.scan_assembler_button = 2
+		self.start_scanning = False
+		self.start_scanning_time = rospy.Time(0,0)
+
 		# speed limits
 		## maximum linear velocity (in m/s)
 		# @param /max_linear (default: 0.3)
@@ -111,7 +121,7 @@ class NiftiTeleopJoy(object):
 		## flipper angle increment when moving them (in rad)
 		# @param ~flipper_increment (default: 10*pi/180)
 		self.flipper_increment = rospy.get_param('~flipper_increment', 20*pi/180.)
-		
+
 		# topic names
 		## topic with which to mux
 		self.mux_topic = rospy.get_param('~cmd_vel_mux_topic', None)
@@ -143,7 +153,7 @@ class NiftiTeleopJoy(object):
 		joy_topic = rospy.get_param('~joy_topic', '/joy')
 		# name of the joystick topic published by joy_node
 		laser_center_topic = rospy.get_param('~laser_center_topic', '/laser_center')
-		
+
 		# publisher and subscribers
 		## publisher for the velocity command topic
 		# @param ~cmd_vel_topic (default: '/cmd_vel')
@@ -175,8 +185,11 @@ class NiftiTeleopJoy(object):
 		## publisher for the laser centering command topic
 		# @param ~laser_center_topic (default: '/laser_center')
 		self.laser_center_pub = rospy.Publisher(laser_center_topic, Bool)
-		
-		# setting up muxing with upwards velocity commands
+
+	# in test
+		self.pointCloud_pub = rospy.Publisher('rolling_pointCloud', PointCloud)
+
+	# setting up muxing with upwards velocity commands
 		if self.mux_topic:
 			try:
 				mux_add = rospy.ServiceProxy('mux/add', MuxAdd)
@@ -210,7 +223,7 @@ class NiftiTeleopJoy(object):
 		self.fs.frontRight = roundFlipperValue(flippers.frontRight)
 		self.fs.rearLeft = roundFlipperValue(flippers.rearLeft)
 		self.fs.rearRight = roundFlipperValue(flippers.rearRight)
-			
+
 
 	## Callback for a joystick message.
 	#
@@ -237,6 +250,9 @@ class NiftiTeleopJoy(object):
 		self.brake_jcb(self.joy)
 		self.enable_jcb(self.joy)
 		self.scanning_speed_jcb(self.joy)
+		# in test 
+		self.scan_assembler_jcb(self.joy)
+
 		if self.mux_topic:
 			self.mux_jcb(self.joy)
 
@@ -247,7 +263,7 @@ class NiftiTeleopJoy(object):
 			self.mux_select(self.command_topic)
 		elif joy.released(self.deadman_button):
 			self.mux_select(self.mux_topic)
-			
+
 
 
 	## Handle velocity command based on the joystick input.
@@ -275,10 +291,10 @@ class NiftiTeleopJoy(object):
 			l = l / Z
 			v = (l + r)/2.
 			w = (r - l)/self.tracks_distance
-			
+
 			tw.linear.x = v
 			tw.angular.z = w
-			
+
 			self.cmdvel_pub.publish(tw)
 		elif joy.released(self.deadman_button):	# make sure we ask the robot to stop
 			tw.linear.x = 0.0
@@ -364,6 +380,34 @@ class NiftiTeleopJoy(object):
 			except AttributeError:
 				rospy.logwarn('Scanning speed change command ignored since no\
 				RobotStatus message receive.')
+	## in test - 3d scan based on the joystick input.
+	def scan_assembler_jcb(self, joy):
+		'''3d scans based on the joystick input.'''
+		if joy.buttons[self.deadman_button] and\
+			joy.pressed(self.scan_assembler_button):
+
+			try:
+				if self.start_scanning == False:
+					  #v = self.max_scanning_speed/2.0
+					  v = 0.3
+					  self.scanning_speed_pub.publish(v)
+					  self.start_scanning = True
+					  self.start_scanning_time = rospy.get_rostime()
+					  rospy.logwarn('Debug - starting scan')
+
+				else:
+					  self.start_scanning = False
+					  self.laser_center_pub.publish(True)
+					  assemble_scans = rospy.ServiceProxy('assemble_scans', AssembleScans)
+					  resp = assemble_scans(self.start_scanning_time, rospy.get_rostime())
+
+					  rospy.logwarn('Debug - publishing 3d scan')
+					  rospy.logwarn('Debug - got %u points' % len(resp.cloud.points))
+					  self.pointCloud_pub.publish(resp.cloud)
+
+			except AttributeError:
+				rospy.logwarn('Scanning speed change command ignored since no RobotStatus message receive.')
+
 ################################################################################
 
 
@@ -409,7 +453,7 @@ class HistoryJoystick(Joy):
 		except (AttributeError, TypeError), e:
 			# not enough joystick messages yet?
 			return False
-	
+
 	## Check if a given button has just been released (transition 1->0).
 	def released(self, button_id):
 		'''Check if a given button has just been released (transition 1->0).'''
@@ -419,7 +463,7 @@ class HistoryJoystick(Joy):
 		except (AttributeError, TypeError), e:
 			# not enough joystick messages yet?
 			return False
-	
+
 	## Check if a given button state has just changed (either transitions).
 	def button_changed(self, button_id):
 		'''Check if a given button state has just changed (either transitions).'''
@@ -463,7 +507,7 @@ class HistoryJoystick(Joy):
 		except (TypeError, AttributeError), e:
 			# no joystick messages yet?
 			return False
-################################################################################
+	################################################################################
 
 
 
@@ -480,4 +524,5 @@ def main():
 
 if __name__== '__main__':
 	main()
-		
+	
+	
