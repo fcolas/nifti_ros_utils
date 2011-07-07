@@ -1,9 +1,4 @@
 <launch>
-	<node pkg="joy" type="joy_node" name="joy_node" >
-		<param name="dev" value="/dev/input/by-id/usb-Logitech_Logitech_Cordless_RumblePad_2-joystick" />
-		<param name="autorepeat_rate" value="10.0" />
-	</node>
-
 	<param name="/CAN_device" value="/dev/usb/cpc_usb0" />
 	<node pkg="nifti_robot_driver" type="nifti_robot_node"
 		name="nifti_robot_node" output="screen" />
@@ -21,4 +16,7 @@
 		<param name="host" value="192.168.1.72"/>
 	</node>
 
+	<node pkg="tf" type="static_transform_publisher" name="fake_map_tf" args="0 0 0 0 0 0 map odom 100"/>
+
+	<include file="$(find omnicamera)/launch/omnicamera.launch"/>
 </launch>

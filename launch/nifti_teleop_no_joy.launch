@@ -16,7 +16,7 @@
 		<param name="host" value="192.168.1.72"/>
 	</node>
 
-	<node pkg="tf" type="static_transform_publisher" name="fake_map_tf" args="0 0 0 0 0 0 map odom 100">
-		<param name="host" value="192.168.1.72"/>
-	</node>
+	<node pkg="tf" type="static_transform_publisher" name="fake_map_tf" args="0 0 0 0 0 0 map odom 100"/>
+
+	<!--include file="$(find omnicamera)/launch/omnicamera.launch"/-->
 </launch>
