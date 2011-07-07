@@ -67,7 +67,7 @@ NiftiRobot::NiftiRobot():
 	 * initialize drivers library
 	 */
 	std::string CAN_device;
-	n.param<std::string>("CAN_device", CAN_device, "/dev/usb/cpc_usb");
+	n.param<std::string>("CAN_device", CAN_device, "/dev/usb/cpc_usb0");
 	RoverParams params;
 	nrGetDefaultParams(&params);
 	char c_CAN_device[CAN_device.size()+1];
@@ -621,11 +621,11 @@ void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status,
 {
 	if (SR_GET_ERROR(status)) {
 		stat.summary(2, "Error: "+EC_messages.get(error));
+		stat.add("Error code (EC)", EC_messages.get(error));
 	} else if (!SR_GET_MOTOR_ON(status))
 		stat.summary(1, "Motor disabled");
 	else
 		stat.summary(0, "OK");
-	stat.add("Error code (EC)", EC_messages.get(error));//TODO
 	stat.add("Error flag", SR_GET_ERROR(status));
 	stat.add("Servo drive status",
 			servo_drive_status_messages[SR_GET_SERVO_DRIVE_STATUS(status)]);
@@ -638,7 +638,7 @@ void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status,
 	stat.add("Error in user program",  GET_BIT(status, 29));
 	char buffer[40];
 	sprintf_binary32(buffer, status);
-	stat.add("Status register", buffer);
+	stat.add("Status register (SR)", buffer);
 //	char stat_name[10];
 //	for (int i=0;i<32;i++) {
 //		sprintf(stat_name, "Bit %d", i);
