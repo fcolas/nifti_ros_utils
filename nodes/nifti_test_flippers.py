@@ -6,7 +6,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, Float64
 from joy.msg import Joy
 
-from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus, FlipperCommand
+from nifti_robot_driver_msgs.msg import Currents, FlipperCommand
 
 from math import pi
 
@@ -27,9 +27,12 @@ class NiftiTestFlippers(object):
 		self.rl_button = 6
 		self.reset_button = 3
 		self.flipper_axis = 5
+		self.previous_abs_current = 0.0
+		self.peak_abs_current = 0.0
 		self.flipper_pub = rospy.Publisher('/flipper_cmd', FlipperCommand)
 		self.enable_pub = rospy.Publisher('/enable', Bool)
 		rospy.Subscriber('/joy', Joy, self.joyCallBack)
+		rospy.Subscriber('/currents', Currents, self.currentsCallBack)
 
 	def joyCallBack(self, joy):
 		self.joy.update(joy)
@@ -55,6 +58,17 @@ class NiftiTestFlippers(object):
 				if joy.axis_touched(self.flipper_axis):
 					flipper_command.angle = joy.axes[self.flipper_axis]*pi/2.
 					self.flipper_pub.publish(flipper_command)
+
+	def currentsCallBack(self, currents):
+		v = abs(currents.rearLeft)
+		if v>0.0001:
+			if v>self.peak_abs_current:
+				self.peak_abs_current = v
+				print "New max current: %f A"%v
+			if v>1. and (v - self.previous_abs_current)>1:
+				print "old: %f A -> new %f A"%(self.previous_abs_current, v)
+		self.previous_abs_current = v
+
 
 def main():
 	try:
