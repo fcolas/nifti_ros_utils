@@ -5,6 +5,9 @@
 \b nifti_robot_driver is the package containing the node to handle the
 NIFTi platform.
 It provides access to all the features of the robot through ROS messages.
+According to NIFTi policy, specific messages are defined in the \b
+nifti_robot_driver_msgs package (it's recommended that you generate its
+documentation in order to get some of the links below properly working).
 
 This package is built around the \b NiftiRobot class and launch its NiftiRobot::run()
 method.
@@ -17,12 +20,28 @@ method.
 The node (and class) is publishing topics and \c /tf transformations at \a loop_rate Hz.
 
 \subsubsection pub_topics Topics
-- \c /robot_status (<a href="msg/RobotStatus.html">RobotStatus</a>): describes the status of the robot,
-- \c /flippers_state (<a href="msg/FlippersState.html">FlippersState</a>): the 4
+- \c /robot_status (<a href="../../nifti_robot_driver_msgs/html/msg/RobotStatus.html">RobotStatus</a>): describes the status of the robot,
+- \c /flippers_state (<a href="../../nifti_robot_driver_msgs/html/msg/FlippersState.html">FlippersState</a>): the 4
   angles of the flippers,
+- \c /currents (<a href="../../nifti_robot_driver_msgs/html/msg/Currents.html">Currents</a>): the current reading
+  of each of the flippers in A,
 - \c /odom (<a
   href="http://www.ros.org/doc/api/nav_msgs/html/msg/Odometry.html">nav_msgs::Odometry</a>):
-  2D odometry.
+  2D odometry,
+- \c /diagnostics (<a
+  href="http://www.ros.org/doc/api/diagnostic_msgs/html/msg/DiagnosticStatus.html">diagnostic_msgs::DiagnosticStatus</a>):
+  diagnostics (see \ref diag).
+
+
+\subsection diag Diagnostics information
+We're using <a href="http://www.ros.org/wiki/diagnostics">diagnostics</a> to
+publish general status information and level of issue. The current diagnostics
+published are:
+- \c Battery: with battery level information and general charge status,
+- an item for each controller that is in warning mode if the controller is
+  disabled (like a flipper) and that shows the status register (SR) of the ELMO
+  controller and the error if applicable.
+
 
 \subsubsection pub_tf Transformations
 - \c /odom -> \c /base_link (rough 2D odometry),
@@ -30,7 +49,10 @@ The node (and class) is publishing topics and \c /tf transformations at \a loop_
   differential configuration),
 - \c /left_track -> \c /front_left_flipper and \c /rear_left_flipper, 
 - \c /right_track -> \c /front_right_flipper and \c /rear_right_flipper, 
-- \c /base_link -> \c /laser (based on nrGetScannerAngle).
+- \c /base_link -> \c /laser (based on nrGetScannerAngle),
+- \c /base_link -> \c /omni (fixed),
+- \c /base_link -> \c /imu (fixed).
+
 
 \subsection sub_topics Subscribed topics
 The node (and class) subscribes to a set of topics to listen to commands:
@@ -38,14 +60,17 @@ The node (and class) subscribes to a set of topics to listen to commands:
 - \c /cmd_vel (<a href="http://www.ros.org/doc/api/geometry_msgs/html/msg/Twist.html">geometry_msgs::Twist</a>): velocity command,
 - \c /enable (<a
   href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>): (re)enable motors if they are in some fault state,
-- \c /flippers_cmd (<a href="msg/FlippersState.html">FlippersState</a>): flippers position command,
+- \c /flippers_cmd (<a href="../../nifti_robot_driver_msgs/html/msg/FlippersState.html">FlippersState</a>): all flippers position command,
+- \c /flipper_cmd (<a href="../../nifti_robot_driver_msgs/html/msg/FlipperCommand.html">FlipperCommand</a>):
+  individual flipper position command
 - \c /scanning_speed_cmd (<a
   href="http://www.ros.org/doc/api/std_msgs/html/msg/Float64.html">std_msgs::Float64</a>): speed of the rolling laser,
 - \c /brake (<a
-  href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>): enable of disable the differential brake.
+  href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>): enable or disable the differential brake.
 - \c /laser_center (<a
   href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>):
   request the laser scanner to go in middle position.
+
 
 \section simu Simulation of the NIFTi robot
 In order to test the driver without the rover, I implemented a simulation
