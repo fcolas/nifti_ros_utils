@@ -7,7 +7,7 @@
 int main(int argc, char **argv)
 {
 	
-	ros::init(argc, argv, "nifti_ros_drivers");
+	ros::init(argc, argv, "nifti_robot_node");
 
 	// must be done after ROS init
 	NiftiRobot robot;
