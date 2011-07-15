@@ -1,0 +1,4 @@
+<launch>
+	<include file="$(find nifti_teleop)/launch/teleop_joy.launch"/>
+	<include file="$(find nifti_launchers)/launch/nifti_laser_assembler.launch"/>
+</launch>
