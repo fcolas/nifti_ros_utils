@@ -11,7 +11,7 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 rosbuild_init()
 
-set(USE_SIMULATION true CACHE BOOL "Use fake library instead of real robot")
+set(USE_SIMULATION false CACHE BOOL "Use fake library instead of real robot")
 
 #set the default path for built executables to the "bin" directory
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
