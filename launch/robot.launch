@@ -1,4 +1,4 @@
 <launch>
-	<include flie="$(find nifti_robot_driver)/launch/robot_node.launch"/>
-	<include flie="$(find nifti_robot_driver)/launch/robot_diagnostics.launch"/>
+	<include file="$(find nifti_robot_driver)/launch/robot_node.launch"/>
+	<include file="$(find nifti_robot_driver)/launch/robot_diagnostics.launch"/>
 </launch>
