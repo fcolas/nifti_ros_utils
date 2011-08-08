@@ -1,0 +1,17 @@
+<package>
+  <description brief="nifti_laser_assembler">
+
+     nifti_laser_assembler
+
+  </description>
+  <author>Francis Colas</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/nifti_laser_assembler</url>
+  <depend package="rospy"/>
+  <depend package="tf"/>
+  <depend package="laser_assembler"/>
+
+</package>
+
+
