@@ -10,7 +10,8 @@ import rospy
 
 import math
 import tf
-
+from laser_assembler.srv import *
+from sensor_msgs.msg import PointCloud
 
 ## Main class to assemble individual laser scans into point clouds
 class NiftiLaserAssembler(object):
@@ -19,9 +20,14 @@ class NiftiLaserAssembler(object):
 	def __init__(self):
 		self.tf_listener = tf.TransformListener()
 		self.loop_rate = rospy.Rate(20.0)
+		rospy.wait_for_service("assemble_scans")
+		self.assemble_scans = rospy.ServiceProxy('assemble_scans', AssembleScans)
+		self.pointCloud_pub = rospy.Publisher('nifti_pointCloud', PointCloud)
+
 
 	def spin(self):
 		theta_old = 0.0
+		start_time = None
 		while not rospy.is_shutdown():
 			try:
 				trans, rot = self.tf_listener.lookupTransform('/laser',
@@ -30,23 +36,31 @@ class NiftiLaserAssembler(object):
 			except (tf.LookupException, tf.ConnectivityException):
 				continue
 			#print trans, rot
+			# get angle from tf
 			theta_raw = 2*math.atan2(rot[0], rot[3]) - math.pi
+			# put it back between -pi and pi
 			if theta_raw>math.pi:
 				theta = theta_raw-2*math.pi
 			elif theta_raw<-math.pi:
 				theta = theta_raw+2*math.pi
 			else:
 				theta = theta_raw
-			print theta_raw, theta
+			#print theta_raw, theta
 
-			if (theta >= math.pi/2) and (theta_old < math.pi/2):
-				rospy.loginfo("stop left")
-			if (theta <= math.pi/2) and (theta_old > math.pi/2):
-				rospy.loginfo("start left")
-			if (theta >= -math.pi/2) and (theta_old < -math.pi/2):
-				rospy.loginfo("start right")
-			if (theta <= -math.pi/2) and (theta_old > -math.pi/2):
-				rospy.loginfo("stop right")
+			# get start time
+			if ((theta <= math.pi/2) and (theta_old > math.pi/2)) or \
+					((theta >= -math.pi/2) and (theta_old < -math.pi/2)):
+				start_time = rospy.get_rostime()
+				rospy.loginfo("start time for assembler")
+			# get stop time and publish point cloud
+			if start_time and (((theta >= math.pi/2) and (theta_old < math.pi/2)) or \
+					((theta <= -math.pi/2) and (theta_old > -math.pi/2))):
+				rospy.loginfo("stop time: requesting assembly")
+				resp = self.assemble_scans(start_time, rospy.get_rostime())
+				rospy.loginfo("publishing cloud")
+				self.pointCloud_pub.publish(resp.cloud)
+				rospy.loginfo("done")
+
 			theta_old = theta
 			self.loop_rate.sleep()
 
