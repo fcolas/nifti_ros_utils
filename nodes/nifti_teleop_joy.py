@@ -101,14 +101,14 @@ class NiftiTeleopJoy(object):
 		# @param /max_linear (default: 0.3)
 		self.max_lin_vel = rospy.get_param('/max_linear', 0.3)
 		## maximum angular velocity (in rad/s)
-		# @param /max_angular (default: 0.8)
-		self.max_ang_vel = rospy.get_param('/max_angular', 1.0)
+		# @param /max_angular (default: 0.7)
+		self.max_ang_vel = rospy.get_param('/max_angular', 0.7)
 		## maximum linear velocity with run button down (in m/s)
-		# @param /max_linear_run (default: 0.55)
+		# @param /max_linear_run (default: 0.6)
 		self.max_lin_vel_run = rospy.get_param('/max_linear_run', 0.6)
 		## maximum angular velocity with run button down (in rad/s)
-		# @param /max_angular_run (default: 2.75)
-		self.max_ang_vel_run = rospy.get_param('/max_angular_run', 2.0)
+		# @param /max_angular_run (default: 1.4)
+		self.max_ang_vel_run = rospy.get_param('/max_angular_run', 1.4)
 		## maximum scanning speed (in rad/s)
 		# @param /max_scanning_speed (default: 1.20)
 		self.max_scanning_speed = rospy.get_param('/max_scanning_speed', 1.20)
@@ -389,7 +389,7 @@ class NiftiTeleopJoy(object):
 			try:
 				if self.start_scanning == False:
 					  #v = self.max_scanning_speed/2.0
-					  v = 0.3
+					  v = pi/10.
 					  self.scanning_speed_pub.publish(v)
 					  self.start_scanning = True
 					  self.start_scanning_time = rospy.get_rostime()
