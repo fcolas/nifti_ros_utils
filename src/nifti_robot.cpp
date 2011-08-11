@@ -91,7 +91,7 @@ NiftiRobot::NiftiRobot():
 	laserX = params.laserX;
 	laserY = params.laserY;
 	laserZ = params.laserZ;
-	n.param<double>("steering_efficiency", steering_efficiency, 0.46);
+	n.param<double>("steering_efficiency", steering_efficiency, 0.41);
 
 	// 2D odometry initialization
 	current_pose.position.x = 0.0;
@@ -228,7 +228,7 @@ void NiftiRobot::cmd_vel_cb(const geometry_msgs::Twist& cmd_vel)
 	twist_to_tracks(&vl, &vr, cmd_vel.linear.x, cmd_vel.angular.z);
 	if ((vl<=(vMax+EPSILON)) && (vl>=-(vMax+EPSILON)) && (vr<=(vMax+EPSILON)) &&
 			(vr>=-(vMax+EPSILON)))
-		NR_CHECK_AND_RETURN(nrSetSpeed, cmd_vel.linear.x, cmd_vel.angular.z);
+		NR_CHECK_AND_RETURN(nrSetSpeedLR, vl, vr);
 	else
 		ROS_WARN_STREAM("Invalid velocity command (v="<<cmd_vel.linear.x\
 				<<", w="<<cmd_vel.angular.z<<") -> (vr="<<vr<<\
