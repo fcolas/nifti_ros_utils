@@ -87,6 +87,9 @@ protected:
 	//! maximum track velocity
 	double vMax;
 
+	//! tracks steering efficiency $\chi$
+	double steering_efficiency;
+
 	// current state
 	//! Current pose
 	geometry_msgs::Pose current_pose;
@@ -138,12 +141,14 @@ protected:
 	// odometry and tfs update
 	/**
 	 * 2D Motion model
-	 * computes linear and angular velocity based on tracks velocity
+	 * Compute linear and angular velocity based on tracks velocity
+	 * taking steering efficiency into account
 	 */
 	void tracks_to_twist(double vl, double vr, double *v, double *w) const;
 	/**
 	 * 2D motion model
-	 * computes tracks velocity based on linear and angular velocity
+	 * Compute tracks velocity based on linear and angular velocity
+	 * taking steering efficiency into account
 	 */
 	void twist_to_tracks(double *vl, double *vr, double v, double w) const;
 	//geometry_msgs::Twist motion_model_2d(double vl, double vr) const;

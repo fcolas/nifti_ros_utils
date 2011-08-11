@@ -29,8 +29,10 @@ NiftiRobot::NiftiRobot():
 	//front_right_offset(11.1*M_PI/180.0),
 	// angle offset of the rear left flipper
 	//rear_left_offset((180-11.1)*M_PI/180.),
-	//? angle offset of the rear right flipper
+	// angle offset of the rear right flipper
 	//rear_right_offset((180-11.1)*M_PI/180.),
+	// tracks steering efficiency $\chi$
+	//steering_efficiency(1.0),
 	// Battery status
 	battery_status(-1),
 	// Battery level
@@ -89,7 +91,7 @@ NiftiRobot::NiftiRobot():
 	laserX = params.laserX;
 	laserY = params.laserY;
 	laserZ = params.laserZ;
-	// TODO get robot parameters from the library
+	n.param<double>("steering_efficiency", steering_efficiency, 0.46);
 
 	// 2D odometry initialization
 	current_pose.position.x = 0.0;
@@ -230,7 +232,7 @@ void NiftiRobot::cmd_vel_cb(const geometry_msgs::Twist& cmd_vel)
 	else
 		ROS_WARN_STREAM("Invalid velocity command (v="<<cmd_vel.linear.x\
 				<<", w="<<cmd_vel.angular.z<<") -> (vr="<<vr<<\
-				", vl="<<vl<<")."<<vr-0.6<<" "<<vl-0.6);
+				", vl="<<vl<<")|vMax="<<vMax<<".");
 }
 
 /*
@@ -302,7 +304,7 @@ void NiftiRobot::laser_center_cb(const std_msgs::Bool& center)
 void NiftiRobot::tracks_to_twist(double vl, double vr, double *v, double *w) const
 {
 	*v = (vl+vr)/2.0;
-	*w = (vr-vl)/robot_width;
+	*w = (vr-vl)*(steering_efficiency/robot_width);
 }
 
 /*
@@ -311,8 +313,8 @@ void NiftiRobot::tracks_to_twist(double vl, double vr, double *v, double *w) con
  */
 void NiftiRobot::twist_to_tracks(double *vl, double *vr, double v, double w) const
 {
-	*vr = v + w*robot_width/2.0;
-	*vl = v - w*robot_width/2.0;
+	*vr = v + w*robot_width/(2.0*steering_efficiency);
+	*vl = v - w*robot_width/(2.0*steering_efficiency);
 }
 
 /*
@@ -339,9 +341,10 @@ geometry_msgs::Twist NiftiRobot::motion_model_2d(double vl, double vr) const
 void NiftiRobot::update_2d_odom()
 {
 	// get current velocity
-	double v, w;
-	NR_CHECK_AND_RETURN(nrGetSpeed, &v, &w);
+	double vl, vr, v, w;
+	NR_CHECK_AND_RETURN(nrGetSpeedLR, &vl, &vr);
 	ros::Time new_timestamp = ros::Time::now();
+	tracks_to_twist(vl, vr, &v, &w);
 	geometry_msgs::Twist new_velocity;
 	new_velocity.linear.x = v;
 	new_velocity.linear.y = 0.0;
