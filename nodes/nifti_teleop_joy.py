@@ -115,6 +115,9 @@ class NiftiTeleopJoy(object):
 		## tracks distance (in m)
 		# @param /tracks_distance (default: 0.397)
 		self.tracks_distance = rospy.get_param('/tracks_distance', 0.397)
+		## steering efficiency
+		# @param /steering_efficiency (default: 0.41)
+		self.steering_efficiency = rospy.get_param('/steering_efficiency', 0.41)
 		## scanning speed increment when changing it (in rad/s)
 		# @param ~scanning_speed_increment (default: 0.2)
 		self.scanning_speed_increment = rospy.get_param('~scanning_speed_increment', 0.2)
@@ -280,8 +283,8 @@ class NiftiTeleopJoy(object):
 			# limit tracks speed
 			v = lin_scale*joy.axes[self.lin_vel_axis]
 			w = ang_scale*joy.axes[self.ang_vel_axis]
-			l = v - w*self.tracks_distance/2.
-			r = v + w*self.tracks_distance/2.
+			l = v - w*self.tracks_distance/2./self.steering_efficiency
+			r = v + w*self.tracks_distance/2./self.steering_efficiency
 			Z = 1.
 			if abs(l)>self.max_lin_vel_run:
 				Z = abs(l)/self.max_lin_vel_run
@@ -290,7 +293,7 @@ class NiftiTeleopJoy(object):
 			r = r / Z
 			l = l / Z
 			v = (l + r)/2.
-			w = (r - l)/self.tracks_distance
+			w = (r - l)*self.steering_efficiency/self.tracks_distance
 
 			tw.linear.x = v
 			tw.angular.z = w
