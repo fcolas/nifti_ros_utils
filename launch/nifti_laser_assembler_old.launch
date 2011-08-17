@@ -1,0 +1,8 @@
+<launch>
+  <node type="laser_scan_assembler" pkg="laser_assembler" name="scan_assembler">
+    <param name="max_scans" type="int" value="786"/>
+    <param name="tf_cache_time_secs" type="double" value="16.0"/>
+    <param name="fixed_frame" type="string" value="/odom"/>
+  </node>
+  <node type="nifti_laser_assembler_old.py" pkg="nifti_laser_assembler" name="nifti_laser_assembler"/>
+</launch>
