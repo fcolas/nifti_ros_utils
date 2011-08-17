@@ -47,7 +47,7 @@ class NiftiLaserAssembler(object):
 		## service to assemble scans into PointCloud
 		self.assemble_scans = rospy.ServiceProxy('assemble_scans', AssembleScans)
 		## publisher for the resulting point clouds
-		self.pointCloud_pub = rospy.Publisher('nifti_pointCloud', PointCloud)
+		self.pointCloud_pub = rospy.Publisher('nifti_point_cloud', PointCloud)
 		## subscriber for tf
 		rospy.Subscriber('/tf', tfMessage, self.tf_cb)
 		## previous laser angle value
