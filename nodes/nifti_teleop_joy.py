@@ -18,7 +18,7 @@ from sensor_msgs.msg import PointCloud
 
 from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus, FlipperCommand
 
-from math import pi
+from math import pi, floor
 
 # TODO: should be part of the message definition
 ID_FLIPPER_FRONT_LEFT=3
@@ -312,10 +312,10 @@ class NiftiTeleopJoy(object):
 		'''Handle flippers command based on the joystick input.'''
 		if joy.buttons[self.deadman_button]:
 			if joy.pressed(self.flipper_reset_button):	# flat button
-				self.fs.frontLeft = 0.0
-				self.fs.frontRight = 0.0
-				self.fs.rearLeft = 0.0
-				self.fs.rearRight = 0.0
+				self.fs.frontLeft = 2*pi*floor((self.fs.frontLeft+1.5*pi)/(2*pi))
+				self.fs.frontRight = 2*pi*floor((self.fs.frontRight+1.5*pi)/(2*pi))
+				self.fs.rearLeft = 2*pi*floor((self.fs.rearLeft+0.5*pi)/(2*pi))
+				self.fs.rearRight = 2*pi*floor((self.fs.rearRight+0.5*pi)/(2*pi))
 				self.flippers_pub.publish(self.fs)
 			elif joy.axis_touched(self.flipper_axis):
 				try:
