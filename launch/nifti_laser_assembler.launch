@@ -1,3 +1,6 @@
 <launch>
-  <node type="nifti_laser_assembler" pkg="nifti_laser_assembler" name="nifti_laser_assembler"/>
+	<node type="nifti_laser_assembler" pkg="nifti_laser_assembler"
+			name="nifti_laser_assembler" output="screen">
+		<param name="publish_in_motion" value="false"/>
+	</node>
 </launch>

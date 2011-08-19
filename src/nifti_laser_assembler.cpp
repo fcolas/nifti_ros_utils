@@ -10,6 +10,7 @@
 //#include <geometry_msgs/TransformStamped.h>
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/Twist.h>
 //#include <std_msgs/Time.h> // needed?
 
 
@@ -32,8 +33,11 @@ protected:
 	//! /tf listener
 	tf::TransformListener tf_listener;
 
-	//! NodeHandle
+	//! public NodeHandle
 	ros::NodeHandle n;
+
+	//! private NodeHandle
+	ros::NodeHandle n_;
 
 	//! Name of the laser frame (default: "/laser")
 	std::string laser_frame;
@@ -60,10 +64,16 @@ protected:
 	sensor_msgs::PointCloud2 tmp_point_cloud;
 
 	//! Previous absolute value of the laser angle (to detect when to publish)
-	double previous_abs_angle;
+	double previous_angle;
 
 	//! Projector object from LaserScan to PointCloud2
 	laser_geometry::LaserProjection projector;
+
+	//! Flag allowing pointcloud publication if the robot moved (default: true)
+	bool publish_in_motion;
+
+	//! Starting time of the new scan
+	ros::Time start_time;
 
 	/** \brief Set of channel to add to the point cloud (default: none)
 	 *
@@ -72,6 +82,12 @@ protected:
 	 * change that.
 	 */
 	int point_cloud_channels;
+
+	//! Publish 2d scans when laser's horizontal (default: true)
+	bool publish2d;
+
+	//! Publisher for the horizontal scans (default topic: "/scan2d")
+	ros::Publisher scan2d_pub;
 
 	//! Scan callback function
 	void scan_cb(const sensor_msgs::LaserScan& scan);
@@ -82,6 +98,9 @@ protected:
 	//! Get laser angle from the tf
 	double get_laser_angle(const ros::Time &time) const;
 
+	//! Check if the robot moves
+	bool check_no_motion(const ros::Time &time) const;
+
 };
 
 
@@ -89,35 +108,50 @@ protected:
 /*
  * Constructor
  */
-NiftiLaserAssembler::NiftiLaserAssembler()
+NiftiLaserAssembler::NiftiLaserAssembler():
+	n_("~")
 {
 	// frame names
-	n.param<std::string>("laser_frame", laser_frame, "/laser");
-	n.param<std::string>("robot_frame", robot_frame, "/base_link");
-	n.param<std::string>("world_frame", world_frame, "/odom");
+	n_.param<std::string>("laser_frame", laser_frame, "/laser");
+	n_.param<std::string>("robot_frame", robot_frame, "/base_link");
+	n_.param<std::string>("world_frame", world_frame, "/odom");
 
 	// point cloud publisher
 	std::string point_cloud_topic;
-	n.param<std::string>("point_cloud_topic", point_cloud_topic,
+	n_.param<std::string>("point_cloud_topic", point_cloud_topic,
 			"/nifti_point_cloud");
 	point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
 			(point_cloud_topic, 50);
 	
 	// laser scan subscriber
 	std::string laser_scan_topic;
-	n.param<std::string>("laser_scan_topic", laser_scan_topic, "/scan");
-	laser_scan_sub = n.subscribe(laser_scan_topic, 10,
+	n_.param<std::string>("laser_scan_topic", laser_scan_topic, "/scan");
+	laser_scan_sub = n.subscribe(laser_scan_topic, 50,
 			&NiftiLaserAssembler::scan_cb, this);
 
 	// max number of point
-	n.param<int>("max_size", max_size, 1000000);
+	n_.param<int>("max_size", max_size, 1000000);
 
 	// channels
-	n.param<int>("channels", point_cloud_channels,
+	n_.param<int>("channels", point_cloud_channels,
 			laser_geometry::channel_option::None);
 
+	// 2d scans
+	n_.param<bool>("publish2d", publish2d, true);
+	if (publish2d) {
+		std::string scan2d_topic;
+		n.param<std::string>("scan2d_topic", scan2d_topic,
+			"/scan2d");
+		scan2d_pub = n.advertise<sensor_msgs::LaserScan>(scan2d_topic, 50);
+	}
+
+	// moving
+	start_time = ros::Time(0);
+	n_.param<bool>("publish_in_motion", publish_in_motion, true);
+	ROS_WARN_STREAM(publish_in_motion);
+
 	// initialized so that the first test always fails
-	previous_abs_angle = NAN;
+	previous_angle = NAN;
 }
 
 
@@ -135,29 +169,43 @@ NiftiLaserAssembler::~NiftiLaserAssembler()
  */
 void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 {
-	double abs_angle = fabs(get_laser_angle(scan.header.stamp));
+	double angle = get_laser_angle(scan.header.stamp);
 
-	if (abs_angle<=M_PI/2) {
-		//ROS_INFO_STREAM("Got scan in range.");
-		append_scan(scan);
+	if ((angle*previous_angle<=0.0) ||
+			((angle==previous_angle)&&(fabs(angle)<0.5*M_PI/180.))) {
+		ROS_INFO_STREAM("Publishing 2d scan.");
+		scan2d_pub.publish(scan);
 	}
 
-	if ((previous_abs_angle<M_PI/2) && (abs_angle>=M_PI/2)) {
-		ROS_INFO_STREAM("Publishing scan.");
-		point_cloud_pub.publish(point_cloud);
+	if (fabs(angle)<=M_PI/2) {
+		//ROS_INFO_STREAM("Got scan in range.");
+		if (start_time.isZero())
+			start_time = scan.header.stamp;
+		append_scan(scan);
+
+	}
+
+	if ((fabs(previous_angle)<M_PI/2) && (fabs(angle)>=M_PI/2)) {
+		if (publish_in_motion||check_no_motion(scan.header.stamp)){
+			ROS_INFO_STREAM("Publishing scan (" << point_cloud.width << " points).");
+			point_cloud_pub.publish(point_cloud);
+		} else {
+			ROS_INFO_STREAM("Dropping scan.");
+		}
 		point_cloud.data.clear();
 		point_cloud.width = 0;
+		start_time = ros::Time(0);
 	}
 
 	// if point cloud is full, we publish it
 	// TODO decide if relevant
-	if (point_cloud.width>= max_size) {
+	if (point_cloud.width>=(unsigned)max_size) {
 		ROS_WARN_STREAM("max_size exceeded, publishing.");
 		point_cloud_pub.publish(point_cloud);
 		point_cloud.data.clear();
 		point_cloud.width = 0;
 	}
-	previous_abs_angle = abs_angle;
+	previous_angle = angle;
 }
 
 
@@ -169,7 +217,7 @@ void NiftiLaserAssembler::append_scan(const sensor_msgs::LaserScan& scan)
 	// Project the LaserScan into a PointCloud2
 	tf_listener.waitForTransform(laser_frame, world_frame, scan.header.stamp
 			+ ros::Duration ().fromSec (scan.scan_time)
-			, ros::Duration(100.));
+			, ros::Duration(1.));
 	projector.transformLaserScanToPointCloud(world_frame, scan,
 			tmp_point_cloud, tf_listener, point_cloud_channels);
 
@@ -195,9 +243,8 @@ double NiftiLaserAssembler::get_laser_angle(const ros::Time &time) const
 	double angle;
 	tf::StampedTransform tmp_tf;
 	geometry_msgs::Quaternion rot;
-	//geometry_msgs::TransformStamped tmp_tf;
 	tf_listener.waitForTransform(laser_frame, robot_frame, time,
-		ros::Duration(10.));
+		ros::Duration(1.));
 	try {
 		tf_listener.lookupTransform(laser_frame, robot_frame, time, tmp_tf);
 	} catch (tf::ExtrapolationException e) {
@@ -217,6 +264,31 @@ double NiftiLaserAssembler::get_laser_angle(const ros::Time &time) const
 }
 
 
+double norm(const geometry_msgs::Vector3& vec3){
+	return sqrt(vec3.x*vec3.x+vec3.y*vec3.y+vec3.z*vec3.z);
+}
+/*
+ * Decide if the robot was still
+ */
+bool NiftiLaserAssembler::check_no_motion(const ros::Time &time) const
+{
+	// Checking with velocity but why not position?
+	geometry_msgs::Twist mean_speed;
+	ros::Duration delta = time - start_time;
+	tf_listener.waitForTransform(robot_frame, world_frame, time,
+		ros::Duration(1.));
+	tf_listener.lookupTwist(robot_frame, world_frame, start_time+delta*0.5,
+			delta, mean_speed);
+	//ROS_WARN_STREAM(norm(mean_speed.linear) << " " << norm(mean_speed.angular)
+	//		<< " " <<delta.toSec()); 
+	return ((norm(mean_speed.linear)*delta.toSec()<0.01)&&
+			(norm(mean_speed.angular)*delta.toSec()<M_PI/180.));
+}
+
+
+/*
+ * Main function
+ */
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "nifti_laser_assembler");
