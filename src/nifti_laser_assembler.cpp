@@ -8,11 +8,25 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
 #include <laser_geometry/laser_geometry.h>
-//#include <geometry_msgs/TransformStamped.h>
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Twist.h>
-//#include <std_msgs/Time.h> // needed?
+
+
+
+template<typename T>
+T getParam(ros::NodeHandle& n, const std::string& name, const T& defaultValue)
+{
+	T v;
+	if (n.getParam(name, v))
+	{
+		ROS_INFO_STREAM("Found parameter: " << name << ", value: " << v);
+		return v;
+	}
+	else
+		ROS_WARN_STREAM("Cannot find value for parameter: " << name << ", assigning default: " << defaultValue);
+	return defaultValue;
+}
 
 
 /** \brief Class assembling the laser scans of the rolling laser
@@ -126,49 +140,48 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	n_("~")
 {
 	// frame names
-	n_.param<std::string>("laser_frame", laser_frame, "/laser");
-	n_.param<std::string>("robot_frame", robot_frame, "/base_link");
-	n_.param<std::string>("world_frame", world_frame, "/odom");
+	laser_frame = getParam<std::string>(n_, "laser_frame", "/laser");
+	robot_frame = getParam<std::string>(n_, "robot_frame", "/base_link");
+	world_frame = getParam<std::string>(n_, "world_frame", "/odom");
 
 	// point cloud publisher
 	std::string point_cloud_topic;
-	n_.param<std::string>("point_cloud_topic", point_cloud_topic,
+	point_cloud_topic = getParam<std::string>(n_, "point_cloud_topic",
 			"/nifti_point_cloud");
 	point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
 			(point_cloud_topic, 50);
 	
 	// laser scan subscriber
 	std::string laser_scan_topic;
-	n_.param<std::string>("laser_scan_topic", laser_scan_topic, "/scan");
+	laser_scan_topic = getParam<std::string>(n_, "laser_scan_topic", "/scan");
 	laser_scan_sub = n.subscribe(laser_scan_topic, 50,
 			&NiftiLaserAssembler::scan_cb, this);
 
 	// max number of point
-	n_.param<int>("max_size", max_size, 1000000);
+	max_size = getParam<int>(n_, "max_size", 1000000);
 
 	// channels
-	n_.param<int>("channels", point_cloud_channels,
+	point_cloud_channels = getParam<int>(n_, "channels",
 			laser_geometry::channel_option::None);
 
 	// 2d scans
-	n_.param<bool>("publish2d", publish2d, true);
+	publish2d = getParam<bool>(n_, "publish2d", true);
 	if (publish2d) {
 		std::string scan2d_topic;
-		n.param<std::string>("scan2d_topic", scan2d_topic,
+		scan2d_topic = getParam<std::string>(n_, "scan2d_topic",
 			"/scan2d");
 		scan2d_pub = n.advertise<sensor_msgs::LaserScan>(scan2d_topic, 50);
 	}
 
 	// moving
 	start_time = ros::Time(0);
-	n_.param<bool>("publish_in_motion", publish_in_motion, true);
-	ROS_WARN_STREAM(publish_in_motion);
+	publish_in_motion = getParam<bool>(n_, "publish_in_motion", true);
 
 	// filtering
 	double offset;
-	n_.param<double>("time_offset", offset, 0.0);
+	offset = getParam<double>(n_, "time_offset", 0.0);
 	time_offset = ros::Duration(offset);
-	n_.param<double>("min_distance", min_distance, 0.0);
+	min_distance = getParam<double>(n_, "min_distance", 0.0);
 
 	// initialized so that the first test always fails
 	previous_angle = NAN;
@@ -204,7 +217,7 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 
 	if ((angle*previous_angle<=0.0) ||
 			((angle==previous_angle)&&(fabs(angle)<0.5*M_PI/180.))) {
-		ROS_INFO_STREAM("Publishing 2d scan.");
+		ROS_DEBUG_STREAM("Publishing 2d scan.");
 		scan2d_pub.publish(scan);
 	}
 
@@ -219,10 +232,10 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 
 	if ((fabs(previous_angle)<M_PI/2) && (fabs(angle)>=M_PI/2)) {
 		if (publish_in_motion||check_no_motion(tmp_scan.header.stamp)){
-			ROS_INFO_STREAM("Publishing scan (" << point_cloud.width << " points).");
+			ROS_DEBUG_STREAM("Publishing scan (" << point_cloud.width << " points).");
 			point_cloud_pub.publish(point_cloud);
 		} else {
-			ROS_INFO_STREAM("Dropping scan.");
+			ROS_DEBUG_STREAM("Dropping scan.");
 		}
 		point_cloud.data.clear();
 		point_cloud.width = 0;
@@ -311,8 +324,8 @@ bool NiftiLaserAssembler::check_no_motion(const ros::Time &time) const
 		ros::Duration(1.));
 	tf_listener.lookupTwist(robot_frame, world_frame, start_time+delta*0.5,
 			delta, mean_speed);
-	//ROS_WARN_STREAM(norm(mean_speed.linear) << " " << norm(mean_speed.angular)
-	//		<< " " <<delta.toSec()); 
+	ROS_DEBUG_STREAM("Motion: " << norm(mean_speed.linear) << " m/s, " <<
+			norm(mean_speed.angular) << " Rad/s for "<<delta.toSec()<<" s"); 
 	return ((norm(mean_speed.linear)*delta.toSec()<0.01)&&
 			(norm(mean_speed.angular)*delta.toSec()<M_PI/180.));
 }
