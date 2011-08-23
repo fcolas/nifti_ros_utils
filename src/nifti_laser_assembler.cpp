@@ -1,6 +1,7 @@
 
 #include <math.h>
 #include <vector>
+#include <algorithm>
 
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
@@ -60,6 +61,9 @@ protected:
 	//! Current aggregated point cloud
 	sensor_msgs::PointCloud2 point_cloud;
 
+	//! Scan to filter and modify
+	sensor_msgs::LaserScan tmp_scan;
+
 	//! Point cloud holding the projection of one laser scan
 	sensor_msgs::PointCloud2 tmp_point_cloud;
 
@@ -88,6 +92,15 @@ protected:
 
 	//! Publisher for the horizontal scans (default topic: "/scan2d")
 	ros::Publisher scan2d_pub;
+	
+	//! Min distance to keep point (default: 0)
+	double min_distance;
+
+	//! Time offset
+	ros::Duration time_offset;
+
+	//! Scan filtering function
+	void filter_scan(const sensor_msgs::LaserScan& scan);
 
 	//! Scan callback function
 	void scan_cb(const sensor_msgs::LaserScan& scan);
@@ -109,6 +122,7 @@ protected:
  * Constructor
  */
 NiftiLaserAssembler::NiftiLaserAssembler():
+	tf_listener(ros::Duration(60.)),
 	n_("~")
 {
 	// frame names
@@ -150,6 +164,12 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	n_.param<bool>("publish_in_motion", publish_in_motion, true);
 	ROS_WARN_STREAM(publish_in_motion);
 
+	// filtering
+	double offset;
+	n_.param<double>("time_offset", offset, 0.0);
+	time_offset = ros::Duration(offset);
+	n_.param<double>("min_distance", min_distance, 0.0);
+
 	// initialized so that the first test always fails
 	previous_angle = NAN;
 }
@@ -163,6 +183,17 @@ NiftiLaserAssembler::~NiftiLaserAssembler()
 	// Nothing to do?
 }
 
+/*
+ * Scan filtering
+ */
+void NiftiLaserAssembler::filter_scan(const sensor_msgs::LaserScan& scan)
+{
+	tmp_scan = scan;
+	tmp_scan.header.stamp = scan.header.stamp + time_offset;
+	tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
+	
+
+}
 
 /*
  * laser scan callback
@@ -179,14 +210,15 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 
 	if (fabs(angle)<=M_PI/2) {
 		//ROS_INFO_STREAM("Got scan in range.");
+		filter_scan(scan);
 		if (start_time.isZero())
-			start_time = scan.header.stamp;
-		append_scan(scan);
+			start_time = tmp_scan.header.stamp;
+		append_scan(tmp_scan);
 
 	}
 
 	if ((fabs(previous_angle)<M_PI/2) && (fabs(angle)>=M_PI/2)) {
-		if (publish_in_motion||check_no_motion(scan.header.stamp)){
+		if (publish_in_motion||check_no_motion(tmp_scan.header.stamp)){
 			ROS_INFO_STREAM("Publishing scan (" << point_cloud.width << " points).");
 			point_cloud_pub.publish(point_cloud);
 		} else {
