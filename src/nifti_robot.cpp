@@ -13,6 +13,20 @@
 
 static struct EC_messages EC_messages;
 
+template<typename T>
+T getParam(ros::NodeHandle& n, const std::string& name, const T& defaultValue)
+{
+	T v;
+	if (n.getParam(name, v))
+	{
+		ROS_INFO_STREAM("Found parameter: " << name << ", value: " << v);
+		return v;
+	}
+	else
+		ROS_WARN_STREAM("Cannot find value for parameter: " << name << ", assigning default: " << defaultValue);
+	return defaultValue;
+}
+
 
 NiftiRobot::NiftiRobot():
 	// Lateral distance between center of both tracks
@@ -37,31 +51,35 @@ NiftiRobot::NiftiRobot():
 	battery_status(-1),
 	// Battery level
 	battery_level(-1),
+	// Public nodehandle
+	n(),
+	// Private nodehandle
+	n_("~"),
 	// Name of the odometry frame
-	odom_frame("/odom"),
+	//odom_frame("/odom"),
 	// Name of the robot frame
-	robot_frame("/base_link"),
+	//robot_frame("/base_link"),
 	// Name of the laser frame
-	laser_frame("/laser"),
+	//laser_frame("/laser"),
 	// Name of the omnicam frame
-	omni_frame("/omni"),
+	//omni_frame("/omni"),
 	// Name of the imu frame
-	imu_frame("/imu"),
+	//imu_frame("/imu"),
 	// diagnostics publisher
 	//diagnostic_pub(), // Doesn't work!?
 	// 2D odometry publisher in tf
 	odom_broadcaster_2d(),
 	// 2D odometry publisher in message
-	odom_pub(n.advertise<nav_msgs::Odometry>("odom", 50)),
+	odom_pub(n.advertise<nav_msgs::Odometry>("/odom", 50)),
 	// Robot status publisher
 	robot_status_pub(n.advertise<nifti_robot_driver_msgs::RobotStatus>
-			("robot_status", 50)),
+			("/robot_status", 50)),
 	// Configuration publisher
 	configuration_broadcaster(),
 	flippers_state_pub(n.advertise<nifti_robot_driver_msgs::FlippersState>
-			("flippers_state", 50)),
+			("/flippers_state", 50)),
 	currents_pub(n.advertise<nifti_robot_driver_msgs::Currents>
-			("currents", 50))
+			("/currents", 50))
 	// subscribers are initialized at the end, after nrInit
 {
 
@@ -69,13 +87,13 @@ NiftiRobot::NiftiRobot():
 	 * initialize drivers library
 	 */
 	std::string CAN_device;
-	n.param<std::string>("CAN_device", CAN_device, "/dev/usb/cpc_usb0");
+	CAN_device = getParam<std::string>(n_, "CAN_device", "/dev/usb/cpc_usb0");
 	RoverParams params;
 	nrGetDefaultParams(&params);
 	char c_CAN_device[CAN_device.size()+1];
 	std::strncpy(c_CAN_device, CAN_device.c_str(), CAN_device.size()+1);
 	bool bestInit;
-	n.param<bool>("bestInit", bestInit, true);
+	bestInit = getParam<bool>(n_, "bestInit", true);
 	ROS_INFO_STREAM("trying to " << (bestInit?"best ":"") << "init " << c_CAN_device);
 	nrInit(c_CAN_device, &params, bestInit);
 
@@ -91,7 +109,7 @@ NiftiRobot::NiftiRobot():
 	laserX = params.laserX;
 	laserY = params.laserY;
 	laserZ = params.laserZ;
-	n.param<double>("steering_efficiency", steering_efficiency, 0.41);
+	steering_efficiency = getParam<double>(n, "steering_efficiency", 0.41);
 
 	// 2D odometry initialization
 	current_pose.position.x = 0.0;
@@ -108,11 +126,11 @@ NiftiRobot::NiftiRobot():
 	current_velocity.angular.y = 0.0;
 	current_velocity.angular.z = 0.0;
 	current_timestamp=ros::Time::now();
-	n.param<std::string>("odom_frame", odom_frame, "odom");
-	n.param<std::string>("robot_frame", robot_frame, "base_link");
-	n.param<std::string>("laser_frame", laser_frame, "laser");
-	n.param<std::string>("omni_frame", omni_frame, "omni");
-	n.param<std::string>("imu_frame", imu_frame, "imu");
+	odom_frame = getParam<std::string>(n_, "odom_frame", "/odom");
+	robot_frame = getParam<std::string>(n_, "robot_frame", "/base_link");
+	laser_frame = getParam<std::string>(n_, "laser_frame", "/laser");
+	omni_frame = getParam<std::string>(n_, "omni_frame", "/omni");
+	imu_frame = getParam<std::string>(n_, "imu_frame", "/imu");
 
 	// configuration tf
 	geometry_msgs::TransformStamped left_track_tf;
@@ -192,20 +210,20 @@ NiftiRobot::NiftiRobot():
 	 * but here to make sure that nrInit is called before any callback 
 	 */
 	// velocity command
-	cmd_vel_sub = n.subscribe("cmd_vel", 1, &NiftiRobot::cmd_vel_cb, this);
+	cmd_vel_sub = n.subscribe("/cmd_vel", 1, &NiftiRobot::cmd_vel_cb, this);
 	// enable command
-	enable_sub = n.subscribe("enable", 1, &NiftiRobot::enable_cb, this);
+	enable_sub = n.subscribe("/enable", 1, &NiftiRobot::enable_cb, this);
 	// all flippers command
-	flippers_sub = n.subscribe("flippers_cmd", 1, &NiftiRobot::flippers_cb, this);
+	flippers_sub = n.subscribe("/flippers_cmd", 1, &NiftiRobot::flippers_cb, this);
 	// individual flipper command
-	flipper_sub = n.subscribe("flipper_cmd", 4, &NiftiRobot::flipper_cb, this);
+	flipper_sub = n.subscribe("/flipper_cmd", 4, &NiftiRobot::flipper_cb, this);
 	// scanning speed command
-	scanning_speed_sub = n.subscribe("scanning_speed_cmd", 1, &NiftiRobot::scanning_speed_cb, this);
+	scanning_speed_sub = n.subscribe("/scanning_speed_cmd", 1, &NiftiRobot::scanning_speed_cb, this);
 	// brake command
-	brake_sub = n.subscribe("brake", 1, &NiftiRobot::brake_cb, this);
+	brake_sub = n.subscribe("/brake", 1, &NiftiRobot::brake_cb, this);
 	// laser centering command
-	laser_center_sub = n.subscribe("laser_center", 1,
-		&NiftiRobot::laser_center_cb, this);
+	laser_center_sub = n.subscribe("/laser_center", 1,
+			&NiftiRobot::laser_center_cb, this);
 }
 
 /*

@@ -167,6 +167,9 @@ protected:
 	//! public NodeHandle
 	ros::NodeHandle n;
 	
+	//! private NodeHandle
+	ros::NodeHandle n_;
+	
 	//! Name of the odometry frame
 	std::string odom_frame;
 
