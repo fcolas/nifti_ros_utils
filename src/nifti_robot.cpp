@@ -117,7 +117,7 @@ NiftiRobot::NiftiRobot():
 	// 2D odometry initialization
 	current_pose.position.x = 0.0;
 	current_pose.position.y = 0.0;
-	current_pose.position.z = 0.0;
+	current_pose.position.z = 0.0705;
 	current_pose.orientation.x = 0.0;
 	current_pose.orientation.y = 0.0;
 	current_pose.orientation.z = 0.0;
