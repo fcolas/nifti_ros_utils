@@ -90,6 +90,9 @@ protected:
 	//! tracks steering efficiency $\chi$
 	double steering_efficiency;
 
+	//! laser angle offset
+	double laser_angle_offset;
+
 	// current state
 	//! Current pose
 	geometry_msgs::Pose current_pose;

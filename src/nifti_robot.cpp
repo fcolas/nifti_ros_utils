@@ -47,6 +47,8 @@ NiftiRobot::NiftiRobot():
 	//rear_right_offset((180-11.1)*M_PI/180.),
 	// tracks steering efficiency $\chi$
 	//steering_efficiency(1.0),
+	// laser angle offset
+	//laser_angle_offset(0.0),
 	// Battery status
 	battery_status(-1),
 	// Battery level
@@ -110,6 +112,7 @@ NiftiRobot::NiftiRobot():
 	laserY = params.laserY;
 	laserZ = params.laserZ;
 	steering_efficiency = getParam<double>(n, "steering_efficiency", 0.41);
+	laser_angle_offset = getParam<double>(n_, "laser_angle_offset", 0.0);
 
 	// 2D odometry initialization
 	current_pose.position.x = 0.0;
@@ -504,10 +507,12 @@ void NiftiRobot::update_config()
 	configuration_tfs[6].transform.translation.x = laserX;
 	configuration_tfs[6].transform.translation.y = laserY;
 	configuration_tfs[6].transform.translation.z = laserZ;
-	configuration_tfs[6].transform.rotation.x = sin((M_PI+laser_angle)/2.);
+	configuration_tfs[6].transform.rotation.x =
+			sin((M_PI+laser_angle+laser_angle_offset)/2.);
 	configuration_tfs[6].transform.rotation.y = 0.0;
 	configuration_tfs[6].transform.rotation.z = 0.0;
-	configuration_tfs[6].transform.rotation.w = cos((M_PI+laser_angle)/2.);
+	configuration_tfs[6].transform.rotation.w =
+			cos((M_PI+laser_angle+laser_angle_offset)/2.);
 	// update timestamp for omnicam and IMU
 	configuration_tfs[7].header.stamp = timestamp;
 	configuration_tfs[8].header.stamp = timestamp;
