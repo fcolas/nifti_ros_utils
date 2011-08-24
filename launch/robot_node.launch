@@ -2,6 +2,6 @@
 	<param name="steering_efficiency" value="0.41" />
 	<node pkg="nifti_robot_driver" type="nifti_robot_node"
 			name="nifti_robot_node" output="screen" >
-		<param name="laser_angle_offset" value="0.035" />
+		<param name="laser_angle_offset" value="-0.035" />
 	</node>
 </launch>
