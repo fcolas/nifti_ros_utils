@@ -12,6 +12,8 @@
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Twist.h>
 
+#include <laser_filters/scan_shadows_filter.h>
+
 
 
 template<typename T>
@@ -84,6 +86,9 @@ protected:
 	//! Previous absolute value of the laser angle (to detect when to publish)
 	double previous_angle;
 
+	//! Laser angle offset (we publish slightly slanted when not moving
+	double laser_angle_offset;
+
 	//! Projector object from LaserScan to PointCloud2
 	laser_geometry::LaserProjection projector;
 
@@ -110,8 +115,14 @@ protected:
 	//! Min distance to keep point (default: 0)
 	double min_distance;
 
-	//! Time offset
+	//! Time offset (default: 0)
 	ros::Duration time_offset;
+
+	//! min_angle to do shadow filtering (default: 0.1)
+	double shadow_filter_min_angle;
+
+	//! window size for the shadow filtering (default: 5)
+	int shadow_filter_window;
 
 	//! Scan filtering function
 	void filter_scan(const sensor_msgs::LaserScan& scan);
@@ -144,19 +155,6 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	robot_frame = getParam<std::string>(n_, "robot_frame", "/base_link");
 	world_frame = getParam<std::string>(n_, "world_frame", "/odom");
 
-	// point cloud publisher
-	std::string point_cloud_topic;
-	point_cloud_topic = getParam<std::string>(n_, "point_cloud_topic",
-			"/nifti_point_cloud");
-	point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
-			(point_cloud_topic, 50);
-	
-	// laser scan subscriber
-	std::string laser_scan_topic;
-	laser_scan_topic = getParam<std::string>(n_, "laser_scan_topic", "/scan");
-	laser_scan_sub = n.subscribe(laser_scan_topic, 50,
-			&NiftiLaserAssembler::scan_cb, this);
-
 	// max number of point
 	max_size = getParam<int>(n_, "max_size", 1000000);
 
@@ -165,6 +163,7 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 			laser_geometry::channel_option::None);
 
 	// 2d scans
+	laser_angle_offset = getParam<double>(n, "laser_angle_offset", -0.035);
 	publish2d = getParam<bool>(n_, "publish2d", true);
 	if (publish2d) {
 		std::string scan2d_topic;
@@ -182,9 +181,29 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	offset = getParam<double>(n_, "time_offset", 0.0);
 	time_offset = ros::Duration(offset);
 	min_distance = getParam<double>(n_, "min_distance", 0.0);
-
+	shadow_filter_min_angle = getParam<double>(n_, "shadow_filter_min_angle",
+			0.1);
+	shadow_filter_window = getParam<int>(n_, "shadow_filter_window", 5);
 	// initialized so that the first test always fails
 	previous_angle = NAN;
+
+	if (!tf_listener.waitForTransform(laser_frame, world_frame, ros::Time(0),
+			ros::Duration(10.)))
+		ROS_WARN_STREAM("Timeout (10s) while waiting between "<<laser_frame<<
+				" and "<<world_frame<<" at startup.");
+
+	// point cloud publisher
+	std::string point_cloud_topic;
+	point_cloud_topic = getParam<std::string>(n_, "point_cloud_topic",
+			"/nifti_point_cloud");
+	point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
+			(point_cloud_topic, 50);
+	
+	// laser scan subscriber
+	std::string laser_scan_topic;
+	laser_scan_topic = getParam<std::string>(n_, "laser_scan_topic", "/scan");
+	laser_scan_sub = n.subscribe(laser_scan_topic, 50,
+			&NiftiLaserAssembler::scan_cb, this);
 }
 
 
@@ -196,6 +215,15 @@ NiftiLaserAssembler::~NiftiLaserAssembler()
 	// Nothing to do?
 }
 
+
+// get angle (similar in laser_filters/scan_shadow_filter)
+double get_angle(double r1, double r2, double gamma)
+{
+	// area->sin; dist->cos
+	return M_PI/2-fabs(atan2(r1*sin(gamma), r2 - r1*cos(gamma))-M_PI/2);
+}
+
+
 /*
  * Scan filtering
  */
@@ -204,8 +232,20 @@ void NiftiLaserAssembler::filter_scan(const sensor_msgs::LaserScan& scan)
 	tmp_scan = scan;
 	tmp_scan.header.stamp = scan.header.stamp + time_offset;
 	tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
-	
+	double invalid = -1.0;
 
+	for (unsigned int i=1; i<scan.ranges.size(); i++) {
+		for (unsigned int d=1; d<=(unsigned)shadow_filter_window; d++){
+			if (i<d) continue;
+			if (shadow_filter_min_angle > get_angle(scan.ranges[i-d],
+					scan.ranges[i], d*scan.angle_increment)){
+				if (scan.ranges[i-d]>scan.ranges[i]) // keep closer point
+					tmp_scan.ranges[i-d] = invalid;
+				else
+					tmp_scan.ranges[i] = invalid;
+			}
+		}
+	}
 }
 
 /*
@@ -214,11 +254,15 @@ void NiftiLaserAssembler::filter_scan(const sensor_msgs::LaserScan& scan)
 void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 {
 	double angle = get_laser_angle(scan.header.stamp);
+	//ROS_INFO_STREAM("Got scan");
 
 	if ((angle*previous_angle<=0.0) ||
-			((angle==previous_angle)&&(fabs(angle)<0.5*M_PI/180.))) {
+			((angle==previous_angle)&&
+					(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
 		ROS_DEBUG_STREAM("Publishing 2d scan.");
-		scan2d_pub.publish(scan);
+		tmp_scan = scan; // correcting time offset
+		tmp_scan.header.stamp = scan.header.stamp + time_offset;
+		scan2d_pub.publish(tmp_scan);
 	}
 
 	if (fabs(angle)<=M_PI/2) {
@@ -231,6 +275,7 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	}
 
 	if ((fabs(previous_angle)<M_PI/2) && (fabs(angle)>=M_PI/2)) {
+		//ROS_INFO_STREAM("End");
 		if (publish_in_motion||check_no_motion(tmp_scan.header.stamp)){
 			ROS_DEBUG_STREAM("Publishing scan (" << point_cloud.width << " points).");
 			point_cloud_pub.publish(point_cloud);
@@ -260,9 +305,11 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 void NiftiLaserAssembler::append_scan(const sensor_msgs::LaserScan& scan)
 {
 	// Project the LaserScan into a PointCloud2
-	tf_listener.waitForTransform(laser_frame, world_frame, scan.header.stamp
+	if (!tf_listener.waitForTransform(laser_frame, world_frame, scan.header.stamp
 			+ ros::Duration ().fromSec (scan.scan_time)
-			, ros::Duration(1.));
+			, ros::Duration(2.)))
+		ROS_WARN_STREAM("Timeout (2s) while waiting between "<<laser_frame<<
+				" and "<<world_frame<<" before transformation.");
 	projector.transformLaserScanToPointCloud(world_frame, scan,
 			tmp_point_cloud, tf_listener, point_cloud_channels);
 
@@ -288,8 +335,10 @@ double NiftiLaserAssembler::get_laser_angle(const ros::Time &time) const
 	double angle;
 	tf::StampedTransform tmp_tf;
 	geometry_msgs::Quaternion rot;
-	tf_listener.waitForTransform(laser_frame, robot_frame, time,
-		ros::Duration(1.));
+	if (!tf_listener.waitForTransform(laser_frame, robot_frame, time,
+		ros::Duration(1.)))
+		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+				" and "<<robot_frame<<" before getting laser angle.");
 	try {
 		tf_listener.lookupTransform(laser_frame, robot_frame, time, tmp_tf);
 	} catch (tf::ExtrapolationException e) {
@@ -320,8 +369,12 @@ bool NiftiLaserAssembler::check_no_motion(const ros::Time &time) const
 	// Checking with velocity but why not position?
 	geometry_msgs::Twist mean_speed;
 	ros::Duration delta = time - start_time;
-	tf_listener.waitForTransform(robot_frame, world_frame, time,
-		ros::Duration(1.));
+	if (delta>=ros::Duration(59.))
+		return false;
+	if (!tf_listener.waitForTransform(robot_frame, world_frame, time,
+		ros::Duration(1.)))
+		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<robot_frame<<
+				" and "<<world_frame<<" before checking motion.");
 	tf_listener.lookupTwist(robot_frame, world_frame, start_time+delta*0.5,
 			delta, mean_speed);
 	ROS_DEBUG_STREAM("Motion: " << norm(mean_speed.linear) << " m/s, " <<
