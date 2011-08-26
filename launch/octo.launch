@@ -1,0 +1,7 @@
+<launch>
+	<node type="octomap_server_node" pkg="octomap_server" name="octomap_server">
+		<param name="frame_id" value="/map" />
+		<remap from="cloud_in" to="nifti_point_cloud"/>
+	</node>
+
+</launch>
