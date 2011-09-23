@@ -23,7 +23,6 @@
 #include <nifti_robot_driver_msgs/Currents.h>
 #include <nifti_robot_driver_msgs/FlipperCommand.h>
 
-#include "nifti_robot_messages.h"
 
 //! Maximum scanning speed for the laser
 #define MAX_SCANNING_SPEED 1.20

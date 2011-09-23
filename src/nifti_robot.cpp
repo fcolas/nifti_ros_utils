@@ -4,6 +4,7 @@
 #include <math.h>
 #include <sstream>
 
+#include "nifti_robot_messages.h"
 
 #define NR_CHECK_AND_RETURN(nrFn, ...) do {if (int e=nrFn(__VA_ARGS__))\
 		{ROS_WARN_STREAM("Error " << e << " (" << CAN_error_messages[e]\
@@ -12,7 +13,7 @@
 
 #define GET_BIT(status, bit) (((status) >> (bit)) & 1)
 
-static struct EC_messages EC_messages;
+static const EC_messages EC_messages;
 
 template<typename T>
 T getParam(ros::NodeHandle& n, const std::string& name, const T& defaultValue)

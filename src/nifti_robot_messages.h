@@ -7,14 +7,14 @@
 
 
 //! Diagnostic messages for the battery
-std::string battery_messages[3] = {
+static const std::string battery_messages[3] = {
 	"OK",
 	"Warning",
 	"Critical"
 };
 
 //! Error messages for CAN communication (returned by the librover function calls)
-std::string CAN_error_messages[6]=
+static const std::string CAN_error_messages[6]=
 		{"No error",
 		 "Open error",
 		 "Setup error",
@@ -23,7 +23,7 @@ std::string CAN_error_messages[6]=
 		 "Receive error"};
 
 //! Messages for bits 1-3 of the status register of the controllers
-std::string servo_drive_status_messages[8]=
+static const std::string servo_drive_status_messages[8]=
 		{"OK (000b)",
 		 "Under voltage (001b)",
 		 "Over voltage (010b)",
@@ -34,13 +34,13 @@ std::string servo_drive_status_messages[8]=
 		 "unknown (111b)"};
 
 //! Messages for the Motor on bit (4) of the status register of the controllers
-std::string MO_messages[2]=
+static const std::string MO_messages[2]=
 		{"Disabled",
 		 "Enabled"};
 
 //! Messages for the Unit mode bits (7-8) of the status register of the
 //controllers
-std::string UM_messages[8]=
+static const std::string UM_messages[8]=
 		{"unknown (0)",
 		 "Torque control (1)",
 		 "Speed control (2)",
@@ -52,14 +52,14 @@ std::string UM_messages[8]=
 
 //! Messages for the Motion status reflection bits (14-15) of the status
 //register of the controllers
-std::string MS_messages[4]=
+static const std::string MS_messages[4]=
 		{"Motor position stabilized (0)",
 		 "Reference stationary or motor off (1)",
 		 "Reference dynamically controlled (2)",
 		 "Reserved (3)"};
 
 //! Messages for the Motor Failure register (index is the bit)
-std::string MF_messages[32]=
+static const std::string MF_messages[32]=
 		{"Resolver or Analog Halls feedback, angle not found or \
 amplitude too low.",
 		 "Reserved.",
@@ -103,7 +103,7 @@ or PY<LL[3] or PY>HL[3] (UM=4).",
 #define MF_GET_FAULT_DETAIL(mf)	((mf >> 13)&0x07)
 //! Messages for the servo drive fault bits (13-15) of the motor failure
 //register of the controllers
-std::string MF131415_messages[8]=
+static const std::string MF131415_messages[8]=
 		{"OK (0)",
 		 "Under voltage (1)",
 		 "Over voltage (2)",
@@ -233,7 +233,7 @@ time.";
 		(*this)[168] = "Speed too large to start motor.";
 	}
 
-	std::string get(int index) {
+	std::string get(int index) const {
 		std::ostringstream message;
 		std::map<int, std::string>::const_iterator elem = this->find(index);
 		if (elem==this->end())
