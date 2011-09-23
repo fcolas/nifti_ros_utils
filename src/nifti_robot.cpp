@@ -691,13 +691,13 @@ void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status,
 	std::string short_message;
 	std::string full_message;
 	
-	if (GET_BIT(failure, 6))
+	if (GET_BIT(status, 6))
 		get_MF_messages(failure, short_message, full_message);
 
 	if (SR_GET_ERROR(status)) {
 		stat.summary(2, "Error: "+EC_messages.get(error));
 		stat.add("Error code (EC)", EC_messages.get(error));
-	} else if (GET_BIT(failure, 6)) {
+	} else if (GET_BIT(status, 6)) {
 		stat.summary(1, "Motor failure: "+short_message);
 	} else if (!SR_GET_MOTOR_ON(status))
 		stat.summary(1, "Motor disabled");
@@ -705,7 +705,7 @@ void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status,
 		stat.summary(0, "OK");
 
 	
-	if (GET_BIT(failure, 6)) {
+	if (GET_BIT(status, 6)) {
 		stat.add("Motor failure message", full_message);
 		sprintf_binary32(buffer, failure);
 		stat.add("Motor failure (MF)", buffer);
