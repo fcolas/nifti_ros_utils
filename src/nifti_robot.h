@@ -113,6 +113,9 @@ protected:
 	double battery_level;
 
 	//! Status for each controller
+	int controllers_failure[ID_CTRL_MAX];
+
+	//! Status for each controller
 	int controllers_status[ID_CTRL_MAX];
 
 	//! Status for each controller

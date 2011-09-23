@@ -7,7 +7,7 @@
 
 
 //! Diagnostic messages for the battery
-std::string battery_messages[] = {
+std::string battery_messages[3] = {
 	"OK",
 	"Warning",
 	"Critical"
@@ -57,6 +57,62 @@ std::string MS_messages[4]=
 		 "Reference stationary or motor off (1)",
 		 "Reference dynamically controlled (2)",
 		 "Reserved (3)"};
+
+//! Messages for the Motor Failure register (index is the bit)
+std::string MF_messages[32]=
+		{"Resolver or Analog Halls feedback, angle not found or \
+amplitude too low.",
+		 "Reserved.",
+		 "Feedback loss: no match between encode and Hall location.",
+		 "The peak current has been exceeded.",
+		 "Inhibit.",
+		 "Reserved.",
+		 "Two digital Hall sensors were changed at the same time.",
+		 "Speed tracking error DV[2] - VX exceeded speed error limit \
+ER[2] (for UM=2 or UM=4,5).",
+		 "Position tracking error DV[3] - PX (UM=5) or DV[3] - PY \
+(UM=4) exceeded position error limit ER[3].",
+		 "Cannot start because of inconsistent database.",
+		 "Too large a difference in ECAM table.",
+		 "Heartbeat failure.",
+		 "Servo drive fault see bits 13-15.",
+		 "Servo drive fault detail bit 1.",
+		 "Servo drive fault detail bit 2.",
+		 "Servo drive fault detail bit 3.",
+		 "Failed to find the electrical zero of the motor in an \
+attempt to start it with an incremental encoder and no digital \
+Hall sensors.",
+		 "Speed limit exceeded: VX<LL[2] or VX>HL[2].",
+		 "Stack overflow - fatal exception (need a power reset).",
+		 "CPU exception - fatal exception (need a power reset).",
+		 "Reserved.",
+		 "Motor stuck - the motor is powered but is not moving \
+according to the definition of CL[2] and CL[3]",
+		 "Position limit exceeded: PX<LL[3] or PX>HL[3] (UM=5), \
+or PY<LL[3] or PY>HL[3] (UM=4).",
+		 "unknown",
+		 "unknown",
+		 "unknown",
+		 "unknown",
+		 "unknown",
+		 "Reserved.",
+		 "Cannot start motor.",
+		 "unknown",
+		 "Reserved."};
+
+#define MF_GET_FAULT_DETAIL(mf)	((mf >> 13)&0x07)
+//! Messages for the servo drive fault bits (13-15) of the motor failure
+//register of the controllers
+std::string MF131415_messages[8]=
+		{"OK (0)",
+		 "Under voltage (1)",
+		 "Over voltage (2)",
+		 "Reserved (3)",
+		 "Reserved (4)",
+		 "Short circuit (5)",
+		 "Temperature. Drive overheating (6)",
+		 "Reserved (7)"};
+
 
 //! Messages for the EC error code of the controllers
 struct EC_messages: public std::map<int, std::string> {
@@ -118,11 +174,11 @@ struct EC_messages: public std::map<int, std::string> {
 		(*this)[95] = "Too large or modulo setting.";
 		(*this)[96] = "User program time out.";
 		(*this)[97] = "RS232 receive buffer overflow.";
-		(*this)[99] = "The auviliary feedback entry does not configure as\
-				output during the activation of Output Compare.";
+		(*this)[99] = "The auviliary feedback entry does not configure as \
+output during the activation of Output Compare.";
 		(*this)[100] = "The requested PWM value is not supported.";
-		(*this)[101] = "Abortive attempt to read  aposition value from the\
-				absolute position sensor.";
+		(*this)[101] = "Abortive attempt to read  aposition value from the \
+absolute position sensor.";
 		(*this)[105] = "Speed loop KP out of range.";
 		(*this)[106] = "Position loop KP out of range.";
 		(*this)[111] = "KV[N] vector is invalid.";
@@ -142,13 +198,13 @@ struct EC_messages: public std::map<int, std::string> {
 		(*this)[130] = "Variable name does not exist.";
 		(*this)[131] = "Cannot record local variables.";
 		(*this)[132] = "Variable is not an array.";
-		(*this)[133] = "Mismatched number of user/system function input\
-				arguments.";
+		(*this)[133] = "Mismatched number of user/system function input \
+arguments.";
 		(*this)[134] = "Cannot run local label with XQ command.";
 		(*this)[137] = "Program already compiled.";
 		(*this)[139] = "The number of breakpoints exceeds the maximum number.";
-		(*this)[140] = "An attempt to set/clear breakpoint atthe non-relevant\
-				time.";
+		(*this)[140] = "An attempt to set/clear breakpoint atthe non-relevant \
+time.";
 		(*this)[141] = "Boot identity parameters section is not clear.";
 		(*this)[142] = "Checksum of data is not correct.";
 		(*this)[143] = "Missing bott identity parameters.";

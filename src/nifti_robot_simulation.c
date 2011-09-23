@@ -250,6 +250,16 @@ int nrGetBrake(int *val)
 }
 
 
+/* Get the motor failure register for all controllers (see controller.h for details) */
+int nrGetMotorsFailure(int status[])
+{
+	int i;
+	GETPRINT("nrGetMotorFailure()\n");
+	//for(i=0; i<ID_CTRL_MAX; status[i++]=0);
+	for(i=0; i<ID_CTRL_MAX; status[i++]=rand());
+	RETURN_ERROR;
+}
+
 /* Get the status register for all controllers (see controller.h for details) */
 int nrGetControllersStatus(int status[])
 {

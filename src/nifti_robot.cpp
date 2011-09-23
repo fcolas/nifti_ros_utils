@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <math.h>
+#include <sstream>
 
 
 #define NR_CHECK_AND_RETURN(nrFn, ...) do {if (int e=nrFn(__VA_ARGS__))\
@@ -545,6 +546,11 @@ void NiftiRobot::update_robot_state()
 		NR_CHECK_AND_RETURN(nrGetControllersError, controllers_error);
 	else
 		for (int i=0; i<ID_CTRL_MAX; controllers_error[i++]=0);
+	for (int i=0; i<ID_CTRL_MAX; err+=GET_BIT(controllers_status[i++], 6));
+	if (err)
+		NR_CHECK_AND_RETURN(nrGetMotorsFailure, controllers_failure);
+	else
+		for (int i=0; i<ID_CTRL_MAX; controllers_failure[i++]=0);
 	NR_CHECK_AND_RETURN(nrGetBrake, &brake_on);
 	NR_CHECK_AND_RETURN(nrGetScanningSpeed, &scanning_speed);
 	//ROS_INFO_STREAM("Scanning_speed: " << scanning_speed);
@@ -641,28 +647,80 @@ void sprintf_binary32(char* buffer, int value) {
 
 }
 
+void get_MF_messages(int failure, std::string& first_message, std::string& full_message)
+{
+	bool first=true;
+	std::ostringstream message_stream;
+	full_message = "";
+	for (int i=0; i<12; i++)
+		if (GET_BIT(failure, i)) {
+			if (first) {
+				first_message = MF_messages[i];
+				first=false;
+			} else
+				message_stream << std::endl;
+			message_stream << "Bit " << i << ": " << MF_messages[i];
+		}
+	if (GET_BIT(failure, 12)) {
+		int index = MF_GET_FAULT_DETAIL(failure);
+		if (first) {
+			first_message = MF131415_messages[index];
+			first = false;
+		} else
+			message_stream << std::endl;
+		message_stream << "Servo drive fault detail (13-15): " <<\
+			MF131415_messages[index];
+	}
+	for (int i=16; i<32; i++)
+		if (GET_BIT(failure, i)) {
+			if (first) {
+				first_message = MF_messages[i];
+				first=false;
+			} else
+				message_stream << std::endl;
+			message_stream << "Bit " << i << ": " << MF_messages[i];
+		}
+	full_message = message_stream.str();
+}
 
 void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status,
-		int error)
+		int error, int failure)
 {
+	char buffer[40];
+	std::string short_message;
+	std::string full_message;
+	
+	if (GET_BIT(failure, 6))
+		get_MF_messages(failure, short_message, full_message);
+
 	if (SR_GET_ERROR(status)) {
 		stat.summary(2, "Error: "+EC_messages.get(error));
 		stat.add("Error code (EC)", EC_messages.get(error));
+	} else if (GET_BIT(failure, 6)) {
+		stat.summary(1, "Motor failure: "+short_message);
 	} else if (!SR_GET_MOTOR_ON(status))
 		stat.summary(1, "Motor disabled");
 	else
 		stat.summary(0, "OK");
+
+	
+	if (GET_BIT(failure, 6)) {
+		stat.add("Motor failure message", full_message);
+		sprintf_binary32(buffer, failure);
+		stat.add("Motor failure (MF)", buffer);
+	}
+
 	stat.add("Error flag", SR_GET_ERROR(status));
 	stat.add("Servo drive status",
 			servo_drive_status_messages[SR_GET_SERVO_DRIVE_STATUS(status)]);
 	stat.add("Motor on (MO)", MO_messages[SR_GET_MOTOR_ON(status)]);
+	stat.add("Motor failure bit in SR",  GET_BIT(status, 6));
 	stat.add("Unit mode (UM)", UM_messages[(status&0x0380)>>7]);
 //	stat.add("Gain scheduling on", GET_BIT(status, 10));
 //	stat.add("Program running", GET_BIT(status, 12));
 //	stat.add("Motion status (MS)", MS_messages[(status&0x0C00)>>14]);
 //	stat.add("Stopped by a limit", GET_BIT(status, 28));
 	stat.add("Error in user program",  GET_BIT(status, 29));
-	char buffer[40];
 	sprintf_binary32(buffer, status);
 	stat.add("Status register (SR)", buffer);
 //	char stat_name[10];
@@ -673,25 +731,36 @@ void diag_ctrl(diagnostic_updater::DiagnosticStatusWrapper& stat, int status,
 }
 
 void NiftiRobot::diag_core(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_CORE], controllers_error[ID_CORE]);
+	diag_ctrl(stat, controllers_status[ID_CORE], controllers_error[ID_CORE],
+	controllers_failure[ID_CORE]);
 }
 void NiftiRobot::diag_left_track(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_TRACK_LEFT], controllers_error[ID_TRACK_LEFT]);
+	diag_ctrl(stat, controllers_status[ID_TRACK_LEFT],
+	controllers_error[ID_TRACK_LEFT], controllers_failure[ID_TRACK_LEFT]);
 }
 void NiftiRobot::diag_right_track(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_TRACK_RIGHT], controllers_error[ID_TRACK_RIGHT]);
+	diag_ctrl(stat, controllers_status[ID_TRACK_RIGHT],
+	controllers_error[ID_TRACK_RIGHT], controllers_failure[ID_TRACK_RIGHT]);
 }
 void NiftiRobot::diag_front_left_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_LEFT], controllers_error[ID_FLIPPER_FRONT_LEFT]);
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_LEFT],
+	controllers_error[ID_FLIPPER_FRONT_LEFT],
+	controllers_failure[ID_FLIPPER_FRONT_LEFT]);
 }
 void NiftiRobot::diag_front_right_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_RIGHT], controllers_error[ID_FLIPPER_FRONT_RIGHT]);
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_FRONT_RIGHT],
+	controllers_error[ID_FLIPPER_FRONT_RIGHT],
+	controllers_failure[ID_FLIPPER_FRONT_RIGHT]);
 }
 void NiftiRobot::diag_rear_left_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_LEFT], controllers_error[ID_FLIPPER_REAR_LEFT]);
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_LEFT],
+	controllers_error[ID_FLIPPER_REAR_LEFT],
+	controllers_failure[ID_FLIPPER_REAR_LEFT]);
 }
 void NiftiRobot::diag_rear_right_flipper(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_RIGHT], controllers_error[ID_FLIPPER_REAR_RIGHT]);
+	diag_ctrl(stat, controllers_status[ID_FLIPPER_REAR_RIGHT],
+	controllers_error[ID_FLIPPER_REAR_RIGHT],
+	controllers_failure[ID_FLIPPER_REAR_RIGHT]);
 }
 
 /*
