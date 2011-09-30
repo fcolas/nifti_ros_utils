@@ -58,7 +58,25 @@ protected:
 	
 	//! Length of the tracks
 	double tracks_length;
-	
+
+	//! Length of a flipper
+	double flipper_length;
+
+	//! thickness of the belt of the flippers
+	double flipper_belt_thickness;
+
+	//! track wheel radius
+	double track_wheel_radius;
+
+//	//! flipper angle offset
+//	double flipper_offset;
+
+	//! flipper collision zone
+	double min_collision_angle;
+
+	//! flipper collision zone
+	double max_collision_angle;
+
 	//! Half of the width of both the flippers and the tracks
 	double tracks_flippers_half_width;
 
@@ -120,6 +138,12 @@ protected:
 	//! Status for each controller
 	int controllers_error[ID_CTRL_MAX];
 
+	//! Positions of the flippers
+	nifti_robot_driver_msgs::FlippersState flippers_positions;
+
+	//! Targets of the flippers
+	nifti_robot_driver_msgs::FlippersState flippers_targets;
+
 	// callbacks
 	//! Callback for velocity command
 	void cmd_vel_cb(const geometry_msgs::Twist& cmd_vel);
@@ -142,6 +166,12 @@ protected:
 	//! Callback for laser centering
 	void laser_center_cb(const std_msgs::Bool& center);
 
+	// flipper collision avoidance
+	//! detect if a given flipper position is in collision zone
+	bool in_coll_zone(double flipper_angle) const;
+
+	//! detect if a flipper will cross the collision zone
+	bool in_coll_zone(double angle, double target) const;
 
 	// odometry and tfs update
 	/**

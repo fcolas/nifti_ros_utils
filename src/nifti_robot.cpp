@@ -13,6 +13,30 @@
 
 #define GET_BIT(status, bit) (((status) >> (bit)) & 1)
 
+//! Normalize angle in [0, 2*M_PI)
+inline double norm_angle(double angle)
+{
+	return angle - 2*M_PI*floor(angle/(2*M_PI));
+//	return a<0?a+2*M_PI:a;
+}
+
+bool check_angle_coll(double start, double end, double min, double max)
+{
+	double a, b;
+	if (start<=end)
+	{
+		a = start;
+		b = end;
+	} else {
+		a = end;
+		b = start;
+	}
+	double mina, maxa;
+	mina = norm_angle(min-a);
+	maxa = norm_angle(max-a);
+	return (mina>maxa)||((b-a)>=mina);
+}
+
 static const EC_messages EC_messages;
 
 template<typename T>
@@ -36,7 +60,13 @@ NiftiRobot::NiftiRobot():
 	// Height of flippers with respect to tracks
 	//flippers_altitude(0.0195),
 	// Length of the tracks
-	//tracks_length(0.25),
+	//tracks_length(0.5),
+	// Length of a flipper
+	//flipper_length(0.347),
+	// thickness of the belt of the flippers
+	flipper_belt_thickness(0.02),
+	// track wheel radius
+	//track_wheel_radius(0.090),
 	// Half of the width of both the flippers and the tracks
 	//tracks_flippers_half_width((0.050+0.097)/2.),
 	// angle offset of the front left flipper
@@ -104,6 +134,21 @@ NiftiRobot::NiftiRobot():
 	robot_width = params.trackDistance;
 	flippers_altitude = params.trackWheelRadius - params.referentialZ;
 	tracks_length = params.trackLength;
+	flipper_length = params.flipperLength;
+	track_wheel_radius = params.trackWheelRadius;
+
+//	flipper_offset = params.flipperOffset;
+	double v1 = acos(-(flipper_length+flipper_belt_thickness+\
+			track_wheel_radius)/tracks_length);
+	min_collision_angle = 2*M_PI - v1 - (M_PI/2 - 2*params.flipperOffset);
+	max_collision_angle = v1 + M_PI/2;
+
+//	flipper_collision_zone = -(v1*sin(flipper_offset)\
+			+sqrt(tracks_length*tracks_length - v1*v1)*cos(flipper_offset))/\
+			tracks_length;
+	ROS_INFO_STREAM("Flipper collision zone: [" <<\
+			min_collision_angle << ", " << max_collision_angle << "]");
+
 	tracks_flippers_half_width = (params.trackWidth+params.flipperWidth)/2.0;
 	front_left_offset = params.flipperOffset;
 	front_right_offset = params.flipperOffset;
@@ -271,12 +316,35 @@ void NiftiRobot::enable_cb(const std_msgs::Bool& on)
 }
 
 
+bool NiftiRobot::in_coll_zone(double flipper_angle) const
+{
+	double angle  = norm_angle(flipper_angle);
+	return (angle<=max_collision_angle) && (angle>=min_collision_angle); 
+}
+bool NiftiRobot::in_coll_zone(double angle, double target) const
+{
+	return check_angle_coll(angle, target, min_collision_angle,
+			max_collision_angle);
+}
+
 /*
  * Callback for all flippers command
  */
 void NiftiRobot::flippers_cb(const nifti_robot_driver_msgs::FlippersState& flippers)
 {
 	ROS_DEBUG_STREAM("received flippers command: " << flippers);
+	flippers_targets = flippers;
+	if (in_coll_zone(flippers_positions.frontLeft, flippers.frontLeft)&&
+			in_coll_zone(flippers_positions.rearLeft, flippers.rearLeft))
+	{
+		ROS_WARN_STREAM("Flipper collision might happen on the left");
+	}
+	if (in_coll_zone(flippers_positions.frontRight, flippers.frontRight)&&
+			in_coll_zone(flippers_positions.rearRight, flippers.rearRight))
+	{
+		ROS_WARN_STREAM("Flipper collision might happen on the right");
+	}
+
 	NR_CHECK_AND_RETURN(nrSetFlippers, flippers.frontLeft, flippers.frontRight,
 			flippers.rearLeft, flippers.rearRight);
 }
@@ -449,6 +517,7 @@ void NiftiRobot::update_config()
 	flippers_state_msg.frontRight = frontRight;
 	flippers_state_msg.rearLeft = rearLeft;
 	flippers_state_msg.rearRight = rearRight;
+	flippers_positions = flippers_state_msg;
 
 	// left track
 	configuration_tfs[0].header.stamp = timestamp;
