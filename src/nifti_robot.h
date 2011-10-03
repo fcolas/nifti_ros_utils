@@ -62,14 +62,17 @@ protected:
 	//! Length of a flipper
 	double flipper_length;
 
+	//! radius of the flipper tip
+	double flipper_radius;
+
 	//! thickness of the belt of the flippers
 	double flipper_belt_thickness;
 
 	//! track wheel radius
 	double track_wheel_radius;
 
-//	//! flipper angle offset
-//	double flipper_offset;
+	//! flipper angle offset
+	double flipper_offset;
 
 	//! flipper collision zone
 	double min_collision_angle;
@@ -172,6 +175,10 @@ protected:
 
 	//! detect if a flipper will cross the collision zone
 	bool in_coll_zone(double angle, double target) const;
+
+	//! detect if two flippers are in collision
+	bool in_collision(double front, double rear) const;
+
 
 	// odometry and tfs update
 	/**
