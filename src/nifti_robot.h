@@ -22,6 +22,7 @@
 #include <nifti_robot_driver_msgs/RobotStatus.h>
 #include <nifti_robot_driver_msgs/Currents.h>
 #include <nifti_robot_driver_msgs/FlipperCommand.h>
+#include <nifti_robot_driver_msgs/Tracks.h>
 
 
 //! Maximum scanning speed for the laser
@@ -169,6 +170,9 @@ protected:
 	//! Callback for laser centering
 	void laser_center_cb(const std_msgs::Bool& center);
 
+	//! Callback for tracks velocity command
+	void tracks_vel_cb(const nifti_robot_driver_msgs::Tracks& tracksSpeed);
+
 	// flipper collision avoidance
 	//! detect if a given flipper position is in collision zone
 	bool in_coll_zone(double flipper_angle) const;
@@ -274,6 +278,9 @@ protected:
 	//! Current readings
 	ros::Publisher currents_pub;
 
+	//! Tracks velocity publisher
+	ros::Publisher tracks_vel_pub;
+
 	// subscribers
 	//! Subscriber to a velocity command
 	ros::Subscriber cmd_vel_sub;
@@ -295,6 +302,9 @@ protected:
 
 	//! Subscriber to a laser center command
 	ros::Subscriber laser_center_sub;
+
+	//! Subscriber to a tracks velocity command
+	ros::Subscriber tracks_vel_sub;
 
 
 };

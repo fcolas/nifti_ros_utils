@@ -113,7 +113,9 @@ NiftiRobot::NiftiRobot():
 	flippers_state_pub(n.advertise<nifti_robot_driver_msgs::FlippersState>
 			("/flippers_state", 50)),
 	currents_pub(n.advertise<nifti_robot_driver_msgs::Currents>
-			("/currents", 50))
+			("/currents", 50)),
+	tracks_vel_pub(n.advertise<nifti_robot_driver_msgs::Tracks>
+			("/tracks_vel", 50))
 	// subscribers are initialized at the end, after nrInit
 {
 
@@ -275,6 +277,8 @@ NiftiRobot::NiftiRobot():
 	// laser centering command
 	laser_center_sub = n.subscribe("/laser_center", 1,
 			&NiftiRobot::laser_center_cb, this);
+	// tracks velocity command
+	tracks_vel_sub = n.subscribe("/tracks_vel_cmd", 1, &NiftiRobot::rtacks_vel_cb, this);
 }
 
 /*
@@ -466,6 +470,23 @@ void NiftiRobot::laser_center_cb(const std_msgs::Bool& center)
 }
 
 /*
+ * Callback for tracks velocity command
+ */
+void NiftiRobot::tracks_vel_cb(const nifti_robot_driver_msgs::Tracks& tracksSpeed)
+{
+	ROS_DEBUG_STREAM("received tracks velocity command: " << tracksSpeed);
+	double vl = tracksSpeed.left;
+	double vr = tracksSpeed.right;
+	if ((vl<=(vMax+EPSILON)) && (vl>=-(vMax+EPSILON)) && (vr<=(vMax+EPSILON)) &&
+			(vr>=-(vMax+EPSILON)))
+		NR_CHECK_AND_RETURN(nrSetSpeedLR, vl, vr);
+	else
+		ROS_WARN_STREAM("Invalid tracks velocity command (vr="<<vr<<\
+				", vl="<<vl<<")|vMax="<<vMax<<".");
+}
+
+
+/*
  * 2D Motion model
  * computes linear and angular velocity based on tracks velocity
  */
@@ -571,6 +592,12 @@ void NiftiRobot::update_2d_odom()
     odom_msg.child_frame_id = robot_frame;
     odom_msg.twist.twist = current_velocity;
 	odom_pub.publish(odom_msg);
+
+	// publish direct tracks speed
+	nifti_robot_driver_msgs::Tracks tracks_msg;
+	tracks_msg.left = vl;
+	tracks_msg.right = vr;
+	tracks_vel_pub.publish(tracks_msg);
 	
 }
 
