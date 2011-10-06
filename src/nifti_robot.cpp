@@ -278,7 +278,7 @@ NiftiRobot::NiftiRobot():
 	laser_center_sub = n.subscribe("/laser_center", 1,
 			&NiftiRobot::laser_center_cb, this);
 	// tracks velocity command
-	tracks_vel_sub = n.subscribe("/tracks_vel_cmd", 1, &NiftiRobot::rtacks_vel_cb, this);
+	tracks_vel_sub = n.subscribe("/tracks_vel_cmd", 1, &NiftiRobot::tracks_vel_cb, this);
 }
 
 /*
