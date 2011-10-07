@@ -616,6 +616,16 @@ void NiftiRobot::update_config()
 	NR_CHECK_AND_RETURN(nrGetScannerAngle, &laser_angle);
 	ros::Time timestamp = ros::Time::now();
 
+	if (in_collision(frontLeft, rearLeft))
+	{
+		ROS_WARN_STREAM("Flippers in collision on the left");
+	}
+	if (in_collision(frontRight, rearRight))
+	{
+		ROS_WARN_STREAM("Flippers in collision on the right");
+	}
+
+
 	nifti_robot_driver_msgs::FlippersState flippers_state_msg;
 	flippers_state_msg.frontLeft = frontLeft;
 	flippers_state_msg.frontRight = frontRight;
