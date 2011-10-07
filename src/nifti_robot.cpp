@@ -64,7 +64,7 @@ NiftiRobot::NiftiRobot():
 	// Length of a flipper
 	//flipper_length(0.347),
 	// thickness of the belt of the flippers
-	flipper_belt_thickness(0.02),
+	flipper_belt_thickness(0.025),
 	// track wheel radius
 	//track_wheel_radius(0.090),
 	// Half of the width of both the flippers and the tracks
@@ -136,12 +136,12 @@ NiftiRobot::NiftiRobot():
 	robot_width = params.trackDistance;
 	flippers_altitude = params.trackWheelRadius - params.referentialZ;
 	tracks_length = params.trackLength;
-	flipper_length = params.flipperLength;
+	flipper_length = params.flipperLength - params.flipperWidth/2;
 	track_wheel_radius = params.trackWheelRadius;
 	flipper_radius = (params.flipperWidth)/2 + flipper_belt_thickness;
 
 	flipper_offset = params.flipperOffset;
-	double v1 = acos(-(flipper_length+flipper_belt_thickness+\
+	double v1 = acos(-(flipper_length+flipper_radius+\
 			track_wheel_radius)/tracks_length);
 	min_collision_angle = 2*M_PI - v1 - (M_PI/2 - 2*flipper_offset);
 	max_collision_angle = v1 + M_PI/2;
@@ -340,12 +340,12 @@ bool NiftiRobot::in_collision(double front, double rear) const
 
 	if (cos(-front-(M_PI+flipper_offset))>=cos(rear-(M_PI+flipper_offset)))
 	{
-		std::cout<<"Int: front (" << -front << "); Ext: rear ("<<rear<<").\n";
+		//std::cout<<"Int: front (" << -front << "); Ext: rear ("<<rear<<").\n";
 		interior = -front;
 		exterior = rear;
 	} else 
 	{
-		std::cout<<"Int: rear ("<<rear<<"); Ext: front (" << -front << ").\n";
+		//std::cout<<"Int: rear ("<<rear<<"); Ext: front (" << -front << ").\n";
 		interior = rear;
 		exterior = -front;
 	}
@@ -358,6 +358,12 @@ bool NiftiRobot::in_collision(double front, double rear) const
 	double e1 = acos((track_wheel_radius+flipper_radius)\
 			/sqrt(relX*relX+relY*relY)) - (M_PI/2-flipper_offset);
 	
+/*	if (cos(exterior-psi)>cos(e1)){
+		system("sudo aplay /usr/lib/openoffice/basis3.2/share/gallery/sounds/train.wav");
+		return true;
+	}
+	else
+		return false;*/
 	return (cos(exterior-psi)>cos(e1));
 }
 
@@ -616,7 +622,7 @@ void NiftiRobot::update_config()
 	NR_CHECK_AND_RETURN(nrGetScannerAngle, &laser_angle);
 	ros::Time timestamp = ros::Time::now();
 
-	if (in_collision(frontLeft, rearLeft))
+/*	if (in_collision(frontLeft, rearLeft))
 	{
 		ROS_WARN_STREAM("Flippers in collision on the left");
 	}
@@ -624,7 +630,7 @@ void NiftiRobot::update_config()
 	{
 		ROS_WARN_STREAM("Flippers in collision on the right");
 	}
-
+*/
 
 	nifti_robot_driver_msgs::FlippersState flippers_state_msg;
 	flippers_state_msg.frontLeft = frontLeft;
