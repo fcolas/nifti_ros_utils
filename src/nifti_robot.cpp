@@ -235,8 +235,8 @@ NiftiRobot::NiftiRobot():
 	imu_tf.transform.rotation = tmp_rot;
 	configuration_tfs.push_back(imu_tf);
 	// omnicam
-	tmp_rot.z = sin(params.omniAngleOffset/2.);
-	tmp_rot.w = cos(params.omniAngleOffset/2.);
+	tmp_rot.z = sin(-params.omniAngleOffset/2.);
+	tmp_rot.w = cos(-params.omniAngleOffset/2.);
 	geometry_msgs::TransformStamped omni_tf;
 	omni_tf.header.frame_id = robot_frame;
 	omni_tf.child_frame_id = omni_frame;
