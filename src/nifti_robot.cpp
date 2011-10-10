@@ -85,6 +85,8 @@ NiftiRobot::NiftiRobot():
 	battery_status(-1),
 	// Battery level
 	battery_level(-1),
+	// publish odom as tf
+	//publish_odom_as_tf(false),
 	// Public nodehandle
 	n(),
 	// Private nodehandle
@@ -132,6 +134,8 @@ NiftiRobot::NiftiRobot():
 	bestInit = getParam<bool>(n_, "bestInit", true);
 	ROS_INFO_STREAM("trying to " << (bestInit?"best ":"") << "init " << c_CAN_device);
 	nrInit(c_CAN_device, &params, bestInit);
+
+	publish_odom_as_tf = getParam<bool>(n_, "publishOdomTF", false);
 
 	robot_width = params.trackDistance;
 	flippers_altitude = params.trackWheelRadius - params.referentialZ;
@@ -182,7 +186,7 @@ NiftiRobot::NiftiRobot():
 	odom_frame = getParam<std::string>(n_, "odom_frame", "/odom");
 	robot_frame = getParam<std::string>(n_, "robot_frame", "/base_link");
 	laser_frame = getParam<std::string>(n_, "laser_frame", "/laser");
-	omni_frame = getParam<std::string>(n_, "omni_frame", "/omni");
+	omni_frame = getParam<std::string>(n_, "omni_frame", "/omnicam");
 	imu_frame = getParam<std::string>(n_, "imu_frame", "/imu");
 
 	// configuration tf
@@ -216,10 +220,21 @@ NiftiRobot::NiftiRobot():
 	configuration_tfs.push_back(laser_tf);
 
 	// fixed frames:
-	// omnicam
+	// IMU
+	geometry_msgs::TransformStamped imu_tf;
+	imu_tf.header.frame_id = robot_frame;
+	imu_tf.child_frame_id = imu_frame;
+	imu_tf.transform.translation.x = params.imuX;
+	imu_tf.transform.translation.y = params.imuY;
+	imu_tf.transform.translation.z = params.imuZ;
 	geometry_msgs::Quaternion tmp_rot;
 	tmp_rot.x = 0.;
 	tmp_rot.y = 0.;
+	tmp_rot.z = 0.;
+	tmp_rot.w = 1.;
+	imu_tf.transform.rotation = tmp_rot;
+	configuration_tfs.push_back(imu_tf);
+	// omnicam
 	tmp_rot.z = sin(params.omniAngleOffset/2.);
 	tmp_rot.w = cos(params.omniAngleOffset/2.);
 	geometry_msgs::TransformStamped omni_tf;
@@ -230,17 +245,62 @@ NiftiRobot::NiftiRobot():
 	omni_tf.transform.translation.z = params.omniZ;
 	omni_tf.transform.rotation = tmp_rot;
 	configuration_tfs.push_back(omni_tf);
-	// IMU
-	geometry_msgs::TransformStamped imu_tf;
-	imu_tf.header.frame_id = robot_frame;
-	imu_tf.child_frame_id = imu_frame;
-	imu_tf.transform.translation.x = params.imuX;
-	imu_tf.transform.translation.y = params.imuY;
-	imu_tf.transform.translation.z = params.imuZ;
-	tmp_rot.z = 0.;
-	tmp_rot.w = 1.;
-	imu_tf.transform.rotation = tmp_rot;
-	configuration_tfs.push_back(imu_tf);
+	geometry_msgs::TransformStamped cam_tf;
+	cam_tf.header.frame_id = omni_frame;
+	cam_tf.child_frame_id = "/camera_0";
+	cam_tf.transform.translation.x = 0.042089;
+	cam_tf.transform.translation.y = -0.001704;
+	cam_tf.transform.translation.z = -0.000358;
+	cam_tf.transform.rotation.x = -0.0006654059;
+	cam_tf.transform.rotation.y = 0.7074404880;
+	cam_tf.transform.rotation.z = 0.0001106119;
+	cam_tf.transform.rotation.w = 0.7067726;
+	configuration_tfs.push_back(cam_tf);
+	cam_tf.child_frame_id = "/camera_1";
+	cam_tf.transform.translation.x = 0.011469;
+	cam_tf.transform.translation.y = -0.04013;
+	cam_tf.transform.translation.z = -0.000084;
+	cam_tf.transform.rotation.x = 0.41596649;
+	cam_tf.transform.rotation.y = 0.57228234;
+	cam_tf.transform.rotation.z = -0.41501139;
+	cam_tf.transform.rotation.w = 0.57204052;
+	configuration_tfs.push_back(cam_tf);
+	cam_tf.child_frame_id = "/camera_2";
+	cam_tf.transform.translation.x = -0.034855;
+	cam_tf.transform.translation.y = -0.02289;
+	cam_tf.transform.translation.z = 0.000523;
+	cam_tf.transform.rotation.x = 0.67363696;
+	cam_tf.transform.rotation.y = 0.2169538;
+	cam_tf.transform.rotation.z = -0.67158681;
+	cam_tf.transform.rotation.w = 0.21935235;
+	configuration_tfs.push_back(cam_tf);
+	cam_tf.child_frame_id = "/camera_3";
+	cam_tf.transform.translation.x = -0.033205;
+	cam_tf.transform.translation.y = 0.025731;
+	cam_tf.transform.translation.z = 0.000218;
+	cam_tf.transform.rotation.x = -0.67202185;
+	cam_tf.transform.rotation.y = 0.22064109;
+	cam_tf.transform.rotation.z = 0.67286786;
+	cam_tf.transform.rotation.w = 0.2166864;
+	configuration_tfs.push_back(cam_tf);
+	cam_tf.child_frame_id = "/camera_4";
+	cam_tf.transform.translation.x = 0.014502;
+	cam_tf.transform.translation.y = 0.038993;
+	cam_tf.transform.translation.z = -0.0003;
+	cam_tf.transform.rotation.x = -0.41740909;
+	cam_tf.transform.rotation.y = 0.57548293;
+	cam_tf.transform.rotation.z = 0.41347337;
+	cam_tf.transform.rotation.w = 0.56888384;
+	configuration_tfs.push_back(cam_tf);
+	cam_tf.child_frame_id = "/camera_5";
+	cam_tf.transform.translation.x = 0.000403;
+	cam_tf.transform.translation.y = -0.000922;
+	cam_tf.transform.translation.z = 0.062129;
+	cam_tf.transform.rotation.x = 0.0003937004;
+	cam_tf.transform.rotation.y = -0.0018854708;
+	cam_tf.transform.rotation.z = -0.0005477226;
+	cam_tf.transform.rotation.w = 0.99999799;
+	configuration_tfs.push_back(cam_tf);
 
 	// setting up diagnostics
 	//diagnostic_updater::Updater tmp_up;
@@ -578,16 +638,18 @@ void NiftiRobot::update_2d_odom()
 	current_timestamp = new_timestamp;
 
 	// publish odometry in tf
-    geometry_msgs::TransformStamped odom_trans_2d;
-	odom_trans_2d.header.frame_id = odom_frame;
-	odom_trans_2d.child_frame_id = robot_frame;
-	odom_trans_2d.header.stamp = current_timestamp;
-	odom_trans_2d.transform.translation.x = current_pose.position.x;
-	odom_trans_2d.transform.translation.y = current_pose.position.y;
-	odom_trans_2d.transform.translation.z = current_pose.position.z;
-	odom_trans_2d.transform.rotation = current_pose.orientation;
-	odom_broadcaster_2d.sendTransform(odom_trans_2d);
-
+	if (publish_odom_as_tf)
+	{
+	    geometry_msgs::TransformStamped odom_trans_2d;
+		odom_trans_2d.header.frame_id = odom_frame;
+		odom_trans_2d.child_frame_id = robot_frame;
+		odom_trans_2d.header.stamp = current_timestamp;
+		odom_trans_2d.transform.translation.x = current_pose.position.x;
+		odom_trans_2d.transform.translation.y = current_pose.position.y;
+		odom_trans_2d.transform.translation.z = current_pose.position.z;
+		odom_trans_2d.transform.rotation = current_pose.orientation;
+		odom_broadcaster_2d.sendTransform(odom_trans_2d);
+	}
 	// publish odometry with Odom message
 	nav_msgs::Odometry odom_msg;
     odom_msg.header.stamp = current_timestamp;
@@ -707,6 +769,12 @@ void NiftiRobot::update_config()
 	// update timestamp for omnicam and IMU
 	configuration_tfs[7].header.stamp = timestamp;
 	configuration_tfs[8].header.stamp = timestamp;
+	configuration_tfs[9].header.stamp = timestamp;
+	configuration_tfs[10].header.stamp = timestamp;
+	configuration_tfs[11].header.stamp = timestamp;
+	configuration_tfs[12].header.stamp = timestamp;
+	configuration_tfs[13].header.stamp = timestamp;
+	configuration_tfs[14].header.stamp = timestamp;
 	// publish configuration
 	configuration_broadcaster.sendTransform(configuration_tfs);
 
