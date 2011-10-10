@@ -135,7 +135,7 @@ NiftiRobot::NiftiRobot():
 	ROS_INFO_STREAM("trying to " << (bestInit?"best ":"") << "init " << c_CAN_device);
 	nrInit(c_CAN_device, &params, bestInit);
 
-	publish_odom_as_tf = getParam<bool>(n_, "publishOdomTF", false);
+	publish_odom_as_tf = getParam<bool>(n_, "publish_odom_as_tf", false);
 
 	robot_width = params.trackDistance;
 	flippers_altitude = params.trackWheelRadius - params.referentialZ;
