@@ -656,9 +656,21 @@ void NiftiRobot::update_2d_odom()
     odom_msg.header.frame_id = odom_frame;
     //set the position
     odom_msg.pose.pose = current_pose;
+	odom_msg.pose.covariance[0*6+0] = .02;
+	odom_msg.pose.covariance[1*6+1] = .02;
+	odom_msg.pose.covariance[2*6+2] = 99999.;
+	odom_msg.pose.covariance[3*6+3] = 99999.;
+	odom_msg.pose.covariance[4*6+4] = 99999.;
+	odom_msg.pose.covariance[5*6+5] = .15;
     //set the velocity
     odom_msg.child_frame_id = robot_frame;
     odom_msg.twist.twist = current_velocity;
+	odom_msg.twist.covariance[0*6+0] = .02;
+	odom_msg.twist.covariance[1*6+1] = .02;
+	odom_msg.twist.covariance[2*6+2] = 99999.;
+	odom_msg.twist.covariance[3*6+3] = 99999.;
+	odom_msg.twist.covariance[4*6+4] = 99999.;
+	odom_msg.twist.covariance[5*6+5] = .15;
 	odom_pub.publish(odom_msg);
 
 	// publish direct tracks speed
