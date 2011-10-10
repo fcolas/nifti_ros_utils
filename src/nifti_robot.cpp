@@ -150,9 +150,9 @@ NiftiRobot::NiftiRobot():
 	min_collision_angle = 2*M_PI - v1 - (M_PI/2 - 2*flipper_offset);
 	max_collision_angle = v1 + M_PI/2;
 
-//	flipper_collision_zone = -(v1*sin(flipper_offset)\
-			+sqrt(tracks_length*tracks_length - v1*v1)*cos(flipper_offset))/\
-			tracks_length;
+//	flipper_collision_zone = -(v1*sin(flipper_offset)
+//			+sqrt(tracks_length*tracks_length - v1*v1)*cos(flipper_offset))/
+//			tracks_length;
 	ROS_INFO_STREAM("Flipper collision zone: [" <<\
 			min_collision_angle << ", " << max_collision_angle << "]");
 
@@ -811,16 +811,20 @@ void NiftiRobot::update_robot_state()
 	battery_level = -1.0;
 	NR_CHECK_AND_RETURN(nrGetBatteryLevel, &battery_level, &battery_status);
 	NR_CHECK_AND_RETURN(nrGetControllersStatus, controllers_status);
-	for (int i=0; i<ID_CTRL_MAX; err+=SR_GET_ERROR(controllers_status[i++]));
+	for (int i=0; i<ID_CTRL_MAX; i++)
+		err+=SR_GET_ERROR(controllers_status[i]);
 	if (err)
 		NR_CHECK_AND_RETURN(nrGetControllersError, controllers_error);
 	else
-		for (int i=0; i<ID_CTRL_MAX; controllers_error[i++]=0);
-	for (int i=0; i<ID_CTRL_MAX; err+=GET_BIT(controllers_status[i++], 6));
+		for (int i=0; i<ID_CTRL_MAX; i++)
+			controllers_error[i]=0;
+	for (int i=0; i<ID_CTRL_MAX; i++)
+		err+=GET_BIT(controllers_status[i], 6);
 	if (err)
 		NR_CHECK_AND_RETURN(nrGetMotorsFailure, controllers_failure);
 	else
-		for (int i=0; i<ID_CTRL_MAX; controllers_failure[i++]=0);
+		for (int i=0; i<ID_CTRL_MAX; i++)
+			controllers_failure[i++]=0;
 	NR_CHECK_AND_RETURN(nrGetBrake, &brake_on);
 	NR_CHECK_AND_RETURN(nrGetScanningSpeed, &scanning_speed);
 	//ROS_INFO_STREAM("Scanning_speed: " << scanning_speed);

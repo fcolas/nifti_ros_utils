@@ -43,13 +43,13 @@ if (USE_SIMULATION)
 	rosbuild_add_library(nifti_robot_simulation src/nifti_robot_simulation.c)
 endif (USE_SIMULATION)
 
-rosbuild_add_library(nifti_robot src/nifti_robot.cpp)
-rosbuild_add_executable(nifti_robot_node src/nifti_robot_main.cpp)
+#rosbuild_add_library(nifti_robot src/nifti_robot.cpp)
+rosbuild_add_executable(nifti_robot_node src/nifti_robot.cpp src/nifti_robot_main.cpp)
 
 if (USE_SIMULATION)
-	target_link_libraries(nifti_robot_node nifti_robot nifti_robot_simulation)
+	target_link_libraries(nifti_robot_node nifti_robot_simulation)
 else (USE_SIMULATION)
-	target_link_libraries(nifti_robot_node nifti_robot rover)
+	target_link_libraries(nifti_robot_node rover)
 endif (USE_SIMULATION)
 
 #common commands for building c++ executables and libraries
