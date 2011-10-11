@@ -428,6 +428,73 @@ bool NiftiRobot::in_collision(double front, double rear) const
 }
 
 /*
+void NiftiRobot::prevent_collision(double front0, double& front1, double rear0, double& rear1)
+{
+	double delta = 0.01;
+	double inc_front, inc_rear;
+	// increment for front
+	if (abs(front1-front0)<delta)
+		inc_front = 0;
+	else if (front1>front0)
+		inc_front = delta;
+	else
+		inc_front = -delta;
+	// increment for rear
+	if (abs(rear1-rear0)<delta)
+		inc_rear = 0;
+	else if (rear1>rear0)
+		inc_rear = delta;
+	else
+		inc_rear = -delta;
+
+	// no notable motion
+	if ((inc_front==0)&&(inc_rear==0))
+		return;
+	
+	// loop
+	double front = front0;
+	double rear = rear0;
+	for (;abs(front1-front)>=delta||abs(rear1-rear)>=delta;front+=inc_front,rear+=inc_rear)
+	{
+		if (in_collision(front, rear))
+		{
+			if (cos(-front-(M_PI+flipper_offset))>=cos(rear-(M_PI+flipper_offset)))
+			{ // front is inside
+				// stop front
+				front1 = front-inc_front;
+				inc_front = 0;
+				// only stop rear if going inwards
+				if ((sin(rear-(M_PI+flipper_offset))*inc_rear>=0))
+				{
+					rear1 = rear-inc_rear;
+					inc_rear = 0;
+					return;
+				}
+			} else
+			{ // rear in inside
+				// stop rear
+				rear1 = rear-inc_rear;
+				inc_rear = 0;
+				// only stop front if going inwards
+				if ((sin(front+(M_PI+flipper_offset))*inc_front>=0))
+				{
+					front1 = front-inc_front;
+					inc_front = 0;
+					return;
+				}
+			}
+		}
+		
+		if ((inc_front==0)&&(inc_rear==0))
+		{ // shouldn't happen	
+			return;
+		}
+	}
+
+}
+*/
+
+/*
  * Callback for all flippers command
  */
 void NiftiRobot::flippers_cb(const nifti_robot_driver_msgs::FlippersState& flippers)
