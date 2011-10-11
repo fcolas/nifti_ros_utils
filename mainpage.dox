@@ -16,6 +16,21 @@ method.
 
 \section interface Commmunication interface in ROS
 
+\subsection parameters Parameters of the node
+
+The ROS node can take several parameters:
+- \a ~CAN_device (\c /dev/usb/cpc_usb0): CAN device,
+- \a ~bestInit (\c true): better initialization fo the flippers for more accuracy,
+- \a ~publish_odom_as_tf (\c false): publish \c /odom -> \c /base_link in \c /tf,
+- \a steering_efficiency (0.41): parameter for the kinematic model: depends on the ground surface,
+- \a ~laser_angle_offset (0.0 Rad): roll offset of the laser (for ETHZ it is around 4 deg),
+- \a ~odom_frame (\c /odom): name of the odometry frame,
+- \a ~robot_frame (\c /base_link): name of the robot main frame,
+- \a ~laser_frame (\c /laser): name of the laser frame,
+- \a ~omni_frame (\c /omnicam): name of the omnicam base frame,
+- \a ~imu_frame (\c /imu): name of the IMU frame.
+
+
 \subsection topics Published topics and tfs
 The node (and class) is publishing topics and \c /tf transformations at \a loop_rate Hz.
 
@@ -30,7 +45,8 @@ The node (and class) is publishing topics and \c /tf transformations at \a loop_
   2D odometry,
 - \c /diagnostics (<a
   href="http://www.ros.org/doc/api/diagnostic_msgs/html/msg/DiagnosticStatus.html">diagnostic_msgs::DiagnosticStatus</a>):
-  diagnostics (see \ref diag).
+  diagnostics (see \ref diag),
+- \c /tracks_vel (<a href="../../nifti_robot_driver_msgs/html/msg/Tracks.html">Tracks</a>): the current tracks velocity.
 
 
 \subsection diag Diagnostics information
@@ -40,18 +56,19 @@ published are:
 - \c Battery: with battery level information and general charge status,
 - an item for each controller that is in warning mode if the controller is
   disabled (like a flipper) and that shows the status register (SR) of the ELMO
-  controller and the error if applicable.
+  controller and the error/failure if applicable.
 
 
 \subsubsection pub_tf Transformations
-- \c /odom -> \c /base_link (rough 2D odometry),
+- \c /odom -> \c /base_link (rough 2D odometry) only if \a ~publish_odom_as_tf is set,
 - \c /base_link -> \c /left_track and \c /right_track (based on the
   differential configuration),
 - \c /left_track -> \c /front_left_flipper and \c /rear_left_flipper, 
 - \c /right_track -> \c /front_right_flipper and \c /rear_right_flipper, 
 - \c /base_link -> \c /laser (based on nrGetScannerAngle),
-- \c /base_link -> \c /omni (fixed),
-- \c /base_link -> \c /imu (fixed).
+- \c /base_link -> \c /imu (fixed),
+- \c /base_link -> \c /omnicam (fixed),
+- \c /omnicam -> \c /camera0 ... \c /camera5 (fixed).
 
 
 \subsection sub_topics Subscribed topics
@@ -69,7 +86,8 @@ The node (and class) subscribes to a set of topics to listen to commands:
   href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>): enable or disable the differential brake.
 - \c /laser_center (<a
   href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>):
-  request the laser scanner to go in middle position.
+  request the laser scanner to go in middle position,
+- \c /tracks_vel_cmd (<a href="../../nifti_robot_driver_msgs/html/msg/Tracks.html">Tracks</a>): direct tracks velocity command (experts only).
 
 
 \section simu Simulation of the NIFTi robot
