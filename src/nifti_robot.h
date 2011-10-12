@@ -183,6 +183,9 @@ protected:
 	//! detect if two flippers are in collision
 	bool in_collision(double front, double rear) const;
 
+	//! filter target angles to prevent collision
+	void prevent_collision(double front0, double& front1, double rear0, double&
+			rear1, bool left) const;
 
 	// odometry and tfs update
 	//! Decide if we publish odometry as a /tf or not (default: false)

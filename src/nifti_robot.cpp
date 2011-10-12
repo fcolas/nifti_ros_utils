@@ -427,25 +427,31 @@ bool NiftiRobot::in_collision(double front, double rear) const
 	return (cos(exterior-psi)>cos(e1));
 }
 
-/*
-void NiftiRobot::prevent_collision(double front0, double& front1, double rear0, double& rear1)
+
+void NiftiRobot::prevent_collision(double front0, double& front1, double rear0,
+		double& rear1, bool left) const
 {
 	double delta = 0.01;
 	double inc_front, inc_rear;
 	// increment for front
-	if (abs(front1-front0)<delta)
+	if (fabs(front1-front0)<delta)
 		inc_front = 0;
 	else if (front1>front0)
 		inc_front = delta;
 	else
 		inc_front = -delta;
 	// increment for rear
-	if (abs(rear1-rear0)<delta)
+	if (fabs(rear1-rear0)<delta)
 		inc_rear = 0;
 	else if (rear1>rear0)
 		inc_rear = delta;
 	else
 		inc_rear = -delta;
+	
+	ROS_DEBUG_STREAM("[Prevent] front: "<<front0<<" -> "<<front1<<" ("
+			<<inc_front<<")");
+	ROS_DEBUG_STREAM("[Prevent] rear: "<<rear0<<" -> "<<rear1<<" ("
+			<<inc_rear<<")");
 
 	// no notable motion
 	if ((inc_front==0)&&(inc_rear==0))
@@ -454,21 +460,28 @@ void NiftiRobot::prevent_collision(double front0, double& front1, double rear0, 
 	// loop
 	double front = front0;
 	double rear = rear0;
-	for (;abs(front1-front)>=delta||abs(rear1-rear)>=delta;front+=inc_front,rear+=inc_rear)
+	for (;(inc_front!=0)||(inc_rear!=0);front+=inc_front,rear+=inc_rear)
 	{
 		if (in_collision(front, rear))
 		{
+			ROS_DEBUG_STREAM("Planned collision on the " <<
+					(left?"left:":"right:"));
 			if (cos(-front-(M_PI+flipper_offset))>=cos(rear-(M_PI+flipper_offset)))
 			{ // front is inside
 				// stop front
 				front1 = front-inc_front;
 				inc_front = 0;
 				// only stop rear if going inwards
-				if ((sin(rear-(M_PI+flipper_offset))*inc_rear>=0))
+				if ((sin(rear-(M_PI+flipper_offset))*inc_rear<=0))
 				{
 					rear1 = rear-inc_rear;
+					ROS_DEBUG_STREAM("\tstopping front flipper at " << front1 << 
+							" and rear flipper at " << rear1 << ".");
 					inc_rear = 0;
 					return;
+				} else {
+					ROS_DEBUG_STREAM("\tstopping front flipper at " << front1 << 
+							" and leaving rear flipper continue.");
 				}
 			} else
 			{ // rear in inside
@@ -476,23 +489,34 @@ void NiftiRobot::prevent_collision(double front0, double& front1, double rear0, 
 				rear1 = rear-inc_rear;
 				inc_rear = 0;
 				// only stop front if going inwards
-				if ((sin(front+(M_PI+flipper_offset))*inc_front>=0))
+				if ((sin(front+(M_PI+flipper_offset))*inc_front<=0))
 				{
 					front1 = front-inc_front;
+					ROS_DEBUG_STREAM("\tstopping rear flipper at " << rear1 << 
+							" and front flipper at " << front1 << ".");
 					inc_front = 0;
 					return;
+				} else {
+					ROS_DEBUG_STREAM("\tstopping rear flipper at " << rear1 << 
+							" and leaving front flipper continue.");
 				}
 			}
 		}
-		
-		if ((inc_front==0)&&(inc_rear==0))
-		{ // shouldn't happen	
-			return;
+		// reaching target
+		if (fabs(front1-front)<=delta)
+		{
+			inc_front = 0;
+			front = front1;
+		}
+		if (fabs(rear1-rear)<=delta)
+		{
+			inc_rear = 0;
+			rear = rear1;
 		}
 	}
 
 }
-*/
+
 
 /*
  * Callback for all flippers command
@@ -504,20 +528,24 @@ void NiftiRobot::flippers_cb(const nifti_robot_driver_msgs::FlippersState& flipp
 	if (in_coll_zone(flippers_positions.frontLeft, flippers.frontLeft)&&
 			in_coll_zone(flippers_positions.rearLeft, flippers.rearLeft))
 	{
-		ROS_WARN_STREAM("Flipper collision might happen on the left");
+		ROS_DEBUG_STREAM("Flipper collision might happen on the left: checking"\
+				" in detail");
+		prevent_collision(flippers_positions.frontLeft, flippers_targets.frontLeft,
+				flippers_positions.rearLeft, flippers_targets.rearLeft, true);
 	}
-	if (in_collision(flippers_targets.frontLeft, flippers_targets.rearLeft))
-		ROS_WARN_STREAM("Flippers in collision on the left");
 	if (in_coll_zone(flippers_positions.frontRight, flippers.frontRight)&&
 			in_coll_zone(flippers_positions.rearRight, flippers.rearRight))
 	{
-		ROS_WARN_STREAM("Flipper collision might happen on the right");
+		ROS_DEBUG_STREAM("Flipper collision might happen on the right: checking"\
+				" in detail");
+		prevent_collision(flippers_positions.frontRight,
+				flippers_targets.frontRight, flippers_positions.rearRight,
+				flippers_targets.rearRight, false);
 	}
-	if (in_collision(flippers_targets.frontRight, flippers_targets.rearRight))
-		ROS_WARN_STREAM("Flippers in collision on the right");
 
-	NR_CHECK_AND_RETURN(nrSetFlippers, flippers.frontLeft, flippers.frontRight,
-			flippers.rearLeft, flippers.rearRight);
+	NR_CHECK_AND_RETURN(nrSetFlippers, flippers_targets.frontLeft,
+			flippers_targets.frontRight, flippers_targets.rearLeft,
+			flippers_targets.rearRight);
 }
 
 /*
@@ -526,10 +554,16 @@ void NiftiRobot::flippers_cb(const nifti_robot_driver_msgs::FlippersState& flipp
 void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipperCommand)
 {
 	ROS_DEBUG_STREAM("received individual flipper command: " << flipperCommand);
+	//nifti_robot_driver_msgs::FlipperCommand fC = flipperCommand;
+	//nifti_robot_driver_msgs::FlipperCommand fC_comp;
 	switch (flipperCommand.object_id)
 	{
 		case ID_FLIPPER_FRONT_LEFT: 
 		{
+			/*fC_comp.object_id = ID_FLIPPER_REAR_LEFT;
+			fC_comp.angle = flippers_targets.rearLeft;
+			prevent_collision(flippers_position.frontLeft, fC.angle,
+					flippers_position.rearLeft, fC_comp.angle)*/
 			flippers_targets.frontLeft = flipperCommand.angle;
 			if (in_collision(flippers_targets.frontLeft,
 					flippers_targets.rearLeft))
@@ -758,7 +792,7 @@ void NiftiRobot::update_config()
 	double frontLeft, frontRight, rearLeft, rearRight;
 	double laser_angle;
 	NR_CHECK_AND_RETURN(nrGetDifferentialAngles, &left_angle, &right_angle);
-	ROS_DEBUG_STREAM("angles: "<< left_angle << "Rad and " << right_angle << "Rad");
+	//ROS_DEBUG_STREAM("angles: "<< left_angle << "Rad and " << right_angle << "Rad");
 	NR_CHECK_AND_RETURN(nrGetFlippers, &frontLeft, &frontRight, &rearLeft, &rearRight);
 	NR_CHECK_AND_RETURN(nrGetScannerAngle, &laser_angle);
 	ros::Time timestamp = ros::Time::now();
