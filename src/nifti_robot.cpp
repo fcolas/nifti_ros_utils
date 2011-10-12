@@ -554,16 +554,23 @@ void NiftiRobot::flippers_cb(const nifti_robot_driver_msgs::FlippersState& flipp
 void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipperCommand)
 {
 	ROS_DEBUG_STREAM("received individual flipper command: " << flipperCommand);
-	//nifti_robot_driver_msgs::FlipperCommand fC = flipperCommand;
-	//nifti_robot_driver_msgs::FlipperCommand fC_comp;
+/* TODO
+	double angle = flipperCommand.angle;
+	double comp_angle, old_comp_angle;
+	int comp_id;
+*/
 	switch (flipperCommand.object_id)
 	{
 		case ID_FLIPPER_FRONT_LEFT: 
 		{
-			/*fC_comp.object_id = ID_FLIPPER_REAR_LEFT;
-			fC_comp.angle = flippers_targets.rearLeft;
-			prevent_collision(flippers_position.frontLeft, fC.angle,
-					flippers_position.rearLeft, fC_comp.angle)*/
+/* TODO			
+			comp_id = ID_FLIPPER_REAR_LEFT;
+			comp_angle = old_comp_angle = flippers_targets.rearLeft;
+			prevent_collision(flippers_positions.frontLeft, angle,
+					flippers_positions.rearLeft, comp_angle);
+			flippers_targets.frontLeft = angle;
+			flippers_targets.rearLeft = comp_angle;
+*/
 			flippers_targets.frontLeft = flipperCommand.angle;
 			if (in_collision(flippers_targets.frontLeft,
 					flippers_targets.rearLeft))
@@ -574,6 +581,14 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 		}
 		case ID_FLIPPER_FRONT_RIGHT: 
 		{
+/* TODO			
+			comp_id = ID_FLIPPER_REAR_RIGHT;
+			comp_angle = old_comp_angle = flippers_targets.rearRight;
+			prevent_collision(flippers_positions.frontRight, angle,
+					flippers_positions.rearRight, comp_angle);
+			flippers_targets.frontRight = angle;
+			flippers_targets.rearRight = comp_angle;
+*/
 			flippers_targets.frontRight = flipperCommand.angle;
 			if (in_collision(flippers_targets.frontRight,
 					flippers_targets.rearRight))
@@ -584,6 +599,14 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 		}
 		case ID_FLIPPER_REAR_LEFT: 
 		{
+/* TODO			
+			comp_id = ID_FLIPPER_FRONT_LEFT;
+			comp_angle = old_comp_angle = flippers_targets.frontLeft;
+			prevent_collision(flippers_positions.frontLeft, comp_angle,
+					flippers_positions.rearLeft, angle);
+			flippers_targets.frontLeft = comp_angle;
+			flippers_targets.rearLeft = angle;
+*/
 			flippers_targets.rearLeft = flipperCommand.angle;
 			if (in_collision(flippers_targets.frontLeft,
 					flippers_targets.rearLeft))
@@ -594,6 +617,14 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 		}
 		case ID_FLIPPER_REAR_RIGHT: 
 		{
+/* TODO			
+			comp_id = ID_FLIPPER_FRONT_RIGHT;
+			comp_angle = old_comp_angle = flippers_targets.frontRight;
+			prevent_collision(flippers_positions.frontRight, comp_angle,
+					flippers_positions.rearRight, angle);
+			flippers_targets.frontRight = comp_angle;
+			flippers_targets.rearRight = angle;
+*/
 			flippers_targets.rearRight = flipperCommand.angle;
 			if (in_collision(flippers_targets.frontRight,
 					flippers_targets.rearRight))
@@ -603,6 +634,16 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 			break;
 		}
 	}
+/* TODO
+	if (comp_angle!=old_comp_angle) {
+		ROS_DEBUG_STREAM("Retargetting flipper "<<comp_id<<" to "<<comp_angle<<" instead of "<<old_comp_angle);
+		NR_CHECK_AND_RETURN(nrSetFlipper, comp_angle, comp_id);
+	}
+	if (angle!=flipperCommand.angle) {
+		ROS_DEBUG_STREAM("Retargetting flipper "<<flipperCommand.object_if<<" to "<<angle<<" instead of "<<flipperCommand.angle);
+	}	
+	NR_CHECK_AND_RETURN(nrSetFlipper, angle, flipperCommand.object_id);
+*/
 	NR_CHECK_AND_RETURN(nrSetFlipper, flipperCommand.angle, flipperCommand.object_id);
 }
 
@@ -925,7 +966,19 @@ void NiftiRobot::update_robot_state()
 		NR_CHECK_AND_RETURN(nrGetMotorsFailure, controllers_failure);
 	else
 		for (int i=0; i<ID_CTRL_MAX; i++)
-			controllers_failure[i++]=0;
+			controllers_failure[i]=0;
+
+/* TODO	
+	if (!SR_GET_MOTOR_ON(controller_status[ID_FLIPPER_FRONT_LEFT])
+		flippers_targets.frontLeft = flippers_positions.frontLeft;
+	if (!SR_GET_MOTOR_ON(controller_status[ID_FLIPPER_FRONT_RIGHT])
+		flippers_targets.frontRight = flippers_positions.frontRight;
+	if (!SR_GET_MOTOR_ON(controller_status[ID_FLIPPER_REAR_LEFT])
+		flippers_targets.rearLeft = flippers_positions.rearLeft;
+	if (!SR_GET_MOTOR_ON(controller_status[ID_FLIPPER_REAR_RIGHT])
+		flippers_targets.rearRight = flippers_positions.rearRight;
+*/
+
 	NR_CHECK_AND_RETURN(nrGetBrake, &brake_on);
 	NR_CHECK_AND_RETURN(nrGetScanningSpeed, &scanning_speed);
 	//ROS_INFO_STREAM("Scanning_speed: " << scanning_speed);
@@ -1143,6 +1196,7 @@ void NiftiRobot::diag_rear_right_flipper(diagnostic_updater::DiagnosticStatusWra
  */
 void NiftiRobot::update_all()
 {
+// TODO change order?
 	update_robot_state();
 	update_config();
 	update_2d_odom();
