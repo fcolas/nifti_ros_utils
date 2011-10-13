@@ -64,7 +64,7 @@ NiftiRobot::NiftiRobot():
 	// Length of a flipper
 	//flipper_length(0.347),
 	// thickness of the belt of the flippers
-	flipper_belt_thickness(0.025),
+	flipper_belt_thickness(0.03),
 	// track wheel radius
 	//track_wheel_radius(0.090),
 	// Half of the width of both the flippers and the tracks
@@ -218,6 +218,10 @@ NiftiRobot::NiftiRobot():
 	laser_tf.header.frame_id = robot_frame;
 	laser_tf.child_frame_id = laser_frame;
 	configuration_tfs.push_back(laser_tf);
+	flippers_targets.frontLeft = -120*M_PI/180;
+	flippers_targets.frontRight = -120*M_PI/180;
+	flippers_targets.rearLeft = 120*M_PI/180;
+	flippers_targets.rearRight = 120*M_PI/180;
 
 	// fixed frames:
 	// IMU
@@ -431,7 +435,7 @@ bool NiftiRobot::in_collision(double front, double rear) const
 void NiftiRobot::prevent_collision(double front0, double& front1, double rear0,
 		double& rear1, bool left) const
 {
-	double delta = 0.01;
+	double delta = 0.02;
 	double inc_front, inc_rear;
 	// increment for front
 	if (fabs(front1-front0)<delta)
@@ -558,6 +562,7 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 	double angle = flipperCommand.angle;
 	double comp_angle, old_comp_angle;
 	int comp_id;
+	double act_angle, act_comp_angle;
 /**/
 	switch (flipperCommand.object_id)
 	{
@@ -566,8 +571,10 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 /* TODO	*/		
 			comp_id = ID_FLIPPER_REAR_LEFT;
 			comp_angle = old_comp_angle = flippers_targets.rearLeft;
-			prevent_collision(flippers_positions.frontLeft, angle,
-					flippers_positions.rearLeft, comp_angle, true);
+			act_angle = flippers_positions.frontLeft;
+			act_comp_angle = flippers_positions.rearLeft;
+			prevent_collision(act_angle, angle, act_comp_angle,
+					 comp_angle, true);
 			flippers_targets.frontLeft = angle;
 			flippers_targets.rearLeft = comp_angle;
 /*
@@ -584,8 +591,10 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 /* TODO	*/		
 			comp_id = ID_FLIPPER_REAR_RIGHT;
 			comp_angle = old_comp_angle = flippers_targets.rearRight;
-			prevent_collision(flippers_positions.frontRight, angle,
-					flippers_positions.rearRight, comp_angle, false);
+			act_angle = flippers_positions.frontRight;
+			act_comp_angle = flippers_positions.rearRight;
+			prevent_collision(act_angle, angle, act_comp_angle,
+					 comp_angle, false);
 			flippers_targets.frontRight = angle;
 			flippers_targets.rearRight = comp_angle;
 /*
@@ -602,8 +611,10 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 /* TODO */			
 			comp_id = ID_FLIPPER_FRONT_LEFT;
 			comp_angle = old_comp_angle = flippers_targets.frontLeft;
-			prevent_collision(flippers_positions.frontLeft, comp_angle,
-					flippers_positions.rearLeft, angle, true);
+			act_angle = flippers_positions.rearLeft;
+			act_comp_angle = flippers_positions.frontLeft;
+			prevent_collision(act_comp_angle, comp_angle, act_angle,
+					 angle, true);
 			flippers_targets.frontLeft = comp_angle;
 			flippers_targets.rearLeft = angle;
 /*
@@ -620,8 +631,10 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 /* TODO	*/		
 			comp_id = ID_FLIPPER_FRONT_RIGHT;
 			comp_angle = old_comp_angle = flippers_targets.frontRight;
-			prevent_collision(flippers_positions.frontRight, comp_angle,
-					flippers_positions.rearRight, angle, false);
+			act_angle = flippers_positions.rearRight;
+			act_comp_angle = flippers_positions.frontRight;
+			prevent_collision(act_comp_angle, comp_angle, act_angle,
+					 angle, false);
 			flippers_targets.frontRight = comp_angle;
 			flippers_targets.rearRight = angle;
 /*
@@ -639,14 +652,18 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 			return;
 	}
 /* TODO */
-	if (comp_angle!=old_comp_angle) {
+	if ((comp_angle!=old_comp_angle)&&(fabs(act_comp_angle-comp_angle)>0.02)) {
 		ROS_DEBUG_STREAM("Retargetting flipper "<<comp_id<<" to "<<comp_angle<<" instead of "<<old_comp_angle);
 		NR_CHECK_AND_RETURN(nrSetFlipper, comp_angle, comp_id);
 	}
 	if (angle!=flipperCommand.angle) {
 		ROS_DEBUG_STREAM("Retargetting flipper "<<flipperCommand.object_id<<" to "<<angle<<" instead of "<<flipperCommand.angle);
-	}	
-	NR_CHECK_AND_RETURN(nrSetFlipper, angle, flipperCommand.object_id);
+	}
+	if (fabs(act_angle-angle)<0.02){
+		ROS_DEBUG_STREAM("Target angle too close for flipper "<<flipperCommand.object_id<<": not moving.");
+	} else {
+		NR_CHECK_AND_RETURN(nrSetFlipper, angle, flipperCommand.object_id);
+	}
 /*
 	NR_CHECK_AND_RETURN(nrSetFlipper, flipperCommand.angle, flipperCommand.object_id);
 */}
