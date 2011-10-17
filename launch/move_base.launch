@@ -5,6 +5,11 @@
     <param name="footprint_padding" value="0.01" />
     <param name="controller_frequency" value="10.0" />
     <param name="controller_patience" value="5.0" />
+    <param name="oscillation_timeout" value="8.0" />
+    <param name="oscillation_distance" value="0.5" />
+    <param name="recovery_behavior_enabled" value="true" type="bool" />
+    <param name="clearing_rotation_allowed" value="true" type="bool" />
+    <param name="shutdown_costmaps" value="true" type="bool" />
     <remap from="/cmd_vel" to="/nav/cmd_vel"/>
 
     <rosparam file="costmap_common_params.yaml" command="load" ns="global_costmap" />
@@ -12,5 +17,6 @@
     <rosparam file="local_costmap_params.yaml" command="load" />
     <rosparam file="global_costmap_params.yaml" command="load" />
     <rosparam file="base_local_planner_params.yaml" command="load" />
+    <rosparam file="recovery_behaviors.yaml" command="load" />
   </node>
 </launch>
