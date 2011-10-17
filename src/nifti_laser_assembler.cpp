@@ -275,10 +275,10 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	//filtering scan in all cases
 	filter_scan(scan);
 
-	if (relay_scans) {
+/* TODO	if (relay_scans) {
 		relay_pub.publish(tmp_scan);
 	}
-	
+*/	
 	if ((angle*previous_angle<=0.0) ||
 			((angle==previous_angle)&&
 					(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
