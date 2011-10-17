@@ -112,6 +112,13 @@ protected:
 	//! Publisher for the horizontal scans (default topic: "/scan2d")
 	ros::Publisher scan2d_pub;
 	
+/*TODO	//! Relaying laser scans (default: true)
+	bool relay_scans;
+
+	//! Publisher for the relayed scans (default topic: "/scan_relay")
+	ros::Publisher relay_pub;
+	
+*/
 	//! Min distance to keep point (default: 0)
 	double min_distance;
 
@@ -172,6 +179,15 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 		scan2d_pub = n.advertise<sensor_msgs::LaserScan>(scan2d_topic, 50);
 	}
 
+/* TODO	// relay
+	relay_scans = getParam<bool>(n_, "relay_scans", true);
+	if (relay_scans) {
+		std::string relay_topic;
+		relay_topic = getParam<std::string>(n_, "relay_topic",
+			"/scan_relay");
+		relay_pub = n.advertise<sensor_msgs::LaserScan>(relay_topic, 50);
+	}
+*/
 	// moving
 	start_time = ros::Time(0);
 	publish_in_motion = getParam<bool>(n_, "publish_in_motion", true);
@@ -256,18 +272,22 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	double angle = get_laser_angle(scan.header.stamp);
 	//ROS_INFO_STREAM("Got scan");
 
+	//filtering scan in all cases
+	filter_scan(scan);
+
+	if (relay_scans) {
+		relay_pub.publish(tmp_scan);
+	}
+	
 	if ((angle*previous_angle<=0.0) ||
 			((angle==previous_angle)&&
 					(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
 		ROS_DEBUG_STREAM("Publishing 2d scan.");
-		tmp_scan = scan; // correcting time offset
-		tmp_scan.header.stamp = scan.header.stamp + time_offset;
 		scan2d_pub.publish(tmp_scan);
 	}
 
 	if (fabs(angle)<=M_PI/2) {
 		//ROS_INFO_STREAM("Got scan in range.");
-		filter_scan(scan);
 		if (start_time.isZero())
 			start_time = tmp_scan.header.stamp;
 		append_scan(tmp_scan);
@@ -277,10 +297,10 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	if ((fabs(previous_angle)<M_PI/2) && (fabs(angle)>=M_PI/2)) {
 		//ROS_INFO_STREAM("End");
 		if (publish_in_motion||check_no_motion(tmp_scan.header.stamp)){
-			ROS_DEBUG_STREAM("Publishing scan (" << point_cloud.width << " points).");
+			ROS_DEBUG_STREAM("Publishing point cloud (" << point_cloud.width << " points).");
 			point_cloud_pub.publish(point_cloud);
 		} else {
-			ROS_DEBUG_STREAM("Dropping scan.");
+			ROS_DEBUG_STREAM("Dropping point cloud (in motion).");
 		}
 		point_cloud.data.clear();
 		point_cloud.width = 0;
