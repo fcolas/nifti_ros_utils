@@ -1238,6 +1238,8 @@ void NiftiRobot::run(){
 		loop_rate.sleep();
 		ros::spinOnce();
 	}
+	ROS_INFO_STREAM("Centering laser and disabling motors before exiting.")
+	NR_CHECK_AND_RETURN(nrGoMiddlePos);
 	NR_CHECK_AND_RETURN(nrEnable, 0);
 
 }
