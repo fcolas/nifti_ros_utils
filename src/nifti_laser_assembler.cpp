@@ -112,13 +112,12 @@ protected:
 	//! Publisher for the horizontal scans (default topic: "/scan2d")
 	ros::Publisher scan2d_pub;
 	
-/*TODO	//! Relaying laser scans (default: true)
+	//! Relaying laser scans (default: true)
 	bool relay_scans;
 
 	//! Publisher for the relayed scans (default topic: "/scan_relay")
 	ros::Publisher relay_pub;
 	
-*/
 	//! Min distance to keep point (default: 0)
 	double min_distance;
 
@@ -179,7 +178,7 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 		scan2d_pub = n.advertise<sensor_msgs::LaserScan>(scan2d_topic, 50);
 	}
 
-/* TODO	// relay
+	// relay
 	relay_scans = getParam<bool>(n_, "relay_scans", true);
 	if (relay_scans) {
 		std::string relay_topic;
@@ -187,7 +186,7 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 			"/scan_relay");
 		relay_pub = n.advertise<sensor_msgs::LaserScan>(relay_topic, 50);
 	}
-*/
+
 	// moving
 	start_time = ros::Time(0);
 	publish_in_motion = getParam<bool>(n_, "publish_in_motion", true);
@@ -275,10 +274,10 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	//filtering scan in all cases
 	filter_scan(scan);
 
-/* TODO	if (relay_scans) {
+	if (relay_scans) {
 		relay_pub.publish(tmp_scan);
 	}
-*/	
+	
 	if ((angle*previous_angle<=0.0) ||
 			((angle==previous_angle)&&
 					(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
