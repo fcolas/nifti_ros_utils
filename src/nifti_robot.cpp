@@ -784,6 +784,18 @@ void NiftiRobot::update_2d_odom()
 		dx = d/dtheta * sin(dtheta);
 		dy = d/dtheta * (1 - cos(dtheta));
 	}
+/*TODO
+	geometry_msgs::PoseStamped local_pose, odom_pose;
+	local_pose.header.stamp = new_timestamp;
+	local_pose.position.x = dx;
+	local_pose.position.y = dy;
+	local_pose.position.z = 0;
+	local_pose.orientation.x = 0;
+	local_pose.orientation.y = 0;
+	local_pose.orientation.z = sin(dtheta/2);
+	local_pose.orientation.w = cos(dtheta/2);
+	tf_listener.transformStamped(odomframe, local_pose, odom_pose); //TODO fix odom frame
+*/
 	// rotation of the displacement by the orientation
 	ctheta2 = current_pose.orientation.w;
 	stheta2 = current_pose.orientation.z;
