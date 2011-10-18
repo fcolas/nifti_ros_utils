@@ -546,7 +546,6 @@ void NiftiRobot::flippers_cb(const nifti_robot_driver_msgs::FlippersState& flipp
 				flippers_targets.rearRight, false);
 	}
 
-/*TODO
 	if ((flippers_targets.frontLeft!=flippers.frontLeft)||(flippers_targets.rearLeft!=flippers.rearLeft))
 	{
 		ROS_WARN_STREAM("Flipper collision would happen on the left.");
@@ -571,7 +570,6 @@ void NiftiRobot::flippers_cb(const nifti_robot_driver_msgs::FlippersState& flipp
 			ROS_WARN_STREAM("Retargetting rear right flipper (from: "<<flippers.rearRight<<" to: "<<flippers_targets.rearRight<<")");
 		}
 	}
-*/			
 
 	NR_CHECK_AND_RETURN(nrSetFlippers, flippers_targets.frontLeft,
 			flippers_targets.frontRight, flippers_targets.rearLeft,
@@ -639,25 +637,21 @@ void NiftiRobot::flipper_cb(const nifti_robot_driver_msgs::FlipperCommand& flipp
 			break;
 		}
 		default:
-//TODO		{
-//			ROS_WARN_STREAM("Invalid object_id for flipper command: "
-			ROS_DEBUG_STREAM("Invalid object_id for flipper command: "
+		{
+			ROS_WARN_STREAM("Invalid object_id for flipper command: "
 					<<flipperCommand.object_id);
 			return;
-//		}
+		}
 	}
 	if ((comp_angle!=old_comp_angle)&&(fabs(act_comp_angle-comp_angle)>0.02)) {
-//TODO		ROS_WARN_STREAM("Retargetting flipper "<<comp_id<<" to "<<comp_angle<<" instead of "<<old_comp_angle);
-		ROS_DEBUG_STREAM("Retargetting flipper "<<comp_id<<" to "<<comp_angle<<" instead of "<<old_comp_angle);
+		ROS_WARN_STREAM("Retargetting flipper "<<comp_id<<" to "<<comp_angle<<" instead of "<<old_comp_angle);
 		NR_CHECK_AND_RETURN(nrSetFlipper, comp_angle, comp_id);
 	}
 	if (angle!=flipperCommand.angle) {
-//TODO		ROS_WARN_STREAM("Retargetting flipper "<<flipperCommand.object_id<<" to "<<angle<<" instead of "<<flipperCommand.angle);
-		ROS_DEBUG_STREAM("Retargetting flipper "<<flipperCommand.object_id<<" to "<<angle<<" instead of "<<flipperCommand.angle);
+		ROS_WARN_STREAM("Retargetting flipper "<<flipperCommand.object_id<<" to "<<angle<<" instead of "<<flipperCommand.angle);
 	}
 	if (fabs(act_angle-angle)<0.02){
-//TODO		ROS_WARN_STREAM("Target angle too close for flipper "<<flipperCommand.object_id<<": not moving.");
-		ROS_DEBUG_STREAM("Target angle too close for flipper "<<flipperCommand.object_id<<": not moving.");
+		ROS_WARN_STREAM("Target angle too close for flipper "<<flipperCommand.object_id<<": not moving.");
 	} else {
 		NR_CHECK_AND_RETURN(nrSetFlipper, angle, flipperCommand.object_id);
 	}
@@ -984,7 +978,6 @@ void NiftiRobot::update_robot_state()
 		for (int i=0; i<ID_CTRL_MAX; i++)
 			controllers_failure[i]=0;
 
-/* TODO	*/
 	if (!SR_GET_MOTOR_ON(controllers_status[ID_FLIPPER_FRONT_LEFT]))
 		flippers_targets.frontLeft = flippers_positions.frontLeft;
 	if (!SR_GET_MOTOR_ON(controllers_status[ID_FLIPPER_FRONT_RIGHT]))
@@ -993,7 +986,6 @@ void NiftiRobot::update_robot_state()
 		flippers_targets.rearLeft = flippers_positions.rearLeft;
 	if (!SR_GET_MOTOR_ON(controllers_status[ID_FLIPPER_REAR_RIGHT]))
 		flippers_targets.rearRight = flippers_positions.rearRight;
-/**/
 
 	NR_CHECK_AND_RETURN(nrGetBrake, &brake_on);
 	NR_CHECK_AND_RETURN(nrGetScanningSpeed, &scanning_speed);
@@ -1212,7 +1204,6 @@ void NiftiRobot::diag_rear_right_flipper(diagnostic_updater::DiagnosticStatusWra
  */
 void NiftiRobot::update_all()
 {
-// TODO change order?
 	update_robot_state();
 	update_config();
 	update_2d_odom();
@@ -1238,7 +1229,7 @@ void NiftiRobot::run(){
 		loop_rate.sleep();
 		ros::spinOnce();
 	}
-	ROS_INFO_STREAM("Centering laser and disabling motors before exiting.")
+	ROS_INFO_STREAM("Centering laser and disabling motors before exiting.");
 	NR_CHECK_AND_RETURN(nrGoMiddlePos);
 	NR_CHECK_AND_RETURN(nrEnable, 0);
 
