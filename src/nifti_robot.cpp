@@ -518,6 +518,16 @@ void NiftiRobot::prevent_collision(double front0, double& front1, double rear0,
 		}
 	}
 
+	if (in_collision(front1, rear1))
+	{
+		ROS_ERROR_STREAM((left?"Left":"Right")<<" flippers in collision after trying to prevent it: not moving.");
+		front1 = front0;
+		rear1 = rear0;
+		if (in_collision(front0, rear0))
+		{
+			ROS_ERROR_STREAM("Flippers already in collision: try to disable the motors and pull them apart.");
+		}
+	}
 }
 
 
