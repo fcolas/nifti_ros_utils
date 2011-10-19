@@ -786,7 +786,7 @@ void NiftiRobot::update_2d_odom()
 	}
 /*TODO
 	geometry_msgs::PoseStamped local_pose, odom_pose;
-	local_pose.header.stamp = new_timestamp;
+	local_pose.header.stamp = current_timestamp;
 	local_pose.position.x = dx;
 	local_pose.position.y = dy;
 	local_pose.position.z = 0;
@@ -794,9 +794,13 @@ void NiftiRobot::update_2d_odom()
 	local_pose.orientation.y = 0;
 	local_pose.orientation.z = sin(dtheta/2);
 	local_pose.orientation.w = cos(dtheta/2);
-	tf_listener.transformStamped(odomframe, local_pose, odom_pose); //TODO fix odom frame
+	tf_listener.transformStamped(odom_frame, local_pose, odom_pose);
+	current_pose.position = odom_pose.position;
+	current_pose.orientation = odom_pose.orientation;
+	//TODO change current_pose to PoseStamped
 */
 	// rotation of the displacement by the orientation
+/*TODO*/
 	ctheta2 = current_pose.orientation.w;
 	stheta2 = current_pose.orientation.z;
 	ctheta = ctheta2*ctheta2 - stheta2*stheta2;
@@ -806,7 +810,8 @@ void NiftiRobot::update_2d_odom()
 	// update of the orientation
 	current_pose.orientation.w = ctheta2 * cos(dtheta/2.0) - stheta2 * sin(dtheta/2.0);
 	current_pose.orientation.z = ctheta2 * sin(dtheta/2.0) + stheta2 * cos(dtheta/2.0);
-	
+/*TODO*/
+
 	// update velocity and timestamp
 	current_velocity = new_velocity;
 	current_timestamp = new_timestamp;
