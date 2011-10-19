@@ -2,15 +2,42 @@
 \mainpage
 \htmlinclude manifest.html
 
-\b nifti_laser_assembler is ... 
+\b nifti_laser_assembler is a filtering and assembling package.
+It takes the scans from the laser driver, filter them, and dispatch them in three topics:
+- \c /scan_relay (<a href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/LaserScan.html">sensor_msgs::LaserScan</a>): scans filtered,
+- \c /nifti_point_cloud (<a href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/PointCloud2.html">sensor_msgs::PointCloud2</a>): assembled point clouds,
+- \c /scan2d (<a href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/LaserScan.html">sensor_msgs::LaserScan</a>): horizontal scans.
+
+It suscribes to the \c /tf messages as well as the \c /scan topic from the driver.
+
+\subsection parameters Parameters of the node
+
+The \c nifti_laser_assembler node can take several parameters:
+- \a ~laser_scan_topic (\c /scan): topic where to listen to the scans,
+- \a ~point_cloud_topic (\c /nifti_point_cloud): topic where to publish the assembled point clouds,
+- \a ~publish2d (\c true): publish the horizontal scans,
+- \a ~scan2d_topic (\c /scan2d): topic where to publish the horizontal scans,
+- \a ~relay_scans (\c true): publish the individual scans,
+- \a ~relay_topic (\c /scan_relay): topic where to publish the individual scans,
+- \a ~laser_frame (\c /laser): the \c /tf frame of the laser,
+- \a ~robot_frame (\c /base_link): the \c /tf frame of the robot,
+- \a ~world_frame (\c /odom): the \c /tf frame to check if the robot has moved,
+- \a ~max_size (\c 1000000): the number of points after which publishing the point cloud even if the scanner didn't finish it's rotation,
+- \a ~channels (<a href="http://www.ros.org/doc/diamondback/api/laser_geometry/html/namespacelaser__geometry_1_1channel__option.html">laser_geometry::channel_option::None</a>): the channels to include in the assembled point cloud,
+- \a ~laser_angle_offset (\c -0.035 rad): offset angle of the laser at center position with respect to horizontal,
+- \a ~publish_in_motion (\c true): allow publication of assembled point cloud even if the robot has moved (good result if no slip),
+- \a ~time_offset (\c 0.0 s): time offset to correct the time stamps of the scans,
+- \a ~min_distance (\c 0.0 m): minimum distance to cut the laser values,
+- \a ~shadow_filter_min_angle (\c 0.1 rad): minimum incidence angle to keep points,
+- \a ~shadow_filter_window (\c 5): number of points to consider for the shadow filter.
 
 <!-- 
 Provide an overview of your package.
 -->
 
-
+<!--
 \section codeapi Code API
-
+-->
 <!--
 Provide links to specific auto-generated API documentation within your
 package that is of particular interest to a reader. Doxygen will
