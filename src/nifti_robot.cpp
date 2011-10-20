@@ -786,15 +786,36 @@ void NiftiRobot::update_2d_odom()
 	}
 /*TODO
 	geometry_msgs::PoseStamped local_pose, odom_pose;
+	double c = cos(dtheta/2);
+	double s = sin(dtheta/2);
 	local_pose.header.stamp = current_timestamp;
 	local_pose.position.x = dx;
 	local_pose.position.y = dy;
 	local_pose.position.z = 0;
 	local_pose.orientation.x = 0;
 	local_pose.orientation.y = 0;
-	local_pose.orientation.z = sin(dtheta/2);
-	local_pose.orientation.w = cos(dtheta/2);
-	tf_listener.transformStamped(odom_frame, local_pose, odom_pose);
+	local_pose.orientation.z = s;
+	local_pose.orientation.w = c;
+	
+	try{
+		tf_listener.transformStamped(odom_frame, local_pose, odom_pose);
+	}
+	catch (tf::TransformException ex){
+		double w = current_pose.orientation.w
+		double x = current_pose.orientation.x
+		double y = current_pose.orientation.y
+		double z = current_pose.orientation.z
+		
+		odom_pose.orientation.w = c*w - s*z;
+		odom_pose.orientation.x = c*x - s*y;
+		odom_pose.orientation.y = c*y + s*x;
+		odom_pose.orientation.z = c*z + s*w;
+
+		odom_pose.position = current_pose.position;
+		odom_pose.position.x += dx*(x*x-y*y-z*z+w*w) + dy*(2*x*y-2*z*w);
+		odom_pose.position.y += dx*(2*x*y+2*z*w) + dy*(-x*x+y*y-z*z+w*w);
+		odom_pose.position.z += dx*(2*x*z-2*y*w) + dy*(2*x*w+2*y*z);
+	}
 	current_pose.position = odom_pose.position;
 	current_pose.orientation = odom_pose.orientation;
 	//TODO change current_pose to PoseStamped
