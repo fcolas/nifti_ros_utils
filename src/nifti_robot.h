@@ -16,7 +16,7 @@
 #include <std_msgs/Int32.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 
-//TODO#include <tf/transform_listener.h>
+#include <tf/transform_listener.h>
 
 #include <librover/librover.h>
 
@@ -313,10 +313,8 @@ protected:
 	//! Subscriber to a tracks velocity command
 	ros::Subscriber tracks_vel_sub;
 
-/* TODO
 	//! tf listener to build odometry on top of past estimate
 	tf::TransformListener tf_listener;
-*/
 };
 
 #endif

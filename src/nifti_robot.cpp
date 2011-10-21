@@ -772,7 +772,7 @@ void NiftiRobot::update_2d_odom()
 
 	
 	// update pose
-	double dt, d, dtheta, dx, dy, ctheta, stheta, ctheta2, stheta2;
+	double dt, d, dtheta, dx, dy;
 	// displacement in old reference frame
 	dt = (new_timestamp - current_timestamp).toSec();
 	d = dt * (new_velocity.linear.x + current_velocity.linear.x)/2.0;	// constant acceleration 
@@ -784,54 +784,42 @@ void NiftiRobot::update_2d_odom()
 		dx = d/dtheta * sin(dtheta);
 		dy = d/dtheta * (1 - cos(dtheta));
 	}
-/*TODO
 	geometry_msgs::PoseStamped local_pose, odom_pose;
 	double c = cos(dtheta/2);
 	double s = sin(dtheta/2);
 	local_pose.header.stamp = current_timestamp;
-	local_pose.position.x = dx;
-	local_pose.position.y = dy;
-	local_pose.position.z = 0;
-	local_pose.orientation.x = 0;
-	local_pose.orientation.y = 0;
-	local_pose.orientation.z = s;
-	local_pose.orientation.w = c;
+	local_pose.header.frame_id = robot_frame;
+	local_pose.pose.position.x = dx;
+	local_pose.pose.position.y = dy;
+	local_pose.pose.position.z = 0;
+	local_pose.pose.orientation.x = 0;
+	local_pose.pose.orientation.y = 0;
+	local_pose.pose.orientation.z = s;
+	local_pose.pose.orientation.w = c;
 	
 	try{
-		tf_listener.transformStamped(odom_frame, local_pose, odom_pose);
+		tf_listener.transformPose(odom_frame, local_pose, odom_pose);
+		ROS_DEBUG_STREAM("Using /tf to update odometry estimate.");
 	}
 	catch (tf::TransformException ex){
-		double w = current_pose.orientation.w
-		double x = current_pose.orientation.x
-		double y = current_pose.orientation.y
-		double z = current_pose.orientation.z
+		ROS_DEBUG_STREAM("No /tf available, using past estimate: " << ex.what());
+		double w = current_pose.orientation.w;
+		double x = current_pose.orientation.x;
+		double y = current_pose.orientation.y;
+		double z = current_pose.orientation.z;
 		
-		odom_pose.orientation.w = c*w - s*z;
-		odom_pose.orientation.x = c*x - s*y;
-		odom_pose.orientation.y = c*y + s*x;
-		odom_pose.orientation.z = c*z + s*w;
+		odom_pose.pose.orientation.w = c*w - s*z;
+		odom_pose.pose.orientation.x = c*x - s*y;
+		odom_pose.pose.orientation.y = c*y + s*x;
+		odom_pose.pose.orientation.z = c*z + s*w;
 
-		odom_pose.position = current_pose.position;
-		odom_pose.position.x += dx*(x*x-y*y-z*z+w*w) + dy*(2*x*y-2*z*w);
-		odom_pose.position.y += dx*(2*x*y+2*z*w) + dy*(-x*x+y*y-z*z+w*w);
-		odom_pose.position.z += dx*(2*x*z-2*y*w) + dy*(2*x*w+2*y*z);
+		odom_pose.pose.position = current_pose.position;
+		odom_pose.pose.position.x += dx*(x*x-y*y-z*z+w*w) + dy*(2*x*y-2*z*w);
+		odom_pose.pose.position.y += dx*(2*x*y+2*z*w) + dy*(-x*x+y*y-z*z+w*w);
+		odom_pose.pose.position.z += dx*(2*x*z-2*y*w) + dy*(2*x*w+2*y*z);
 	}
-	current_pose.position = odom_pose.position;
-	current_pose.orientation = odom_pose.orientation;
+	current_pose = odom_pose.pose;
 	//TODO change current_pose to PoseStamped
-*/
-	// rotation of the displacement by the orientation
-/*TODO*/
-	ctheta2 = current_pose.orientation.w;
-	stheta2 = current_pose.orientation.z;
-	ctheta = ctheta2*ctheta2 - stheta2*stheta2;
-	stheta = 2*ctheta2*stheta2;
-	current_pose.position.x += ctheta * dx - stheta * dy;
-	current_pose.position.y += stheta * dx + ctheta * dy;
-	// update of the orientation
-	current_pose.orientation.w = ctheta2 * cos(dtheta/2.0) - stheta2 * sin(dtheta/2.0);
-	current_pose.orientation.z = ctheta2 * sin(dtheta/2.0) + stheta2 * cos(dtheta/2.0);
-/*TODO*/
 
 	// update velocity and timestamp
 	current_velocity = new_velocity;
