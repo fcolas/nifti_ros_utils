@@ -11,11 +11,6 @@ from std_msgs.msg import Bool, Float64
 from joy.msg import Joy
 from topic_tools.srv import MuxAdd, MuxSelect
 
-#TODO: in test - service for 3D point cloud
-roslib.load_manifest('laser_assembler')
-from laser_assembler.srv import *
-from sensor_msgs.msg import PointCloud
-
 from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus, FlipperCommand
 
 from math import pi, floor
@@ -90,11 +85,6 @@ class NiftiTeleopJoy(object):
 		## button to select the rear right flipper
 		# @param ~deadman_button (default: 7)
 		self.flipper_button_rr = rospy.get_param('~rear_right_flipper_button', 7)
-		
-		#in test
-		self.scan_assembler_button = 2
-		self.start_scanning = False
-		self.start_scanning_time = rospy.Time(0,0)
 
 		# speed limits
 		## maximum linear velocity (in m/s)
@@ -189,9 +179,6 @@ class NiftiTeleopJoy(object):
 		# @param ~laser_center_topic (default: '/laser_center')
 		self.laser_center_pub = rospy.Publisher(laser_center_topic, Bool)
 
-	# in test
-		self.pointCloud_pub = rospy.Publisher('rolling_pointCloud', PointCloud)
-
 	# setting up muxing with upwards velocity commands
 		if self.mux_topic:
 			try:
@@ -253,8 +240,6 @@ class NiftiTeleopJoy(object):
 		self.brake_jcb(self.joy)
 		self.enable_jcb(self.joy)
 		self.scanning_speed_jcb(self.joy)
-		# in test 
-		self.scan_assembler_jcb(self.joy)
 
 		if self.mux_topic:
 			self.mux_jcb(self.joy)
@@ -383,33 +368,6 @@ class NiftiTeleopJoy(object):
 			except AttributeError:
 				rospy.logwarn('Scanning speed change command ignored since no\
 				RobotStatus message receive.')
-	## in test - 3d scan based on the joystick input.
-	def scan_assembler_jcb(self, joy):
-		'''3d scans based on the joystick input.'''
-		if joy.buttons[self.deadman_button] and\
-			joy.pressed(self.scan_assembler_button):
-
-			try:
-				if self.start_scanning == False:
-					  #v = self.max_scanning_speed/2.0
-					  v = pi/10.
-					  self.scanning_speed_pub.publish(v)
-					  self.start_scanning = True
-					  self.start_scanning_time = rospy.get_rostime()
-					  rospy.logwarn('Debug - starting scan')
-
-				else:
-					  self.start_scanning = False
-					  self.laser_center_pub.publish(True)
-					  assemble_scans = rospy.ServiceProxy('assemble_scans', AssembleScans)
-					  resp = assemble_scans(self.start_scanning_time, rospy.get_rostime())
-
-					  rospy.logwarn('Debug - publishing 3d scan')
-					  rospy.logwarn('Debug - got %u points' % len(resp.cloud.points))
-					  self.pointCloud_pub.publish(resp.cloud)
-
-			except AttributeError:
-				rospy.logwarn('Scanning speed change command ignored since no RobotStatus message receive.')
 
 ################################################################################
 
