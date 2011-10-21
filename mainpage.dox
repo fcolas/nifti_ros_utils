@@ -8,36 +8,84 @@ To date, there is only a single node, \b nifti_teleop_joy allowing the
 user to control the robot with a joystick. This node just instantiates the
 nifti_teleop_joy::NiftiTeleopJoy class.
 
-There are several launchers provided for convenience in the <a
-href="../../../launch">launch directory</a>:
-- <a href="../../../launch/nifti_teleop_joy.launch">nifti_teleop_joy.launch</a>:
-	- joy_node to handle the joystick,
-	- nifti_robot_node to handle the robot,
-	- nifti_teleop_joy to link them both;
-- <a href="../../../launch/nifti_simu.launch">nifti_simu.launch</a>: same as
-  above plus rviz;
-- <a
-  href="../../../launch/nifti_joy_laser_rviz.launch">nifti_joy_laser_rviz.launch</a>:
-  same as above plus LMS100 to handle the laser.
+The launch file to be launched is \c teleop_joy.launch. 
 
-With the launch files, there is also a list of all the parameters for nifti_teleop_joy in <a
-href="../../../launch/default_teleop_joy.yaml">default_teleop_joy.yaml</a>. You
-should copy it and adapt it to your taste or joystick but not overwrite it.
+\section controls Controls
 
-<!-- 
-Provide an overview of your package.
--->
+The \b nifti_teleop_joy.py node allows to pilot the robot with a joystick. All
+commands require the \b deadman button to be pressed to be taken into account. All
+buttons and axes can be changed via parameters (for different joysticks
+typically, see below).
 
-<!--
-Provide links to specific auto-generated API documentation within your
-package that is of particular interest to a reader. Doxygen will
-document pretty much every part of your code, so do your best here to
-point the reader to the actual API.
+- deadman button: '2' or 'A';
+- driving: left ministick: up/down for linear velocity and left/right for angular velocity;
+- driving faster: pressing '1' or 'X' while driving;
+- moving flippers: up and down with the left cross for the selected flippers:
+  - front left: '5' or 'LB',
+  - front right: '6' or 'RB',
+  - rear left: '7' or 'LT',
+  - rear right: '8' or 'BT'; 
+- asking for the flippers to go in their flat position: '4' or 'Y';
+- changing scanning speed: left/right on the left cross (if you decrease again after stopping it will come back to the center);
+- re-enabling motor controller: '10' or 'Start' (useful when a flipper is disabled typically);
+- toggling the brake of the differential: '8' or 'Back'. 
 
-If your codebase is fairly large or has different sets of APIs, you
-should use the doxygen 'group' tag to keep these APIs together. For
-example, the roscpp documentation has 'libros' group.
--->
+
+\section parameters Parameters
+
+The parameters of the node can be seen in the nifti_teleop_joy::NiftiTeleopJoy
+class. They can be broken down in 3 groups.
+
+\subsection motion_params Motion parameters
+
+The parameters to define the motion limits:
+- \a max_linear (\c 0.3 m/s): maximum linear velocity of the standard motion,
+- \a max_angular (\c 0.6 rad/s): maximum angular velocity of the standard motion,
+- \a max_linear_run (\c 0.6 m/s): maximum linear velocity with the run buttun,
+- \a max_angular_run (\c 1.24 rad/s): maximum angular velocity with the run
+  button,
+- \a max_scanning_speed (\c 1.2 rad/s): maximum angular velocity of the laser,
+- \a tracks_distance (\c 0.397 m): distance between tracks (used to not ask for
+  too high velocities),
+- \a steering_efficiency (\c 0.41): steering efficiency parameter of the
+  kinematic model (used to not ask for too high velocities),
+- \a ~scanning_speed_increment (\c 0.2 rad/s): increment in scanning speed
+  control,
+- \a ~flipper_increment (\c 20*pi/180 rad): increment in the flippers motion.
+
+\subsection joystick_params Joystick parameters
+
+These parameters define which button or axis for each command mode (take care
+that the numbers start from 0 here and from 1 in the section above):
+- \a ~axis_linear (\c 1): axis of the linear velocity command,
+- \a ~axis_angular (\c 0): axis of the angular velocity command,
+- \a ~flipper_axis (\c 5): axis of the flipper command,
+- \a ~scanning_speed_axis (\c 4): axis of the scanning speed command,
+- \a ~deadman_button (\c 1): deadman button,
+- \a ~run_button (\c 0): to move faster,
+- \a ~enable_button (\c 9): enables all motor controllers,
+- \a ~differential_brake_button (\c 8): toggles the differential brake,
+- \a ~flipper_reset_button (\c 3): moves flipper in flat position,
+- \a ~front_left_flipper_button (\c 4): select the front left flipper to move,
+- \a ~front_right_flipper_button (\c 5): select the front right flipper to move,
+- \a ~rear_left_flipper_button (\c 6): select the rear left flipper to move,
+- \a ~rear_right_flipper_button (\c 7): select the rear right flipper to move.
+
+\subsection topic_params Topic names
+
+These parameters allow to change the name of topics (remap should be working
+also):
+- \a ~cmd_vel_topic (\c /cmd_vel),
+- \a ~flippers_cmd_topic (\c /flippers_cmd),
+- \a ~flipper_cmd_topic (\c /flipper_cmd),
+- \a ~flippers_state_topic (\c /flippers_state),
+- \a ~brake_topic (\c /brake),
+- \a ~enable_topic (\c /enable),
+- \a ~scanning_speed_topic (\c /scanning_speed_cmd),
+- \a ~robot_status_topic (\c /robot_status),
+- \a ~joy_topic (\c /joy),
+- \a ~laser_center_topic (\c /laser_center).
+
 
 
 */
