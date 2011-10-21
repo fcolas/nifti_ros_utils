@@ -1,6 +1,0 @@
-<launch>
-	<include file="$(find nifti_teleop)/launch/nifti_teleop_joy.launch" />
-	
-	<node pkg="rviz" type="rviz" name="rviz"/>
-
-</launch>

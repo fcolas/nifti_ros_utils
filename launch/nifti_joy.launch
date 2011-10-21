@@ -1,7 +1,0 @@
-<launch>
-	<node pkg="joy" type="joy_node" name="joy_node" >
-		<param name="dev" value="/dev/input/by-id/usb-Logitech_Logitech_Cordless_RumblePad_2-joystick" />
-		<param name="autorepeat_rate" value="10.0" />
-	</node>
-	
-</launch>
