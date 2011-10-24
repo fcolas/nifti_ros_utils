@@ -125,7 +125,7 @@ protected:
 	ros::Duration time_offset;
 
 	//! min_angle to do shadow filtering (default: 0.1)
-	double shadow_filter_min_angle;
+	const double shadow_filter_min_angle;
 
 	//! window size for the shadow filtering (default: 5)
 	int shadow_filter_window;
@@ -154,7 +154,8 @@ protected:
  */
 NiftiLaserAssembler::NiftiLaserAssembler():
 	tf_listener(ros::Duration(60.)),
-	n_("~")
+	n_("~"),
+	shadow_filter_min_angle(tan(getParam<double>(n_, "shadow_filter_min_angle", 0.1)))
 {
 	// frame names
 	laser_frame = getParam<std::string>(n_, "laser_frame", "/laser");
@@ -196,9 +197,6 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	offset = getParam<double>(n_, "time_offset", 0.0);
 	time_offset = ros::Duration(offset);
 	min_distance = getParam<double>(n_, "min_distance", 0.0);
-	//TODO: try to put that constant and apply a tan() 
-	shadow_filter_min_angle = getParam<double>(n_, "shadow_filter_min_angle",
-			0.1);
 	shadow_filter_window = getParam<int>(n_, "shadow_filter_window", 5);
 	// initialized so that the first test always fails
 	previous_angle = NAN;
@@ -247,18 +245,23 @@ double get_angle(const double r1, const double r2, const double gamma)
  */
 void NiftiLaserAssembler::filter_scan(const sensor_msgs::LaserScan& scan)
 {
+	// tmp_scan is published by ::scan_cb(...)
 	tmp_scan = scan;
 	tmp_scan.header.stamp = scan.header.stamp + time_offset;
 	tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
-	double invalid = -1.0;
+	const double invalid = -1.0;
 
 	//TODO: parallize with Eigen?
 	for (unsigned int i=1; i<scan.ranges.size(); i++) {
 		for (unsigned int d=1; d<=(unsigned)shadow_filter_window; d++){
 			if (i<d) break;
-			if (shadow_filter_min_angle > get_angle(scan.ranges[i-d],
-					scan.ranges[i], d*scan.angle_increment)){
-				if (scan.ranges[i-d]>scan.ranges[i]) // keep closer point
+			const float gamma = d*scan.angle_increment;
+			const float x = scan.ranges[i-d]*sin(gamma);
+			const float y = fabs(scan.ranges[i] - scan.ranges[i-d]*cos(gamma));
+		
+			// note: shadow_filter_window = tan(shadow_filter_window)
+			if (y > x*shadow_filter_min_angle){
+				if (scan.ranges[i-d] > scan.ranges[i]) // keep closer point
 					tmp_scan.ranges[i-d] = invalid;
 				else
 					tmp_scan.ranges[i] = invalid;
@@ -272,7 +275,15 @@ void NiftiLaserAssembler::filter_scan(const sensor_msgs::LaserScan& scan)
  */
 void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 {
-	double angle = get_laser_angle(scan.header.stamp);
+	double angle;
+	try
+	{
+		angle = get_laser_angle(scan.header.stamp);
+	} 
+	catch (tf::ExtrapolationException e) {
+		ROS_ERROR_STREAM(e.what() << "Could not resolve rotating angle of the laser.");
+		return;
+	}
 	//ROS_INFO_STREAM("Got scan");
 
 	//filtering scan in all cases
@@ -334,8 +345,17 @@ void NiftiLaserAssembler::append_scan(const sensor_msgs::LaserScan& scan)
 			, ros::Duration(2.)))
 		ROS_WARN_STREAM("Timeout (2s) while waiting between "<<laser_frame<<
 				" and "<<world_frame<<" before transformation.");
-	projector.transformLaserScanToPointCloud(world_frame, scan,
-			tmp_point_cloud, tf_listener, point_cloud_channels);
+	try
+	{
+		projector.transformLaserScanToPointCloud(world_frame, scan,
+				tmp_point_cloud, tf_listener, point_cloud_channels);
+	}
+	catch(tf::ExtrapolationException& ex) 
+	{
+		ROS_ERROR("Extrapolation Error: %s\n", ex.what());
+		return;
+	}
+
 
 	// Aggregate the new point cloud into the current stack
 	if (point_cloud.width <= 0)
@@ -363,13 +383,9 @@ double NiftiLaserAssembler::get_laser_angle(const ros::Time &time) const
 		ros::Duration(1.)))
 		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
 				" and "<<robot_frame<<" before getting laser angle.");
-	try {
-		tf_listener.lookupTransform(laser_frame, robot_frame, time, tmp_tf);
-	} catch (tf::ExtrapolationException e) {
-		tf_listener.lookupTransform(laser_frame, robot_frame, ros::Time(0),
-				tmp_tf);
-		ROS_WARN_STREAM(e.what() << "Trying with most recent.");
-	}
+	
+	tf_listener.lookupTransform(laser_frame, robot_frame, time, tmp_tf);
+	
 		
 	tf::quaternionTFToMsg(tmp_tf.getRotation(), rot);
 	angle = 2.*atan2(rot.x, rot.w) - M_PI;
