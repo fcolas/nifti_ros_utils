@@ -169,7 +169,7 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 			laser_geometry::channel_option::None);
 
 	// 2d scans
-	laser_angle_offset = getParam<double>(n, "laser_angle_offset", -0.035);
+	laser_angle_offset = getParam<double>(n, "laser_angle_offset", 0.0);
 	publish2d = getParam<bool>(n_, "publish2d", true);
 	if (publish2d) {
 		std::string scan2d_topic;
@@ -233,7 +233,7 @@ NiftiLaserAssembler::~NiftiLaserAssembler()
 
 
 // get angle (similar in laser_filters/scan_shadow_filter)
-const double get_angle(const double r1, const double r2, const double gamma)
+double get_angle(const double r1, const double r2, const double gamma) 
 {
 	// area->sin; dist->cos
 	//TODO: look for optimization here
@@ -282,13 +282,14 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 		relay_pub.publish(tmp_scan);
 	}
 	
-	if ((angle*previous_angle<=0.0) ||
-			((fabs(angle-previous_angle)<0.5*M_PI/180.)&&
-					(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
-		ROS_DEBUG_STREAM("Publishing 2d scan.");
-		scan2d_pub.publish(tmp_scan);
+	if (publish2d) {
+		if ((angle*previous_angle<=0.0) ||
+				((fabs(angle-previous_angle)<0.5*M_PI/180.)&&
+						(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
+			ROS_DEBUG_STREAM("Publishing 2d scan.");
+			scan2d_pub.publish(tmp_scan);
+		}
 	}
-
 	if (fabs(angle)<=M_PI/2) {
 		//ROS_INFO_STREAM("Got scan in range.");
 		if (start_time.isZero())
