@@ -293,6 +293,7 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 			ROS_DEBUG_STREAM("Publishing 2d scan.");
 			tmp_scan = scan;
 			tmp_scan.header.stamp = scan.header.stamp + time_offset;
+			tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
 			scan2d_pub.publish(tmp_scan);
 		}
 	}
