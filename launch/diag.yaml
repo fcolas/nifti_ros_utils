@@ -1,0 +1,21 @@
+analyzers:
+  joystick:
+    type: GenericAnalyzer
+    path: Joystick
+    expected: 'joy: Joystick Driver Status'
+    num_items: 1
+    remove_prefix: 'joy'
+  nifti_robot_node:
+    type: GenericAnalyzer
+    path: Robot
+    find_and_remove_prefix: 'nifti_robot_node'
+    num_items: 8
+  xsens_mtig:
+    type: GenericAnalyzer
+    path: IMU
+    contains: [
+      'Diagnostic IMU',
+      'Self Test',
+      'XKF Valid',
+      'GPS Fix',
+      'Number of satellite']
