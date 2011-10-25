@@ -249,7 +249,7 @@ void NiftiLaserAssembler::filter_scan(const sensor_msgs::LaserScan& scan)
 	tmp_scan = scan;
 	tmp_scan.header.stamp = scan.header.stamp + time_offset;
 	tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
-	const double invalid = -scan.range_max;
+	const double invalid = -1;
 
 	//TODO: parallize with Eigen?
 	for (unsigned int i=1; i<scan.ranges.size(); i++) {
@@ -286,21 +286,23 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	}
 	//ROS_INFO_STREAM("Got scan");
 
-	//filtering scan in all cases
+	if (publish2d) {
+		if ((angle*previous_angle<=0.0) ||
+				((fabs(angle-previous_angle)<0.5*M_PI/180.)&&
+						(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
+			ROS_DEBUG_STREAM("Publishing 2d scan.");
+			tmp_scan = scan;
+			tmp_scan.header.stamp = scan.header.stamp + time_offset;
+			scan2d_pub.publish(tmp_scan);
+		}
+	}
+	//filtering scan 
 	filter_scan(scan);
 
 	if (relay_scans) {
 		relay_pub.publish(tmp_scan);
 	}
 	
-	if (publish2d) {
-		if ((angle*previous_angle<=0.0) ||
-				((fabs(angle-previous_angle)<0.5*M_PI/180.)&&
-						(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
-			ROS_DEBUG_STREAM("Publishing 2d scan.");
-			scan2d_pub.publish(tmp_scan);
-		}
-	}
 	if (fabs(angle)<=M_PI/2) {
 		//ROS_INFO_STREAM("Got scan in range.");
 		if (start_time.isZero())
