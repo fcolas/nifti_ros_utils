@@ -249,7 +249,7 @@ void NiftiLaserAssembler::filter_scan(const sensor_msgs::LaserScan& scan)
 	tmp_scan = scan;
 	tmp_scan.header.stamp = scan.header.stamp + time_offset;
 	tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
-	const double invalid = -1.0;
+	const double invalid = -scan.range_max;
 
 	//TODO: parallize with Eigen?
 	for (unsigned int i=1; i<scan.ranges.size(); i++) {
