@@ -343,7 +343,20 @@ NiftiRobot::NiftiRobot():
 			&NiftiRobot::laser_center_cb, this);
 	// tracks velocity command
 	tracks_vel_sub = n.subscribe("/tracks_vel_cmd", 1, &NiftiRobot::tracks_vel_cb, this);
-}
+
+	/*
+	 * start moving laser if needed
+	 */
+/*	double initial_scanning_speed = getParam<double>(n_, "initial_scanning_speed", 0.0);
+
+	if ((initial_scanning_speed<=MAX_SCANNING_SPEED) && (initial_scanning_speed>=0.0))
+	{
+		ROS_INFO_STREAM("Starting scanning of the laser with speed: "<<initial_scanning_speed<<" Rad/s.");
+		NR_CHECK_AND_RETURN(nrSetScanningSpeed, initial_scanning_speed);
+	}
+	else
+		ROS_WARN_STREAM("Invalid initial scanning speed: "<<initial_scanning_speed<<" Rad/s.");
+*/}
 
 /*
  * destructor

@@ -28,7 +28,8 @@ The ROS node can take several parameters:
 - \a ~robot_frame (\c /base_link): name of the robot main frame,
 - \a ~laser_frame (\c /laser): name of the laser frame,
 - \a ~omni_frame (\c /omnicam): name of the omnicam base frame,
-- \a ~imu_frame (\c /imu): name of the IMU frame.
+- \a ~imu_frame (\c /imu): name of the IMU frame,
+- \a ~initial_scanning_speed (\c 0.0 Rad/s): initial speed of the laser.
 
 
 \subsection topics Published topics and tfs
