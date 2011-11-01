@@ -347,7 +347,7 @@ NiftiRobot::NiftiRobot():
 	/*
 	 * start moving laser if needed
 	 */
-/*	double initial_scanning_speed = getParam<double>(n_, "initial_scanning_speed", 0.0);
+	double initial_scanning_speed = getParam<double>(n_, "initial_scanning_speed", 0.0);
 
 	if ((initial_scanning_speed<=MAX_SCANNING_SPEED) && (initial_scanning_speed>=0.0))
 	{
@@ -356,7 +356,7 @@ NiftiRobot::NiftiRobot():
 	}
 	else
 		ROS_WARN_STREAM("Invalid initial scanning speed: "<<initial_scanning_speed<<" Rad/s.");
-*/}
+}
 
 /*
  * destructor
