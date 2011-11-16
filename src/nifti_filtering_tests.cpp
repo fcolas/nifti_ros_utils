@@ -145,6 +145,9 @@ protected:
 	//! min_angle to do shadow filtering (default: 0.1)
 	const double shadow_filter_min_angle;
 
+	//! min_angle to do shadow filtering (default: 0.1)
+	const double tan_shadow_filter_min_angle;
+
 	//! window size for the shadow filtering (default: 5)
 	int shadow_filter_window;
 
@@ -180,7 +183,8 @@ protected:
 NiftiLaserAssembler::NiftiLaserAssembler():
 	tf_listener(ros::Duration(60.)),
 	n_("~"),
-	shadow_filter_min_angle(tan(getParam<double>(n_, "shadow_filter_min_angle", 0.1)))
+	shadow_filter_min_angle(getParam<double>(n_, "shadow_filter_min_angle", 0.1)),
+	tan_shadow_filter_min_angle(tan(M_PI/2-shadow_filter_min_angle))
 {
 	// frame names
 	laser_frame = getParam<std::string>(n_, "laser_frame", "/laser");
@@ -298,13 +302,9 @@ void NiftiLaserAssembler::filter_scan1(sensor_msgs::LaserScan& scan)
 			const float y = fabs(scan_ref.ranges[i] - scan_ref.ranges[i-d]*cos(gamma));
 		
 			// note: shadow_filter_window = tan(shadow_filter_window)
-			if (y > x*shadow_filter_min_angle){
-				if (scan_ref.ranges[i-d] > scan_ref.ranges[i]) // keep closer point
-					scan.ranges[i-d] = invalid;
-					//tmp_scan.ranges[i-d] = scan.ranges[i];
-				else
-					scan.ranges[i] = invalid;
-					//tmp_scan.ranges[i] = scan.ranges[i-d];
+			if (y > x*tan_shadow_filter_min_angle){
+				scan.ranges[i-d] = invalid;
+				scan.ranges[i] = invalid;
 			}
 		}
 	}
@@ -326,12 +326,11 @@ void NiftiLaserAssembler::filter_scan2(sensor_msgs::LaserScan& scan)
 			const float x = scan_ref.ranges[i-d]*sin(gamma);
 			const float y = fabs(scan_ref.ranges[i] - scan_ref.ranges[i-d]*cos(gamma));
 		
-			// note: shadow_filter_window = tan(shadow_filter_window)
-			if (y > x*shadow_filter_min_angle){
+			if (y > x*tan_shadow_filter_min_angle){
 				if (scan_ref.ranges[i-d] > scan_ref.ranges[i]) // keep closer point
-					scan.ranges[i-d] = scan_ref.ranges[i];
+					scan.ranges[i-d] = invalid;
 				else
-					scan.ranges[i] = scan_ref.ranges[i-d];
+					scan.ranges[i] = invalid;
 			}
 		}
 	}

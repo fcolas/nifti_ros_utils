@@ -1,0 +1,11 @@
+<launch>
+	<node type="nifti_filtering_tests" pkg="nifti_laser_assembler"
+			name="nifti_filtering_tests" output="screen">
+		<param name="publish_in_motion" value="false"/>
+		<param name="laser_angle_offset" value="-0.0368"/>
+		<param name="time_offset" value="-0.025" />
+		<param name="min_distance" value="0.4" />
+		<param name="shadow_filter_min_angle" value="0.14" />
+		<param name="shadow_filter_window" value="1" />
+	</node>
+</launch>
