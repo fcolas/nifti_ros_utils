@@ -65,8 +65,14 @@ protected:
 	//! Name of the reference world frame (default: "/odom")
 	std::string world_frame;
 
-	//! Publisher for the point cloud (default topic: "/nifti_point_cloud")
-	ros::Publisher point_cloud_pub;
+	//! Publisher for the raw point cloud (default topic: "/test/raw_point_cloud")
+	ros::Publisher raw_point_cloud_pub;
+
+	//! Publisher for the filter 1 point cloud (default topic: "/test/point_cloud1")
+	ros::Publisher point_cloud1_pub;
+
+	//! Publisher for the filter 1 point cloud (default topic: "/test/point_cloud1")
+	ros::Publisher point_cloud2_pub;
 
 	//! Subscriber to laser scans (default topic: "/scan")
 	ros::Subscriber laser_scan_sub;
@@ -74,8 +80,14 @@ protected:
 	//! Limit the size of the point cloud in points (default: 1000000).
 	int max_size;
 
-	//! Current aggregated point cloud
-	sensor_msgs::PointCloud2 point_cloud;
+	//! Current aggregated raw point cloud
+	sensor_msgs::PointCloud2 raw_point_cloud;
+
+	//! Current aggregated point cloud 1
+	sensor_msgs::PointCloud2 point_cloud1;
+
+	//! Current aggregated point cloud 2
+	sensor_msgs::PointCloud2 point_cloud2;
 
 	//! Scan to filter and modify
 	sensor_msgs::LaserScan tmp_scan;
@@ -115,8 +127,14 @@ protected:
 	//! Relaying laser scans (default: true)
 	bool relay_scans;
 
-	//! Publisher for the relayed scans (default topic: "/scan_relay")
-	ros::Publisher relay_pub;
+	//! Publisher for the relayed raw scans (default topic: "/test/raw_scan_relay")
+	ros::Publisher raw_relay_pub;
+	
+	//! Publisher for the relayed scans 1 (default topic: "/test/scan_relay1")
+	ros::Publisher relay1_pub;
+	
+	//! Publisher for the relayed scans 2 (default topic: "/test/scan_relay2")
+	ros::Publisher relay2_pub;
 	
 	//! Min distance to keep point (default: 0)
 	double min_distance;
@@ -130,14 +148,21 @@ protected:
 	//! window size for the shadow filtering (default: 5)
 	int shadow_filter_window;
 
-	//! Scan filtering function
-	void filter_scan(const sensor_msgs::LaserScan& scan);
+	//! Correct time stamp function
+	void time_correct(sensor_msgs::LaserScan& scan);
+
+	//! Scan filtering 1 function
+	void filter_scan1(sensor_msgs::LaserScan& scan);
+
+	//! Scan filtering 2 function
+	void filter_scan2(sensor_msgs::LaserScan& scan);
 
 	//! Scan callback function
 	void scan_cb(const sensor_msgs::LaserScan& scan);
 
 	//! Get the new scan in the point cloud
-	void append_scan(const sensor_msgs::LaserScan& scan);
+	void append_scan(const sensor_msgs::LaserScan& scan,
+			sensor_msgs::PointCloud2& point_cloud);
 	
 	//! Get laser angle from the tf
 	double get_laser_angle(const ros::Time &time) const;
@@ -182,10 +207,15 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	// relay
 	relay_scans = getParam<bool>(n_, "relay_scans", true);
 	if (relay_scans) {
-		std::string relay_topic;
+/*		std::string relay_topic;
 		relay_topic = getParam<std::string>(n_, "relay_topic",
-			"/scan_relay");
-		relay_pub = n.advertise<sensor_msgs::LaserScan>(relay_topic, 50);
+			"/scan_relay");*/
+		raw_relay_pub = n.advertise<sensor_msgs::LaserScan>
+				("/test/raw_scan_relay", 50);
+		relay1_pub = n.advertise<sensor_msgs::LaserScan>
+				("/test/scan_relay1", 50);
+		relay2_pub = n.advertise<sensor_msgs::LaserScan>
+				("/test/scan_relay2", 50);
 	}
 
 	// moving
@@ -207,11 +237,15 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 				" and "<<world_frame<<" at startup.");
 
 	// point cloud publisher
-	std::string point_cloud_topic;
+/*	std::string point_cloud_topic;
 	point_cloud_topic = getParam<std::string>(n_, "point_cloud_topic",
-			"/nifti_point_cloud");
-	point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
-			(point_cloud_topic, 50);
+			"/nifti_point_cloud");*/
+	raw_point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
+			("/test/raw_point_cloud", 50);
+	point_cloud1_pub = n.advertise<sensor_msgs::PointCloud2>
+			("/test/point_cloud1", 50);
+	point_cloud2_pub = n.advertise<sensor_msgs::PointCloud2>
+			("/test/point_cloud2", 50);
 	
 	// laser scan subscriber
 	std::string laser_scan_topic;
@@ -239,34 +273,65 @@ double get_angle(const double r1, const double r2, const double gamma)
 	return M_PI/2-fabs(atan2(r1*sin(gamma), r2 - r1*cos(gamma))-M_PI/2);
 }
 
+/*
+ * Time correction
+ */
+void NiftiLaserAssembler::time_correct(sensor_msgs::LaserScan& scan){
+	scan.header.stamp = scan.header.stamp + time_offset;
+	scan.range_min = std::max(scan.range_min, (float)min_distance);
+}
 
 /*
  * Scan filtering
  */
-void NiftiLaserAssembler::filter_scan(const sensor_msgs::LaserScan& scan)
+void NiftiLaserAssembler::filter_scan1(sensor_msgs::LaserScan& scan)
 {
-	// tmp_scan is published by ::scan_cb(...)
-	tmp_scan = scan;
-	tmp_scan.header.stamp = scan.header.stamp + time_offset;
-	tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
 	const double invalid = -1;
 
-	//TODO: parallize with Eigen?
-	for (unsigned int i=1; i<scan.ranges.size(); i++) {
+	const sensor_msgs::LaserScan scan_ref(scan);
+
+	for (unsigned int i=1; i<scan_ref.ranges.size(); i++) {
 		for (unsigned int d=1; d<=(unsigned)shadow_filter_window; d++){
 			if (i<d) break;
-			const float gamma = d*scan.angle_increment;
-			const float x = scan.ranges[i-d]*sin(gamma);
-			const float y = fabs(scan.ranges[i] - scan.ranges[i-d]*cos(gamma));
+			const float gamma = d*scan_ref.angle_increment;
+			const float x = scan_ref.ranges[i-d]*sin(gamma);
+			const float y = fabs(scan_ref.ranges[i] - scan_ref.ranges[i-d]*cos(gamma));
 		
 			// note: shadow_filter_window = tan(shadow_filter_window)
 			if (y > x*shadow_filter_min_angle){
-				if (scan.ranges[i-d] > scan.ranges[i]) // keep closer point
-					tmp_scan.ranges[i-d] = invalid;
+				if (scan_ref.ranges[i-d] > scan_ref.ranges[i]) // keep closer point
+					scan.ranges[i-d] = invalid;
 					//tmp_scan.ranges[i-d] = scan.ranges[i];
 				else
-					tmp_scan.ranges[i] = invalid;
+					scan.ranges[i] = invalid;
 					//tmp_scan.ranges[i] = scan.ranges[i-d];
+			}
+		}
+	}
+}
+
+/*
+ * Scan filtering
+ */
+void NiftiLaserAssembler::filter_scan2(sensor_msgs::LaserScan& scan)
+{
+	const double invalid = -1;
+
+	const sensor_msgs::LaserScan scan_ref(scan);
+
+	for (unsigned int i=1; i<scan_ref.ranges.size(); i++) {
+		for (unsigned int d=1; d<=(unsigned)shadow_filter_window; d++){
+			if (i<d) break;
+			const float gamma = d*scan_ref.angle_increment;
+			const float x = scan_ref.ranges[i-d]*sin(gamma);
+			const float y = fabs(scan_ref.ranges[i] - scan_ref.ranges[i-d]*cos(gamma));
+		
+			// note: shadow_filter_window = tan(shadow_filter_window)
+			if (y > x*shadow_filter_min_angle){
+				if (scan_ref.ranges[i-d] > scan_ref.ranges[i]) // keep closer point
+					scan.ranges[i-d] = scan_ref.ranges[i];
+				else
+					scan.ranges[i] = scan_ref.ranges[i-d];
 			}
 		}
 	}
@@ -287,53 +352,69 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 		return;
 	}
 	//ROS_INFO_STREAM("Got scan");
+	tmp_scan = scan;
+	time_correct(tmp_scan);
 
 	if (publish2d) {
 		if ((angle*previous_angle<=0.0) ||
 				((fabs(angle-previous_angle)<0.5*M_PI/180.)&&
 						(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
 			ROS_DEBUG_STREAM("Publishing 2d scan.");
-			tmp_scan = scan;
-			tmp_scan.header.stamp = scan.header.stamp + time_offset;
-			tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
 			scan2d_pub.publish(tmp_scan);
 		}
 	}
 	//filtering scan 
-	filter_scan(scan);
+	sensor_msgs::LaserScan scan1, scan2;
+	scan1 = tmp_scan;
+	scan2 = tmp_scan;
+	filter_scan1(scan1);
+	filter_scan2(scan2);
 
 	if (relay_scans) {
-		relay_pub.publish(tmp_scan);
+		raw_relay_pub.publish(tmp_scan);
+		relay1_pub.publish(scan1);
+		relay2_pub.publish(scan2);
 	}
 	
 	if (fabs(angle)<=M_PI/2) {
 		//ROS_INFO_STREAM("Got scan in range.");
 		if (start_time.isZero())
 			start_time = tmp_scan.header.stamp;
-		append_scan(tmp_scan);
+		append_scan(tmp_scan, raw_point_cloud);
+		append_scan(scan1, point_cloud1);
+		append_scan(scan2, point_cloud2);
 
 	}
 
 	if ((fabs(previous_angle)<M_PI/2) && (fabs(angle)>=M_PI/2)) {
 		//ROS_INFO_STREAM("End");
 		if (publish_in_motion||check_no_motion(tmp_scan.header.stamp)){
-			ROS_DEBUG_STREAM("Publishing point cloud (" << point_cloud.width << " points).");
-			point_cloud_pub.publish(point_cloud);
+			//ROS_DEBUG_STREAM("Publishing point cloud (" << point_cloud.width << " points).");
+			raw_point_cloud_pub.publish(raw_point_cloud);
+			point_cloud1_pub.publish(point_cloud1);
+			point_cloud2_pub.publish(point_cloud2);
 		} else {
 			ROS_DEBUG_STREAM("Dropping point cloud (in motion).");
 		}
-		point_cloud.data.clear();
-		point_cloud.width = 0;
+		raw_point_cloud.data.clear();
+		raw_point_cloud.width = 0;
+		point_cloud1.data.clear();
+		point_cloud1.width = 0;
+		point_cloud2.data.clear();
+		point_cloud2.width = 0;
 		start_time = ros::Time(0);
 	}
 
 	// if point cloud is full, we publish it
 	// TODO decide if relevant
-	if (point_cloud.width>=(unsigned)max_size) {
-		ROS_WARN_STREAM("max_size exceeded, publishing.");
-		point_cloud_pub.publish(point_cloud);
-		point_cloud.data.clear();
-		point_cloud.width = 0;
+	if (raw_point_cloud.width>=(unsigned)max_size) {
+		ROS_WARN_STREAM("max_size exceeded, clearing.");
+		raw_point_cloud.data.clear();
+		raw_point_cloud.width = 0;
+		point_cloud1.data.clear();
+		point_cloud1.width = 0;
+		point_cloud2.data.clear();
+		point_cloud2.width = 0;
 	}
 	previous_angle = angle;
 }
@@ -342,7 +423,8 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 /*
  * Append a scan to the current point cloud
  */
-void NiftiLaserAssembler::append_scan(const sensor_msgs::LaserScan& scan)
+void NiftiLaserAssembler::append_scan(const sensor_msgs::LaserScan& scan,
+			sensor_msgs::PointCloud2& point_cloud)
 {
 	// Project the LaserScan into a PointCloud2
 	if (!tf_listener.waitForTransform(laser_frame, world_frame, scan.header.stamp
