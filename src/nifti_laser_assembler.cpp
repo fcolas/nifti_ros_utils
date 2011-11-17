@@ -12,7 +12,7 @@
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Twist.h>
 
-#include <laser_filters/scan_shadows_filter.h>
+//#include <laser_filters/scan_shadows_filter.h>
 
 
 
@@ -124,14 +124,14 @@ protected:
 	//! Time offset (default: 0)
 	ros::Duration time_offset;
 
-	//! min_angle to do shadow filtering (default: 0.1)
-	const double shadow_filter_min_angle;
+	//! tan of min_angle to do shadow filtering (default: tan(0.1))
+	const double tan_shadow_filter_min_angle;
 
-	//! window size for the shadow filtering (default: 5)
-	int shadow_filter_window;
+	//! Time correction plus setting ranges
+	void time_correct(sensor_msgs::LaserScan& scan);
 
 	//! Scan filtering function
-	void filter_scan(const sensor_msgs::LaserScan& scan);
+	void shadow_filter(sensor_msgs::LaserScan& scan);
 
 	//! Scan callback function
 	void scan_cb(const sensor_msgs::LaserScan& scan);
@@ -155,7 +155,7 @@ protected:
 NiftiLaserAssembler::NiftiLaserAssembler():
 	tf_listener(ros::Duration(60.)),
 	n_("~"),
-	shadow_filter_min_angle(tan(getParam<double>(n_, "shadow_filter_min_angle", 0.1)))
+	tan_shadow_filter_min_angle(tan(M_PI/2 - getParam<double>(n_, "shadow_filter_min_angle", 0.1)))
 {
 	// frame names
 	laser_frame = getParam<std::string>(n_, "laser_frame", "/laser");
@@ -197,7 +197,6 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	offset = getParam<double>(n_, "time_offset", 0.0);
 	time_offset = ros::Duration(offset);
 	min_distance = getParam<double>(n_, "min_distance", 0.0);
-	shadow_filter_window = getParam<int>(n_, "shadow_filter_window", 5);
 	// initialized so that the first test always fails
 	previous_angle = NAN;
 
@@ -229,45 +228,35 @@ NiftiLaserAssembler::~NiftiLaserAssembler()
 	// Nothing to do?
 }
 
-
-// get angle (similar in laser_filters/scan_shadow_filter)
-double get_angle(const double r1, const double r2, const double gamma) 
-{
-	// area->sin; dist->cos
-	//TODO: look for optimization here
-	// pass threshold to tan
-	return M_PI/2-fabs(atan2(r1*sin(gamma), r2 - r1*cos(gamma))-M_PI/2);
+/*
+ * Time and range correction
+ */
+void NiftiLaserAssembler::time_correct(sensor_msgs::LaserScan& scan){
+	scan.header.stamp = scan.header.stamp + time_offset;
+	scan.range_min = std::max(scan.range_min, (float)min_distance);
 }
-
 
 /*
  * Scan filtering
  */
-void NiftiLaserAssembler::filter_scan(const sensor_msgs::LaserScan& scan)
+void NiftiLaserAssembler::shadow_filter(sensor_msgs::LaserScan& scan)
 {
 	// tmp_scan is published by ::scan_cb(...)
-	tmp_scan = scan;
-	tmp_scan.header.stamp = scan.header.stamp + time_offset;
-	tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
 	const double invalid = -1;
+	const float sin_gamma = sin(scan.angle_increment);
+	const float cos_gamma = cos(scan.angle_increment);
+	float x,y;
+
+	const sensor_msgs::LaserScan scan_ref(scan);
 
 	//TODO: parallize with Eigen?
-	for (unsigned int i=1; i<scan.ranges.size(); i++) {
-		for (unsigned int d=1; d<=(unsigned)shadow_filter_window; d++){
-			if (i<d) break;
-			const float gamma = d*scan.angle_increment;
-			const float x = scan.ranges[i-d]*sin(gamma);
-			const float y = fabs(scan.ranges[i] - scan.ranges[i-d]*cos(gamma));
+	for (unsigned int i=1; i<scan_ref.ranges.size(); i++) {
+		x = scan_ref.ranges[i-1]*sin_gamma;
+		y = fabs(scan_ref.ranges[i] - scan_ref.ranges[i-1]*cos_gamma);
 		
-			// note: shadow_filter_window = tan(shadow_filter_window)
-			if (y > x*shadow_filter_min_angle){
-				if (scan.ranges[i-d] > scan.ranges[i]) // keep closer point
-					tmp_scan.ranges[i-d] = invalid;
-					//tmp_scan.ranges[i-d] = scan.ranges[i];
-				else
-					tmp_scan.ranges[i] = invalid;
-					//tmp_scan.ranges[i] = scan.ranges[i-d];
-			}
+		if (y > x*tan_shadow_filter_min_angle){
+			scan.ranges[i-1] = invalid;
+			scan.ranges[i] = invalid;
 		}
 	}
 }
@@ -287,20 +276,19 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 		return;
 	}
 	//ROS_INFO_STREAM("Got scan");
+	tmp_scan = scan;
+	time_correct(tmp_scan);
 
 	if (publish2d) {
 		if ((angle*previous_angle<=0.0) ||
 				((fabs(angle-previous_angle)<0.5*M_PI/180.)&&
 						(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
 			ROS_DEBUG_STREAM("Publishing 2d scan.");
-			tmp_scan = scan;
-			tmp_scan.header.stamp = scan.header.stamp + time_offset;
-			tmp_scan.range_min = std::max(scan.range_min, (float)min_distance);
 			scan2d_pub.publish(tmp_scan);
 		}
 	}
 	//filtering scan 
-	filter_scan(scan);
+	shadow_filter(tmp_scan);
 
 	if (relay_scans) {
 		relay_pub.publish(tmp_scan);
@@ -330,8 +318,8 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	// if point cloud is full, we publish it
 	// TODO decide if relevant
 	if (point_cloud.width>=(unsigned)max_size) {
-		ROS_WARN_STREAM("max_size exceeded, publishing.");
-		point_cloud_pub.publish(point_cloud);
+		ROS_WARN_STREAM("max_size exceeded, clearing.");
+		//point_cloud_pub.publish(point_cloud);
 		point_cloud.data.clear();
 		point_cloud.width = 0;
 	}

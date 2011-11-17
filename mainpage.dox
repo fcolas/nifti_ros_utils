@@ -6,7 +6,9 @@
 It takes the scans from the laser driver, filter them, and dispatch them in three topics:
 - \c /scan_relay (<a href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/LaserScan.html">sensor_msgs::LaserScan</a>): scans filtered,
 - \c /nifti_point_cloud (<a href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/PointCloud2.html">sensor_msgs::PointCloud2</a>): assembled point clouds,
-- \c /scan2d (<a href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/LaserScan.html">sensor_msgs::LaserScan</a>): horizontal scans.
+- \c /scan2d (<a
+  href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/LaserScan.html">sensor_msgs::LaserScan</a>):
+  horizontal scans (not filtered).
 
 It suscribes to the \c /tf messages as well as the \c /scan topic from the driver.
 
@@ -28,8 +30,7 @@ The \c nifti_laser_assembler node can take several parameters:
 - \a ~publish_in_motion (\c true): allow publication of assembled point cloud even if the robot has moved (good result if no slip),
 - \a ~time_offset (\c 0.0 s): time offset to correct the time stamps of the scans,
 - \a ~min_distance (\c 0.0 m): minimum distance to cut the laser values,
-- \a ~shadow_filter_min_angle (\c 0.1 rad): minimum incidence angle to keep points,
-- \a ~shadow_filter_window (\c 5): number of points to consider for the shadow filter.
+- \a ~shadow_filter_min_angle (\c 0.1 rad): minimum incidence angle to keep points.
 
 <!-- 
 Provide an overview of your package.
