@@ -133,6 +133,9 @@ protected:
 	//! Scan filtering function
 	void shadow_filter(sensor_msgs::LaserScan& scan);
 
+	//! Filter close points for Karto
+	void karto_filter(sensor_msgs::LaserScan& scan);
+
 	//! Scan callback function
 	void scan_cb(const sensor_msgs::LaserScan& scan);
 
@@ -241,8 +244,7 @@ void NiftiLaserAssembler::time_correct(sensor_msgs::LaserScan& scan){
  */
 void NiftiLaserAssembler::shadow_filter(sensor_msgs::LaserScan& scan)
 {
-	// tmp_scan is published by ::scan_cb(...)
-	const double invalid = -1;
+	const double invalid = scan.range_max+1;
 	const float sin_gamma = sin(scan.angle_increment);
 	const float cos_gamma = cos(scan.angle_increment);
 	float x,y;
@@ -261,6 +263,23 @@ void NiftiLaserAssembler::shadow_filter(sensor_msgs::LaserScan& scan)
 	}
 }
 
+/* 
+ * Karto filtering: putting min distance point to max_range + 1 so that they
+ * don't appear in the map
+ */
+void NiftiLaserAssembler::karto_filter(sensor_msgs::LaserScan& scan)
+{
+	const double invalid = scan.range_max+1;
+	const double min_range = scan.range_min;
+
+	for (unsigned int i=0; i<scan.ranges.size(); i++) {
+		if (scan.ranges[i]<min_range) {
+			scan.ranges[i] = invalid;
+		}
+	}
+}
+
+
 /*
  * laser scan callback
  */
@@ -278,6 +297,9 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	//ROS_INFO_STREAM("Got scan");
 	tmp_scan = scan;
 	time_correct(tmp_scan);
+	//filtering scan 
+	shadow_filter(tmp_scan);
+	karto_filter(tmp_scan);
 
 	if (publish2d) {
 		if ((angle*previous_angle<=0.0) ||
@@ -287,8 +309,6 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 			scan2d_pub.publish(tmp_scan);
 		}
 	}
-	//filtering scan 
-	shadow_filter(tmp_scan);
 
 	if (relay_scans) {
 		relay_pub.publish(tmp_scan);
