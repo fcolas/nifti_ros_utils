@@ -33,6 +33,7 @@ class ScanningService(object):
 			return
 		elif self.scanning_state == "Got first cloud":
 			self.scanning_state = "Not scanning"
+			self.scanning_speed_pub.publish(0.0)
 			self.laser_center_pub.publish(True)
 			return
 		else:
