@@ -2,7 +2,8 @@
 
 import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
-from std_msgs.msg import Bool, Float64, PointCloud2
+from std_msgs.msg import Bool, Float64
+from sensor_msgs.msg import PointCloud2
 from nifti_robot_driver_msgs.msg import RobotStatus
 
 
@@ -19,7 +20,7 @@ class ScanningService(object):
 		self.scanning_speed = robot_status.scanning_speed
 
 	def scanning_once_cb(self, speed):
-		if self.scanning!="Not scanning": # don't do anything if we're already scanning
+		if self.scanning_state!="Not scanning": # don't do anything if we're already scanning
 			return
 		if self.scanning_speed: # don't do anything if the laser is already moving
 			return
