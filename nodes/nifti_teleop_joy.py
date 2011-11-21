@@ -85,6 +85,9 @@ class NiftiTeleopJoy(object):
 		## button to select the rear right flipper
 		# @param ~deadman_button (default: 7)
 		self.flipper_button_rr = rospy.get_param('~rear_right_flipper_button', 7)
+		## scanning once button
+		# @param ~scanning_once_button (default: 2)
+		self.scanning_once_button = rospy.get_param('~scanning_once_button', 2)
 
 		# speed limits
 		## maximum linear velocity (in m/s)
@@ -114,6 +117,9 @@ class NiftiTeleopJoy(object):
 		## flipper angle increment when moving them (in rad)
 		# @param ~flipper_increment (default: 10*pi/180)
 		self.flipper_increment = rospy.get_param('~flipper_increment', 20*pi/180.)
+		## scanning once speed (in rad/s)
+		# @param /scanning_once_speed (default: 0.60)
+		self.scanning_once_speed = rospy.get_param('/scanning_once_speed', 0.60)
 
 		# topic names
 		## topic with which to mux
@@ -146,6 +152,8 @@ class NiftiTeleopJoy(object):
 		joy_topic = rospy.get_param('~joy_topic', '/joy')
 		# name of the joystick topic published by joy_node
 		laser_center_topic = rospy.get_param('~laser_center_topic', '/laser_center')
+		# name of the scanning_once topic for nifti_teleop_helper
+		scanning_once_topic = rospy.get_param('~scanning_once_topic', '/scanning_once')
 
 		# publisher and subscribers
 		## publisher for the velocity command topic
@@ -178,6 +186,9 @@ class NiftiTeleopJoy(object):
 		## publisher for the laser centering command topic
 		# @param ~laser_center_topic (default: '/laser_center')
 		self.laser_center_pub = rospy.Publisher(laser_center_topic, Bool)
+		## publisher for the scanning once topic
+		# @param ~scanning_once_topic (default: '/scanning_once')
+		self.scanning_once_pub = rospy.Publisher(scanning_once_topic, Float64)
 
 	# setting up muxing with upwards velocity commands
 		if self.mux_topic:
@@ -240,6 +251,7 @@ class NiftiTeleopJoy(object):
 		self.brake_jcb(self.joy)
 		self.enable_jcb(self.joy)
 		self.scanning_speed_jcb(self.joy)
+		self.scanning_once_jcb(self.joy)
 
 		if self.mux_topic:
 			self.mux_jcb(self.joy)
@@ -343,6 +355,15 @@ class NiftiTeleopJoy(object):
 				self.brake_pub.publish(not self.brake_on)
 			except AttributeError:
 				rospy.logwarn('Brake command ignored since no RobotStatus message received.')
+
+
+	## Handle scanning_once command based on the joystick input.
+	def scanning_once_jcb(self, joy):
+		'''Handle scanning_once command based on the joystick input.'''
+		if joy.buttons[self.deadman_button] and joy.pressed(self.scan_button):
+			rospy.loginfo('Initiating 3D scan at speed %f rad/s.'\
+					%self.scanning_once_speed)
+			self.scanning_once_pub.publish(self.scanning_once_speed)
 
 
 	## Handle enable command based on the joystick input.
