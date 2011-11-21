@@ -4,9 +4,12 @@
 
 \b nifti_teleop is the package of teleoperation of the NIFTi robot.
 
-To date, there is only a single node, \b nifti_teleop_joy allowing the
-user to control the robot with a joystick. This node just instantiates the
-nifti_teleop_joy::NiftiTeleopJoy class.
+The main node, \b nifti_teleop_joy, allows the user to control the robot with a
+joystick. This node just instantiates the nifti_teleop_joy::NiftiTeleopJoy
+class.
+
+Additionally, \b nifti_teleop_helper eases the process of taking a single 3D
+scan (see nifti_teleop_helper::ScanningService).
 
 The launch file to be launched is \c teleop_joy.launch. 
 
@@ -28,13 +31,13 @@ typically, see below).
 - asking for the flippers to go in their flat position: '4' or 'Y';
 - changing scanning speed: left/right on the left cross (if you decrease again after stopping it will come back to the center);
 - re-enabling motor controller: '10' or 'Start' (useful when a flipper is disabled typically);
-- toggling the brake of the differential: '8' or 'Back'. 
+- toggling the brake of the differential: '8' or 'Back';
+- taking a 3D scan: '3' or 'B'.
 
 
 \section parameters Parameters
 
-The parameters of the node can be seen in the nifti_teleop_joy::NiftiTeleopJoy
-class. They can be broken down in 3 groups.
+The parameters of the \b nifti_teleop_joy node can be seen in the nifti_teleop_joy::NiftiTeleopJoy class. They can be broken down in 3 groups.
 
 \subsection motion_params Motion parameters
 
@@ -51,7 +54,8 @@ The parameters to define the motion limits:
   kinematic model (used to not ask for too high velocities),
 - \a ~scanning_speed_increment (\c 0.2 rad/s): increment in scanning speed
   control,
-- \a ~flipper_increment (\c 20*pi/180 rad): increment in the flippers motion.
+- \a ~flipper_increment (\c 20*pi/180 rad): increment in the flippers motion,
+- \a ~scanning_once_speed (\c 0.6 rad/s): speed for a single 3D scan.
 
 \subsection joystick_params Joystick parameters
 
@@ -69,7 +73,8 @@ that the numbers start from 0 here and from 1 in the section above):
 - \a ~front_left_flipper_button (\c 4): select the front left flipper to move,
 - \a ~front_right_flipper_button (\c 5): select the front right flipper to move,
 - \a ~rear_left_flipper_button (\c 6): select the rear left flipper to move,
-- \a ~rear_right_flipper_button (\c 7): select the rear right flipper to move.
+- \a ~rear_right_flipper_button (\c 7): select the rear right flipper to move,
+- \a ~scanning_once_button (\c 2): button to launch a single scan.
 
 \subsection topic_params Topic names
 
@@ -84,7 +89,8 @@ also):
 - \a ~scanning_speed_topic (\c /scanning_speed_cmd),
 - \a ~robot_status_topic (\c /robot_status),
 - \a ~joy_topic (\c /joy),
-- \a ~laser_center_topic (\c /laser_center).
+- \a ~laser_center_topic (\c /laser_center),
+- \a ~scanning_once_topic (\c /scanning_once).
 
 
 
