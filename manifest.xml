@@ -15,6 +15,7 @@
   <depend package="joy"/>
   <depend package="nifti_robot_driver_msgs"/>
   <depend package="topic_tools"/>
+  <depend package="actionlib"/>
 
 </package>
 

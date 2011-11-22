@@ -1,0 +1,12 @@
+float64 scanning_speed
+---
+byte SUCCESS=0
+byte WARNING=1
+byte ERROR=2
+byte result
+---
+byte ERROR=2
+byte WAITING_FOR_FIRST_CLOUD=3
+byte WAITING_FOR_COMPLETE_CLOUD=4
+byte SUCCESS=0
+byte status
