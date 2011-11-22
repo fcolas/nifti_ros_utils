@@ -35,9 +35,9 @@ class ScanningService(object):
 	## robot status callback to get the current speed of the laser
 	def status_cb(self, robot_status):
 		self.scanning_speed = robot_status.scanning_speed
-		if self.scanning_speed == 0.0:	# if not moving, updating state
-			rospy.logdebug('Laser speed 0: setting state to "Not scanning".')
-			self.scanning_state = "Not scanning"
+#		if self.scanning_speed == 0.0:	# if not moving, updating state
+#			rospy.loginfo('NTH - Laser speed 0: setting state to "Not scanning".')
+#			self.scanning_state = "Not scanning"
 
 
 	## scanning once callback to start the laser
@@ -49,7 +49,7 @@ class ScanningService(object):
 		# clip speed
 		speed = max(min(speed, 0.1), 1.2)
 		# send command
-		rospy.logdebug("Sending scanning speed command: %f"%speed)
+		rospy.logdebug("NTH - Sending scanning speed command: %f"%speed)
 		self.scanning_speed_pub.publish(speed)
 		# update state
 		self.scanning_state = "Starting scanning"
@@ -58,18 +58,18 @@ class ScanningService(object):
 	## point cloud callback to get when to stop the laser
 	def point_cloud_cb(self, _):
 		if self.scanning_state == "Starting scanning": # no point cloud received yet
-			rospy.logdebug("Received first point cloud: waiting for a second one.")
+			rospy.logdebug("NTH - Received first point cloud: waiting for a second one.")
 			self.scanning_state = "Got first cloud"
 			return
 		elif self.scanning_state == "Got first cloud": # a first point cloud received
-			rospy.logdebug("Received seconf point cloud: stopping laser and \
+			rospy.logdebug("NTH - Received seconf point cloud: stopping laser and \
 centering it.")
 			self.scanning_state = "Not scanning"
 			self.scanning_speed_pub.publish(0.0) # may be unnecessary
 			self.laser_center_pub.publish(True)
 			return
 		else:
-			rospy.logdebug("Point cloud received then ignored.")
+			rospy.logdebug("NTH - Point cloud received then ignored.")
 			return
 
 def main():

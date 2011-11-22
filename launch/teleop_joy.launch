@@ -13,4 +13,7 @@
 		<param name="cmd_vel_mux_topic" value="/nav/cmd_vel" />
 	</node>
 
+	<node pkg="nifti_teleop" type="nifti_teleop_helper.py"
+		name="nifti_teleop_helper" />
+
 </launch>

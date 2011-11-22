@@ -360,7 +360,7 @@ class NiftiTeleopJoy(object):
 	## Handle scanning_once command based on the joystick input.
 	def scanning_once_jcb(self, joy):
 		'''Handle scanning_once command based on the joystick input.'''
-		if joy.buttons[self.deadman_button] and joy.pressed(self.scan_button):
+		if joy.buttons[self.deadman_button] and joy.pressed(self.scanning_once_button):
 			rospy.loginfo('Initiating 3D scan at speed %f rad/s.'\
 					%self.scanning_once_speed)
 			self.scanning_once_pub.publish(self.scanning_once_speed)
