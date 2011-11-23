@@ -88,6 +88,9 @@ class NiftiTeleopJoy(object):
 		## scanning once button
 		# @param ~scanning_once_button (default: 2)
 		self.scanning_once_button = rospy.get_param('~scanning_once_button', 2)
+		## mapping toggle button
+		# @param ~mapping_toggle_button (default: 11)
+		self.mapping_toggle_button = rospy.get_param('~mapping_toggle_button', 11)
 
 		# speed limits
 		## maximum linear velocity (in m/s)
@@ -154,6 +157,8 @@ class NiftiTeleopJoy(object):
 		laser_center_topic = rospy.get_param('~laser_center_topic', '/laser_center')
 		# name of the scanning_once topic for nifti_teleop_helper
 		scanning_once_topic = rospy.get_param('~scanning_once_topic', '/scanning_once')
+		# name of the mapping_control topic for nifti_laser_assembler
+		mapping_control_topic = rospy.get_param('~mapping_control_topic', '/mapping_control')
 
 		# publisher and subscribers
 		## publisher for the velocity command topic
@@ -189,8 +194,13 @@ class NiftiTeleopJoy(object):
 		## publisher for the scanning once topic
 		# @param ~scanning_once_topic (default: '/scanning_once')
 		self.scanning_once_pub = rospy.Publisher(scanning_once_topic, Float64)
+		## publisher for the mapping control topic
+		# @param ~mapping_control_topic (default: '/mapping_control')
+		self.mapping_control_pub = rospy.Publisher(mapping_control_topic, Bool)
 
-	# setting up muxing with upwards velocity commands
+		# current mapping state
+		self.mapping_on = True
+		# setting up muxing with upwards velocity commands
 		if self.mux_topic:
 			try:
 				mux_add = rospy.ServiceProxy('mux/add', MuxAdd)
@@ -203,6 +213,7 @@ class NiftiTeleopJoy(object):
 			except rospy.ROSException:
 				rospy.logwarn("Timeout when waiting for mux: proceeding without it.")
 				self.mux_topic = None
+
 
 	## Listen to the status of the robot.
 	def statusCallBack(self, robot_status):
@@ -252,6 +263,7 @@ class NiftiTeleopJoy(object):
 		self.enable_jcb(self.joy)
 		self.scanning_speed_jcb(self.joy)
 		self.scanning_once_jcb(self.joy)
+		self.mapping_control_jcb(self.joy)
 
 		if self.mux_topic:
 			self.mux_jcb(self.joy)
@@ -364,6 +376,17 @@ class NiftiTeleopJoy(object):
 			rospy.loginfo('Initiating 3D scan at speed %f rad/s.'\
 					%self.scanning_once_speed)
 			self.scanning_once_pub.publish(self.scanning_once_speed)
+
+
+	## Handle scanning_once command based on the joystick input.
+	def mapping_control_jcb(self, joy):
+		'''Handle mapping_control command based on the joystick input.'''
+		if joy.buttons[self.deadman_button] and joy.pressed(self.mapping_toggle_button):
+			if self.mapping_on:
+				rospy.loginfo('Disabling mapping.')
+			else:
+				rospy.loginfo('Enabling mapping.')
+			self.mapping_control_pub.publish(not self.mapping_on)
 
 
 	## Handle enable command based on the joystick input.
