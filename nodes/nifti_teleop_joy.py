@@ -387,6 +387,7 @@ class NiftiTeleopJoy(object):
 			else:
 				rospy.loginfo('Enabling mapping.')
 			self.mapping_control_pub.publish(not self.mapping_on)
+			self.mapping_on = not self.mapping_on
 
 
 	## Handle enable command based on the joystick input.
