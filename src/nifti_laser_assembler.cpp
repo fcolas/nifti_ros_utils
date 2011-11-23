@@ -7,6 +7,7 @@
 #include <tf/transform_listener.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
+#include <std_msgs/Bool.h>
 #include <laser_geometry/laser_geometry.h>
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/Quaternion.h>
@@ -148,6 +149,14 @@ protected:
 	//! Check if the robot moves
 	bool check_no_motion(const ros::Time &time) const;
 
+	//! Subscriber to mapping control (default topic: "/mapping_control")
+	ros::Subscriber map_ctrl_sub;
+
+	//! Map control callback
+	void map_ctrl_cb(const std_msgs::Bool& on);
+
+	//! map control current state
+	bool map_ctrl_on;
 };
 
 
@@ -220,6 +229,14 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	laser_scan_topic = getParam<std::string>(n_, "laser_scan_topic", "/scan");
 	laser_scan_sub = n.subscribe(laser_scan_topic, 50,
 			&NiftiLaserAssembler::scan_cb, this);
+
+	// mapping control subscriber
+	std::string map_ctrl_topic;
+	map_ctrl_topic = getParam<std::string>(n_, "mapping_control_topic",
+			"/mapping_control");
+	map_ctrl_sub = n.subscribe(map_ctrl_topic, 50,
+			&NiftiLaserAssembler::map_ctrl_cb, this);
+	map_ctrl_on = true;
 }
 
 
@@ -280,6 +297,16 @@ void NiftiLaserAssembler::karto_filter(sensor_msgs::LaserScan& scan)
 }
 
 
+/* 
+ * Map control callback
+ */
+void NiftiLaserAssembler::map_ctrl_cb(const std_msgs::Bool& on)
+{
+	ROS_INFO_STREAM("Mapping " << (on.data?"enabled.":"disabled."));
+	map_ctrl_on = on.data;
+}
+
+
 /*
  * laser scan callback
  */
@@ -301,7 +328,7 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	shadow_filter(tmp_scan);
 	karto_filter(tmp_scan);
 
-	if (publish2d) {
+	if (publish2d && map_ctrl_on) {
 		if ((angle*previous_angle<=0.0) ||
 				((fabs(angle-previous_angle)<0.5*M_PI/180.)&&
 						(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
@@ -310,7 +337,7 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 		}
 	}
 
-	if (relay_scans) {
+	if (relay_scans && map_ctrl_on) {
 		relay_pub.publish(tmp_scan);
 	}
 	
