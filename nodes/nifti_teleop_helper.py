@@ -6,6 +6,7 @@
 # handles the motion of the rolling laser.
 import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
+from rospy.rostime import get_time
 from std_msgs.msg import Bool, Float64
 from sensor_msgs.msg import PointCloud2
 from nifti_robot_driver_msgs.msg import RobotStatus
@@ -26,18 +27,23 @@ class ScanningService(object):
 		rospy.Subscriber('/robot_status', RobotStatus, self.status_cb)
 		## scanning_once subscriber
 		rospy.Subscriber('/scanning_once', Float64, self.scanning_once_cb)
-		## point cloud subscriber (to know when to stop)
-		rospy.Subscriber('/nifti_point_cloud', PointCloud2, self.point_cloud_cb)
+		## end of swipe subscriber (to know when to stop)
+		rospy.Subscriber('/end_of_swipe', Bool, self.end_of_swipe_cb)
+		## point cloud control publisher
+		self.ptcld_ctrl_pub = rospy.Publisher('/pointcloud_control', Bool)
 		## scanning state ("Not scanning", "Starting scanning", "Got first cloud")
 		self.scanning_state = "Not scanning"
+		self.last_goal_time = get_time()
 
 	
 	## robot status callback to get the current speed of the laser
 	def status_cb(self, robot_status):
 		self.scanning_speed = robot_status.scanning_speed
-#		if self.scanning_speed == 0.0:	# if not moving, updating state
-#			rospy.loginfo('NTH - Laser speed 0: setting state to "Not scanning".')
-#			self.scanning_state = "Not scanning"
+		if (self.scanning_speed == 0.0) and \
+				(get_time() - self.last_goal_time>0.1):	
+			# if not moving, updating state
+			rospy.loginfo('NTH - Laser speed 0: setting state to "Not scanning".')
+			self.scanning_state = "Not scanning"
 
 
 	## scanning once callback to start the laser
@@ -49,27 +55,32 @@ class ScanningService(object):
 		# clip speed
 		speed = max(min(speed, 0.1), 1.2)
 		# send command
-		rospy.logdebug("NTH - Sending scanning speed command: %f"%speed)
+		rospy.logdebug("NTH - Sending scanning speed command: %f and disabling \
+publication of the messy point cloud."%speed)
+		self.ptcld_ctrl_pub.publish(False)
 		self.scanning_speed_pub.publish(speed)
+		self.last_goal_time = get_time()
 		# update state
 		self.scanning_state = "Starting scanning"
 	
 
 	## point cloud callback to get when to stop the laser
-	def point_cloud_cb(self, _):
-		if self.scanning_state == "Starting scanning": # no point cloud received yet
-			rospy.logdebug("NTH - Received first point cloud: waiting for a second one.")
+	def end_of_swipe_cb(self, _):
+		if self.scanning_state == "Starting scanning": # no end of swipe received yet
+			rospy.logdebug("NTH - Received first end of swipe: waiting for a \
+second one and activating point cloud publication.")
+			self.ptcld_ctrl_pub.publish(True)
 			self.scanning_state = "Got first cloud"
 			return
-		elif self.scanning_state == "Got first cloud": # a first point cloud received
-			rospy.logdebug("NTH - Received seconf point cloud: stopping laser and \
+		elif self.scanning_state == "Got first cloud": #  first end of swipe received
+			rospy.logdebug("NTH - Received second end of swipe: stopping laser and \
 centering it.")
 			self.scanning_state = "Not scanning"
 			self.scanning_speed_pub.publish(0.0) # may be unnecessary
 			self.laser_center_pub.publish(True)
 			return
 		else:
-			rospy.logdebug("NTH - Point cloud received then ignored.")
+			rospy.logdebug("NTH - end of swipe received and ignored.")
 			return
 
 def main():
