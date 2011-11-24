@@ -122,7 +122,7 @@ class NiftiTeleopJoy(object):
 		self.flipper_increment = rospy.get_param('~flipper_increment', 20*pi/180.)
 		## scanning once speed (in rad/s)
 		# @param /scanning_once_speed (default: 0.60)
-		self.scanning_once_speed = rospy.get_param('/scanning_once_speed', 0.60)
+		self.scanning_once_speed = rospy.get_param('/scanning_once_speed', 1.20)
 
 		# topic names
 		## topic with which to mux
