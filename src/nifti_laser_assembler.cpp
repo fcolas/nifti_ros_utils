@@ -157,6 +157,18 @@ protected:
 
 	//! map control current state
 	bool map_ctrl_on;
+
+	//! end of swipe publisher
+	ros::Publisher end_of_swipe_pub;
+
+	//! Subscriber to point cloud control (default topic: "/pointcloud_control")
+	ros::Subscriber ptcld_ctrl_sub;
+
+	//! Point cloud control callback
+	void ptcld_ctrl_cb(const std_msgs::Bool& on);
+
+	//! Point cloud control current state
+	bool ptcld_ctrl_on;
 };
 
 
@@ -237,6 +249,20 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	map_ctrl_sub = n.subscribe(map_ctrl_topic, 50,
 			&NiftiLaserAssembler::map_ctrl_cb, this);
 	map_ctrl_on = true;
+
+	// point cloud control subscriber
+	std::string ptcld_ctrl_topic;
+	ptcld_ctrl_topic = getParam<std::string>(n_, "pointcloud_control_topic",
+			"/pointcloud_control");
+	ptcld_ctrl_sub = n.subscribe(ptcld_ctrl_topic, 50,
+			&NiftiLaserAssembler::ptcld_ctrl_cb, this);
+	ptcld_ctrl_on = true;
+
+	// end of swipe publisher
+	std::string end_of_swipe_topic;
+	end_of_swipe_topic = getParam<std::string>(n_, "end_of_swipe_topic",
+			"/end_of_swipe");
+	end_of_swipe_pub = n.advertise<std_msgs::Bool>(end_of_swipe_topic, 50);
 }
 
 
@@ -307,6 +333,16 @@ void NiftiLaserAssembler::map_ctrl_cb(const std_msgs::Bool& on)
 }
 
 
+/* 
+ * Point cloud control callback
+ */
+void NiftiLaserAssembler::ptcld_ctrl_cb(const std_msgs::Bool& on)
+{
+	ROS_INFO_STREAM("Point cloud " << (on.data?"enabled.":"disabled."));
+	ptcld_ctrl_on = on.data;
+}
+
+
 /*
  * laser scan callback
  */
@@ -350,12 +386,19 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	}
 
 	if ((fabs(previous_angle)<M_PI/2) && (fabs(angle)>=M_PI/2)) {
+		std_msgs::Bool bool_msg;
+		bool_msg.data = true;
+		end_of_swipe_pub.publish(bool_msg);
 		//ROS_INFO_STREAM("End");
-		if (publish_in_motion||check_no_motion(tmp_scan.header.stamp)){
-			ROS_DEBUG_STREAM("Publishing point cloud (" << point_cloud.width << " points).");
-			point_cloud_pub.publish(point_cloud);
+		if (ptcld_ctrl_on){
+			if (publish_in_motion||check_no_motion(tmp_scan.header.stamp)){
+				ROS_DEBUG_STREAM("Publishing point cloud (" << point_cloud.width << " points).");
+				point_cloud_pub.publish(point_cloud);
+			} else {
+				ROS_DEBUG_STREAM("Dropping point cloud (in motion).");
+			}
 		} else {
-			ROS_DEBUG_STREAM("Dropping point cloud (in motion).");
+			ROS_DEBUG_STREAM("Dropping point cloud (disabled).");
 		}
 		point_cloud.data.clear();
 		point_cloud.width = 0;
