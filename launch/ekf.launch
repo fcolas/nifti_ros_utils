@@ -12,8 +12,8 @@
 		<!-- 2D pose -->
 		<!--remap from="odom" to="odom" /-->
 		<!-- 3D orientation -->
-		<remap from="imu_data" to="mtig/attitude" />
-		<!-- 3D pose -->
+		<remap from="imu_data" to="ins_imu" />
+		<!-- 3D pose To be change!-->
 		<remap from="vo" to="pr2_base_odometry/odom" />
 	</node>
 
