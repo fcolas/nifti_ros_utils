@@ -367,7 +367,7 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	if (publish2d && map_ctrl_on) {
 		if ((angle*previous_angle<=0.0) ||
 				((fabs(angle-previous_angle)<0.5*M_PI/180.)&&
-						(fabs(angle+laser_angle_offset)<0.5*M_PI/180.))) {
+						(fabs(angle+laser_angle_offset)<10*M_PI/180.))) {
 			ROS_DEBUG_STREAM("Publishing 2d scan.");
 			scan2d_pub.publish(tmp_scan);
 		}
