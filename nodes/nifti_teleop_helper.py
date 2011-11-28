@@ -39,11 +39,12 @@ class ScanningService(object):
 	## robot status callback to get the current speed of the laser
 	def status_cb(self, robot_status):
 		self.scanning_speed = robot_status.scanning_speed
-		if (self.scanning_speed == 0.0) and \
-				(get_time() - self.last_goal_time>0.1):	
-			# if not moving, updating state
-			rospy.loginfo('NTH - Laser speed 0: setting state to "Not scanning".')
-			self.scanning_state = "Not scanning"
+# disabled: too much trouble
+#		if (self.scanning_speed == 0.0) and \
+#				(get_time() - self.last_goal_time>0.1):	
+#			# if not moving, updating state
+#			rospy.loginfo('NTH - Laser speed 0: setting state to "Not scanning".')
+#			self.scanning_state = "Not scanning"
 
 
 	## scanning once callback to start the laser
