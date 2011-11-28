@@ -1,7 +1,7 @@
 <launch>
 	<node type="nifti_laser_assembler" pkg="nifti_laser_assembler"
 			name="nifti_laser_assembler" output="screen">
-		<param name="publish_in_motion" value="false"/>
+		<param name="publish_in_motion" value="true"/>
 		<!--param name="laser_angle_offset" value="-0.0368"/--> <!--ETH-->
 		<param name="laser_angle_offset" value="0.0"/>
 		<param name="time_offset" value="-0.025" />
