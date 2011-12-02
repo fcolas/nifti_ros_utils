@@ -1,6 +1,7 @@
 
 #include <math.h>
 #include <vector>
+#include <list>
 #include <algorithm>
 
 #include <ros/ros.h>
@@ -12,6 +13,10 @@
 #include <tf/transform_datatypes.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Twist.h>
+
+#include <geometry_msgs/Point32.h>
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/ChannelFloat32.h>
 
 //#include <laser_filters/scan_shadows_filter.h>
 
@@ -136,6 +141,9 @@ protected:
 
 	//! Filter close points for Karto
 	void karto_filter(sensor_msgs::LaserScan& scan);
+
+	//! remove points on the robot
+	void robot_filter(sensor_msgs::LaserScan& scan);
 
 	//! Scan callback function
 	void scan_cb(const sensor_msgs::LaserScan& scan);
@@ -322,6 +330,122 @@ void NiftiLaserAssembler::karto_filter(sensor_msgs::LaserScan& scan)
 	}
 }
 
+/*
+ * Filter robot out of the current scan
+ */
+void NiftiLaserAssembler::robot_filter(sensor_msgs::LaserScan& scan)
+{
+	const double invalid = scan.range_max+1;
+	std::list<double> blacklisted;
+	sensor_msgs::PointCloud close_ptcld;
+	sensor_msgs::PointCloud transformed_ptcld;
+	close_ptcld.header = scan.header;
+	sensor_msgs::ChannelFloat32 index;
+	index.name = "index";
+	geometry_msgs::Point32 point;
+	point.z = 0;
+	double angle;
+
+	double max_dist = 0.7;
+	double eps = 0.025;
+
+	// create a small point cloud with only the close points
+	for (unsigned int i=0; i<scan.ranges.size(); i++) {
+		if (scan.ranges[i]<max_dist) {
+			angle = scan.angle_min + i*scan.angle_increment;
+			point.x = scan.ranges[i]*cos(angle);
+			point.y = scan.ranges[i]*sin(angle);
+			close_ptcld.points.push_back(point);
+			index.values.push_back(i);
+		}
+	}
+	close_ptcld.channels.push_back(index);
+	//std::cout << close_ptcld.points.size() << std::endl;
+
+	double x, y, z;
+	// remove left track
+	tf_listener.transformPointCloud("/left_track", close_ptcld, transformed_ptcld);
+	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+		x = transformed_ptcld.points[i].x;
+		y = transformed_ptcld.points[i].y;
+		z = transformed_ptcld.points[i].z;
+		if
+		((fabs(y)<eps+(0.097/2))&&(fabs(x)<eps+0.09+(0.4997/2))&&(z>-eps-0.0705)&&(z<eps+0.1095))
+			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	}
+	// remove left track
+	tf_listener.transformPointCloud("/right_track", close_ptcld, transformed_ptcld);
+	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+		x = transformed_ptcld.points[i].x;
+		y = transformed_ptcld.points[i].y;
+		z = transformed_ptcld.points[i].z;
+		if
+		((fabs(y)<eps+(0.097/2))&&(fabs(x)<eps+0.09+(0.4997/2))&&(z>-eps-0.0705)&&(z<eps+0.1095))
+			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	}
+
+	// remove front left flipper
+	tf_listener.transformPointCloud("/front_left_flipper", close_ptcld, transformed_ptcld);
+	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+		x = transformed_ptcld.points[i].x;
+		y = transformed_ptcld.points[i].y;
+		z = transformed_ptcld.points[i].z;
+		if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
+				((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	}
+	// remove front right flipper
+	tf_listener.transformPointCloud("/front_right_flipper", close_ptcld, transformed_ptcld);
+	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+		x = transformed_ptcld.points[i].x;
+		y = transformed_ptcld.points[i].y;
+		z = transformed_ptcld.points[i].z;
+		if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
+				((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	}
+	// remove rear left flipper
+	tf_listener.transformPointCloud("/rear_left_flipper", close_ptcld, transformed_ptcld);
+	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+		x = transformed_ptcld.points[i].x;
+		y = transformed_ptcld.points[i].y;
+		z = transformed_ptcld.points[i].z;
+		if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
+				((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	}
+	// remove rear right flipper
+	tf_listener.transformPointCloud("/rear_right_flipper", close_ptcld, transformed_ptcld);
+	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+		x = transformed_ptcld.points[i].x;
+		y = transformed_ptcld.points[i].y;
+		z = transformed_ptcld.points[i].z;
+		if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
+				((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	}
+	
+	// remove omnicam
+	tf_listener.transformPointCloud("/omnicam", close_ptcld, transformed_ptcld);
+	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+		x = transformed_ptcld.points[i].x;
+		y = transformed_ptcld.points[i].y;
+		z = transformed_ptcld.points[i].z;
+		if ((x*x+y*y<(eps+0.070)*(eps+0.070))&&(abs(z)<eps+(0.15/2)))
+			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	}
+
+	// remove blacklisted points
+	//std::cout << blacklisted.size() << " -> ";
+	//blacklisted.sort();	// don't know if that's necessary
+	//blacklisted.unique();
+	//std::cout << blacklisted.size()<< std::endl;
+
+	for (std::list<double>::const_iterator it=blacklisted.begin();it!=blacklisted.end();++it) {
+		scan.ranges[int(*it)] = invalid;
+	}
+
+}
 
 /* 
  * Map control callback
@@ -363,6 +487,7 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	//filtering scan 
 	shadow_filter(tmp_scan);
 	karto_filter(tmp_scan);
+	//robot_filter(tmp_scan); // disabled due to feature freeze
 
 	if (publish2d && map_ctrl_on) {
 		if ((angle*previous_angle<=0.0) ||
