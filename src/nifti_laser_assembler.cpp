@@ -148,13 +148,6 @@ protected:
 	//! remove points on the robot
 	void robot_filter(sensor_msgs::LaserScan& scan);
 
-	//! Build 2D flat scan from slanted scan
-	void gen2Dscan(const sensor_msgs::LaserScan& scan, double scan_angle,
-			sensor_msgs::LaserScan& out_scan);
-
-	//! Publisher for the regenerated horizontal scans
-	ros::Publisher scan2dsyn_pub;
-	
 	//! Scan callback function
 	void scan_cb(const sensor_msgs::LaserScan& scan);
 
@@ -281,9 +274,6 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	end_of_swipe_topic = getParam<std::string>(n_, "end_of_swipe_topic",
 			"/end_of_swipe");
 	end_of_swipe_pub = n.advertise<std_msgs::Bool>(end_of_swipe_topic, 50);
-
-	// synthetic 2d scans
-	scan2dsyn_pub = n.advertise<sensor_msgs::LaserScan>("/scan2dsyn", 50);
 }
 
 
@@ -481,49 +471,6 @@ void NiftiLaserAssembler::robot_filter(sensor_msgs::LaserScan& scan)
 
 }
 
-
-/*
- * Build 2D flat scan from slanted scan
- */
-void NiftiLaserAssembler::gen2Dscan(const sensor_msgs::LaserScan& scan, double scan_angle,
-			sensor_msgs::LaserScan& out_scan)
-{
-	const double z_min = -0.1332;
-	const double z_max = 0.1868;
-	const double invalid = scan.range_max+1;
-	const double cos_scan = cos(scan_angle);
-	const double sin_scan = sin(scan_angle);
-	out_scan = scan;
-	vector<double> tmp_r(scan.ranges.size());
-	double z, ray_angle, old_angle;
-	int i,j;
-
-	// adjusting distance and filtering invalid points
-	for (i=0; i<scan.ranges.size(); i++) {
-		ray_angle = scan.angle_min + i*scan.angle_increment;
-		z = scan.ranges[i]*sin(ray_angle)*sin_scan;
-		
-		if ((z>=z_min)&&(z<=z_max)) {
-			tmp_r.ranges[i] = scan.ranges[i]*sqrt(cos(ray_angle)*cos(ray_angle)\
-				+ sin(ray_angle)*sin(ray_angle)*cos_scan*cos_scan)
-		} else {
-			tmp_r.ranges[i] = invalid;
-		}
-	}
-	// adjusting bearing (first version, should do interpolation)
-	for (i=0; i<scan.ranges.size(); i++) {
-		ray_angle = scan.angle_min + i*scan.angle_increment;
-		old_angle = atan2(cos(ray_angle)/cos_scan, sin(ray_angle));
-		j = int((old_angle-scan.angle_min)/scan.angle_increment);
-		old_angle = scan.angle_min + j*scan.angle_increment;
-		out_scan.ranges[i] = tmp_r[j];
-		out_scan.intensities[i] = scan.intensities[j];
-	}
-	out_scan.header.frame_id = "/flat_scan";
-}
-
-
-
 /* 
  * Map control callback
  */
@@ -566,10 +513,6 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	//robot_filter(tmp_scan); // disabled due to feature freeze
 	shadow_filter(tmp_scan);
 	karto_filter(tmp_scan);
-
-	sensor_msgs::LaserScan syn2dscan;
-	gen2Dscan(scan, angle, syn2dscan);
-	scan2dsyn_pub.publish(syn2dscan);
 
 	if (publish2d && map_ctrl_on) {
 		if ((angle*previous_angle<=0.0) ||
