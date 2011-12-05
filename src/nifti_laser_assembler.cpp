@@ -136,6 +136,9 @@ protected:
 	//! Time correction plus setting ranges
 	void time_correct(sensor_msgs::LaserScan& scan);
 
+	//! Distance distortion correction
+	void undistort(sensor_msgs::LaserScan& scan);
+
 	//! Scan filtering function
 	void shadow_filter(sensor_msgs::LaserScan& scan);
 
@@ -330,6 +333,27 @@ void NiftiLaserAssembler::karto_filter(sensor_msgs::LaserScan& scan)
 	}
 }
 
+/* 
+ * Undistort
+ */
+void NiftiLaserAssembler::undistort(sensor_msgs::LaserScan& scan)
+{
+	const double c1 = 0.03;
+	const double d1 = 0.13;
+	const double c2 = 0.008;
+	const double d2 = 0.25;
+	const double beta = (c1*d1*d1-c2*d2*d2)/(c2-c1);
+	const double alpha = c1*(beta+d1*d1);
+	//const double alpha = 0.000;
+	//const double beta = 0.005;
+
+	for (unsigned int i=0; i<scan.ranges.size(); i++) {
+		if (scan.ranges[i]>scan.range_min) {
+			scan.ranges[i] += alpha/(beta+scan.ranges[i]*scan.ranges[i]);
+		}
+	}
+}
+
 /*
  * Filter robot out of the current scan
  */
@@ -347,7 +371,7 @@ void NiftiLaserAssembler::robot_filter(sensor_msgs::LaserScan& scan)
 	double angle;
 
 	double max_dist = 0.7;
-	double eps = 0.025;
+	double eps = 0.015;
 
 	// create a small point cloud with only the close points
 	for (unsigned int i=0; i<scan.ranges.size(); i++) {
@@ -485,9 +509,10 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	tmp_scan = scan;
 	time_correct(tmp_scan);
 	//filtering scan 
+	//undistort(tmp_scan); // disable due to feature freeze
+	//robot_filter(tmp_scan); // disabled due to feature freeze
 	shadow_filter(tmp_scan);
 	karto_filter(tmp_scan);
-	//robot_filter(tmp_scan); // disabled due to feature freeze
 
 	if (publish2d && map_ctrl_on) {
 		if ((angle*previous_angle<=0.0) ||
