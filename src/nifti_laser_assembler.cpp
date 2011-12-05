@@ -510,7 +510,8 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 
 	}
 
-	if ((fabs(previous_angle)<M_PI/2) && (fabs(angle)>=M_PI/2)) {
+	if ((fabs(previous_angle+laser_angle_offset)<M_PI/2) &&
+			(fabs(angle+laser_angle_offset)>=M_PI/2)) {
 		std_msgs::Bool bool_msg;
 		bool_msg.data = true;
 		end_of_swipe_pub.publish(bool_msg);
