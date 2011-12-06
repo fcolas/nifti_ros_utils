@@ -790,6 +790,14 @@ void NiftiRobot::update_2d_odom()
 	dt = (new_timestamp - current_timestamp).toSec();
 	d = dt * (new_velocity.linear.x + current_velocity.linear.x)/2.0;	// constant acceleration 
 	dtheta = dt * (new_velocity.angular.z + current_velocity.angular.z)/2.0;
+	/* Order 2 Taylor approximation of sin and cos
+	dx = d;
+	dy = d * dtheta/2;
+	*/
+	/* Order 3 Taylor approximation
+	dx = d * (1 - dtheta*dtheta/6);
+	dy = d*dtheta/2;
+	*/
 	if (abs(dtheta)<0.0001) { // straight path
 		dx = d;
 		dy = 0.0;
