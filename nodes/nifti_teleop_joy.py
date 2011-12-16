@@ -128,7 +128,8 @@ class NiftiTeleopJoy(object):
 		## topic with which to mux
 		self.mux_topic = rospy.get_param('~cmd_vel_mux_topic', '/nav/cmd_vel')
 		## name of the velocity command topic of the robot driver
-		self.command_topic = rospy.get_param('~cmd_vel_topic', '~cmd_vel')
+		self.command_topic = rospy.get_param('~cmd_vel_topic',
+				'/nifti_teleop_joy/cmd_vel')
 		# name of the all flippers command topic of the robot driver
 		flippers_cmd_topic = rospy.get_param('~flippers_cmd_topic',
 				'/flippers_cmd')
