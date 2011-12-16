@@ -18,6 +18,7 @@
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/ChannelFloat32.h>
 
+#include <pcl_ros/transforms.h>
 //#include <laser_filters/scan_shadows_filter.h>
 
 
@@ -615,7 +616,10 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 		if (ptcld_ctrl_on){
 			if (publish_in_motion||check_no_motion(tmp_scan.header.stamp)){
 				ROS_DEBUG_STREAM("Publishing point cloud (" << point_cloud.width << " points).");
-				point_cloud_pub.publish(point_cloud);
+				// transform point cloud into /base_link
+				pcl_ros::transformPointCloud("/base_link", point_cloud,
+						tmp_point_cloud, tf_listener);
+				point_cloud_pub.publish(tmp_point_cloud);
 			} else {
 				ROS_DEBUG_STREAM("Dropping point cloud (in motion).");
 			}

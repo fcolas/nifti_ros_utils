@@ -15,6 +15,7 @@
   <depend package="laser_geometry"/>
   <depend package="geometry_msgs"/>
   <depend package="sensor_msgs"/>
+  <depend package="pcl_ros"/>
 
 </package>
 
