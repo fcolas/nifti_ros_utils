@@ -2,9 +2,9 @@ analyzers:
   joystick:
     type: GenericAnalyzer
     path: Joystick
-    expected: 'joy_node: Joystick Driver Status'
+    expected: 'robot_joy_node: Joystick Driver Status'
     num_items: 1
-    remove_prefix: 'joy_node'
+    remove_prefix: 'robot_joy_node'
   nifti_robot_node:
     type: GenericAnalyzer
     path: Robot
