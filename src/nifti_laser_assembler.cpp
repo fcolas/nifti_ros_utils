@@ -396,6 +396,15 @@ void NiftiLaserAssembler::robot_filter(sensor_msgs::LaserScan& scan)
 	//std::cout << close_ptcld.points.size() << std::endl;
 
 	double x, y, z;
+	// remove body
+	transformed_ptcld = close_ptcld;
+	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+		x = transformed_ptcld.points[i].x;
+		y = transformed_ptcld.points[i].y;
+		z = transformed_ptcld.points[i].z;
+		if ((fabs(y)<eps+0.15)&&(fabs(z)<eps+0.10)&&(x<eps+0.05))
+			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	}
 	// remove left track
 	tf_listener.transformPointCloud("/left_track", close_ptcld, transformed_ptcld);
 	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
@@ -569,8 +578,8 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 	tmp_scan = scan;
 	time_correct(tmp_scan);
 	//filtering scan 
-	//undistort(tmp_scan); // disable due to feature freeze
-	//robot_filter(tmp_scan); // disabled due to feature freeze
+	undistort(tmp_scan); // disable due to feature freeze
+	robot_filter(tmp_scan); // disabled due to feature freeze
 	shadow_filter(tmp_scan);
 	karto_filter(tmp_scan);
 
