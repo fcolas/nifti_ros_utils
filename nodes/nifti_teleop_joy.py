@@ -126,14 +126,9 @@ class NiftiTeleopJoy(object):
 
 		# topic names
 		## topic with which to mux
-		self.mux_topic = rospy.get_param('~cmd_vel_mux_topic', None)
-		# name of the default velocity command topic of the robot driver
-		if self.mux_topic:
-			default_out = '~cmd_vel'
-		else:
-			default_out = '/cmd_vel'
+		self.mux_topic = rospy.get_param('~cmd_vel_mux_topic', '/nav/cmd_vel')
 		## name of the velocity command topic of the robot driver
-		self.command_topic = rospy.get_param('~cmd_vel_topic', default_out)
+		self.command_topic = rospy.get_param('~cmd_vel_topic', '~cmd_vel')
 		# name of the all flippers command topic of the robot driver
 		flippers_cmd_topic = rospy.get_param('~flippers_cmd_topic',
 				'/flippers_cmd')
@@ -201,18 +196,14 @@ class NiftiTeleopJoy(object):
 		# current mapping state
 		self.mapping_on = True
 		# setting up muxing with upwards velocity commands
-		if self.mux_topic:
-			try:
-				mux_add = rospy.ServiceProxy('mux/add', MuxAdd)
-				rospy.wait_for_service('mux/add', 10)
-				mux_add(self.mux_topic)
-				## service proxy to change outpuc topic of the mux
-				self.mux_select = rospy.ServiceProxy('mux/select', MuxSelect)
-				rospy.wait_for_service('mux/select', 10)
-				self.mux_select(self.mux_topic)
-			except rospy.ROSException:
-				rospy.logwarn("Timeout when waiting for mux: proceeding without it.")
-				self.mux_topic = None
+		try:
+			## service proxy to change outpuc topic of the mux
+			self.mux_select = rospy.ServiceProxy('mux/select', MuxSelect)
+			rospy.wait_for_service('mux/select', 10)
+			self.mux_select(self.mux_topic)
+		except rospy.ROSException:
+			rospy.logwarn("Timeout when waiting for mux: proceeding without it.")
+			self.mux_topic = None
 
 
 	## Listen to the status of the robot.
@@ -265,8 +256,7 @@ class NiftiTeleopJoy(object):
 		self.scanning_once_jcb(self.joy)
 		self.mapping_control_jcb(self.joy)
 
-		if self.mux_topic:
-			self.mux_jcb(self.joy)
+		self.mux_jcb(self.joy)
 
 
 	## Handle mux topic selection based on the joystick input.
