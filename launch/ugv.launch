@@ -3,5 +3,5 @@
 	<include file="$(find nifti_drivers_launchers)/launch/laser.launch"/>
 	<include file="$(find nifti_drivers_launchers)/launch/omnicamera.launch"/> 
 	<include file="$(find nifti_drivers_launchers)/launch/imu.launch"/> 
-	<include file="$(find nifti_teleop_joy)/launch/nifti_ugv_teleop.launch"/> 
+	<include file="$(find nifti_teleop)/launch/nifti_ugv_teleop.launch"/> 
 </launch>
