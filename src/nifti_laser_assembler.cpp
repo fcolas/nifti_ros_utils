@@ -72,8 +72,12 @@ protected:
 	//! Name of the reference world frame (default: "/odom")
 	std::string world_frame;
 
-	//! Publisher for the point cloud (default topic: "/nifti_point_cloud")
+	//! Publisher for the point cloud (default topic: "/static_point_cloud")
 	ros::Publisher point_cloud_pub;
+
+	//! Publisher for the moving point cloud (default topic:
+	//"/dynamic_point_cloud")
+	ros::Publisher dynamic_point_cloud_pub;
 
 	//! Subscriber to laser scans (default topic: "/scan")
 	ros::Subscriber laser_scan_sub;
@@ -98,9 +102,6 @@ protected:
 
 	//! Projector object from LaserScan to PointCloud2
 	laser_geometry::LaserProjection projector;
-
-	//! Flag allowing pointcloud publication if the robot moved (default: true)
-	bool publish_in_motion;
 
 	//! Starting time of the new scan
 	ros::Time start_time;
@@ -232,7 +233,6 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 
 	// moving
 	start_time = ros::Time(0);
-	publish_in_motion = getParam<bool>(n_, "publish_in_motion", true);
 
 	// filtering
 	double offset;
@@ -249,9 +249,13 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 
 	// point cloud publisher
 	std::string point_cloud_topic;
-	point_cloud_topic = getParam<std::string>(n_, "point_cloud_topic",
-			"/nifti_point_cloud");
+	point_cloud_topic = getParam<std::string>(n_, "static_point_cloud_topic",
+			"/static_point_cloud");
 	point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
+			(point_cloud_topic, 50);
+	point_cloud_topic = getParam<std::string>(n_, "dynamic_point_cloud_topic",
+			"/dynamic_point_cloud");
+	dynamic_point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
 			(point_cloud_topic, 50);
 	
 	// laser scan subscriber
@@ -614,14 +618,15 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 		end_of_swipe_pub.publish(bool_msg);
 		//ROS_INFO_STREAM("End");
 		if (ptcld_ctrl_on){
-			if (publish_in_motion||check_no_motion(tmp_scan.header.stamp)){
-				ROS_DEBUG_STREAM("Publishing point cloud (" << point_cloud.width << " points).");
-				// transform point cloud into /base_link
-				pcl_ros::transformPointCloud("/base_link", point_cloud,
-						tmp_point_cloud, tf_listener);
+			// transform point cloud into /base_link
+			pcl_ros::transformPointCloud("/base_link", point_cloud,
+					tmp_point_cloud, tf_listener);
+			dynamic_point_cloud_pub.publish(tmp_point_cloud);
+			if (check_no_motion(tmp_scan.header.stamp)){
+				ROS_DEBUG_STREAM("Publishing static point cloud (" << point_cloud.width << " points).");
 				point_cloud_pub.publish(tmp_point_cloud);
 			} else {
-				ROS_DEBUG_STREAM("Dropping point cloud (in motion).");
+				ROS_DEBUG_STREAM("Point cloud in motion.");
 			}
 		} else {
 			ROS_DEBUG_STREAM("Dropping point cloud (disabled).");

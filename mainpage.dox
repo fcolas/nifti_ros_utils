@@ -5,7 +5,12 @@
 \b nifti_laser_assembler is a filtering and assembling package.
 It takes the scans from the laser driver, filter them, and dispatch them in three topics:
 - \c /scan_relay (<a href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/LaserScan.html">sensor_msgs::LaserScan</a>): scans filtered,
-- \c /nifti_point_cloud (<a href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/PointCloud2.html">sensor_msgs::PointCloud2</a>): assembled point clouds,
+- \c /static_point_cloud (<a
+  href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/PointCloud2.html">sensor_msgs::PointCloud2</a>):
+  assembled point clouds (static),
+- \c /dynamic_point_cloud (<a
+  href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/PointCloud2.html">sensor_msgs::PointCloud2</a>):
+  assembled point clouds (dynamic),
 - \c /scan2d (<a
   href="http://www.ros.org/doc/diamondback/api/sensor_msgs/html/msg/LaserScan.html">sensor_msgs::LaserScan</a>):
   horizontal scans (not filtered).
@@ -19,7 +24,10 @@ Additionally, it is possible to enable or disable both \c /scan2d and \c
 
 The \c nifti_laser_assembler node can take several parameters:
 - \a ~laser_scan_topic (\c /scan): topic where to listen to the scans,
-- \a ~point_cloud_topic (\c /nifti_point_cloud): topic where to publish the assembled point clouds,
+- \a ~static_point_cloud_topic (\c /static_point_cloud): topic where to publish
+  the static assembled point clouds,
+- \a ~dynamic_point_cloud_topic (\c /dynamic_point_cloud): topic where to publish
+  the dynamic assembled point clouds,
 - \a ~publish2d (\c true): publish the horizontal scans,
 - \a ~scan2d_topic (\c /scan2d): topic where to publish the horizontal scans,
 - \a ~relay_scans (\c true): publish the individual scans,
@@ -30,7 +38,6 @@ The \c nifti_laser_assembler node can take several parameters:
 - \a ~max_size (\c 1000000): the number of points after which publishing the point cloud even if the scanner didn't finish it's rotation,
 - \a ~channels (<a href="http://www.ros.org/doc/diamondback/api/laser_geometry/html/namespacelaser__geometry_1_1channel__option.html">laser_geometry::channel_option::None</a>): the channels to include in the assembled point cloud,
 - \a ~laser_angle_offset (\c -0.035 rad): offset angle of the laser at center position with respect to horizontal,
-- \a ~publish_in_motion (\c true): allow publication of assembled point cloud even if the robot has moved (good result if no slip),
 - \a ~time_offset (\c 0.0 s): time offset to correct the time stamps of the scans,
 - \a ~min_distance (\c 0.0 m): minimum distance to cut the laser values,
 - \a ~shadow_filter_min_angle (\c 0.1 rad): minimum incidence angle to keep
