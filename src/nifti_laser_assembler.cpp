@@ -383,6 +383,7 @@ void NiftiLaserAssembler::robot_filter(sensor_msgs::LaserScan& scan)
 	geometry_msgs::Point32 point;
 	point.z = 0;
 	double angle;
+	const ros::Time time = scan.header.stamp;
 
 	double max_dist = 0.7;
 	double eps = 0.015;
@@ -411,75 +412,117 @@ void NiftiLaserAssembler::robot_filter(sensor_msgs::LaserScan& scan)
 			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
 	}
 	// remove left track
-	tf_listener.transformPointCloud("/left_track", close_ptcld, transformed_ptcld);
-	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
-		x = transformed_ptcld.points[i].x;
-		y = transformed_ptcld.points[i].y;
-		z = transformed_ptcld.points[i].z;
-		if
-		((fabs(y)<eps+(0.097/2))&&(fabs(x)<eps+0.09+(0.4997/2))&&(z>-eps-0.0705)&&(z<eps+0.1095))
-			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	if (tf_listener.waitForTransform(laser_frame, "/left_track", time,
+			ros::Duration(1.))) {
+		tf_listener.transformPointCloud("/left_track", close_ptcld, transformed_ptcld);
+		for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+			x = transformed_ptcld.points[i].x;
+			y = transformed_ptcld.points[i].y;
+			z = transformed_ptcld.points[i].z;
+			if
+			((fabs(y)<eps+(0.097/2))&&(fabs(x)<eps+0.09+(0.4997/2))&&(z>-eps-0.0705)&&(z<eps+0.1095))
+				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+		}
+	} else {
+		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+				" and /left_track for robot_filter (ignoring this part).");
 	}
 	// remove left track
-	tf_listener.transformPointCloud("/right_track", close_ptcld, transformed_ptcld);
-	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
-		x = transformed_ptcld.points[i].x;
-		y = transformed_ptcld.points[i].y;
-		z = transformed_ptcld.points[i].z;
-		if
-		((fabs(y)<eps+(0.097/2))&&(fabs(x)<eps+0.09+(0.4997/2))&&(z>-eps-0.0705)&&(z<eps+0.1095))
-			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	if (tf_listener.waitForTransform(laser_frame, "/right_track", time,
+			ros::Duration(1.))) {
+		tf_listener.transformPointCloud("/right_track", close_ptcld, transformed_ptcld);
+		for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+			x = transformed_ptcld.points[i].x;
+			y = transformed_ptcld.points[i].y;
+			z = transformed_ptcld.points[i].z;
+			if
+			((fabs(y)<eps+(0.097/2))&&(fabs(x)<eps+0.09+(0.4997/2))&&(z>-eps-0.0705)&&(z<eps+0.1095))
+				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+		}
+	} else {
+		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+				" and /right_track for robot_filter (ignoring this part).");
 	}
 
 	// remove front left flipper
-	tf_listener.transformPointCloud("/front_left_flipper", close_ptcld, transformed_ptcld);
-	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
-		x = transformed_ptcld.points[i].x;
-		y = transformed_ptcld.points[i].y;
-		z = transformed_ptcld.points[i].z;
-		if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
-				((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
-			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	if (tf_listener.waitForTransform(laser_frame, "/front_left_flipper", time,
+			ros::Duration(1.))) {
+		tf_listener.transformPointCloud("/front_left_flipper", close_ptcld, transformed_ptcld);
+		for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+			x = transformed_ptcld.points[i].x;
+			y = transformed_ptcld.points[i].y;
+			z = transformed_ptcld.points[i].z;
+			if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
+					((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+		}
+	} else {
+		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+				" and /front_left_flipper for robot_filter (ignoring this part).");
 	}
 	// remove front right flipper
-	tf_listener.transformPointCloud("/front_right_flipper", close_ptcld, transformed_ptcld);
-	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
-		x = transformed_ptcld.points[i].x;
-		y = transformed_ptcld.points[i].y;
-		z = transformed_ptcld.points[i].z;
-		if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
-				((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
-			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	if (tf_listener.waitForTransform(laser_frame, "/front_right_flipper", time,
+			ros::Duration(1.))) {
+		tf_listener.transformPointCloud("/front_right_flipper", close_ptcld, transformed_ptcld);
+		for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+			x = transformed_ptcld.points[i].x;
+			y = transformed_ptcld.points[i].y;
+			z = transformed_ptcld.points[i].z;
+			if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
+					((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+		}
+	} else {
+		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+				" and /front_right_flipper for robot_filter (ignoring this part).");
 	}
 	// remove rear left flipper
-	tf_listener.transformPointCloud("/rear_left_flipper", close_ptcld, transformed_ptcld);
-	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
-		x = transformed_ptcld.points[i].x;
-		y = transformed_ptcld.points[i].y;
-		z = transformed_ptcld.points[i].z;
-		if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
-				((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
-			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	if (tf_listener.waitForTransform(laser_frame, "/rear_left_flipper", time,
+			ros::Duration(1.))) {
+		tf_listener.transformPointCloud("/rear_left_flipper", close_ptcld, transformed_ptcld);
+		for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+			x = transformed_ptcld.points[i].x;
+			y = transformed_ptcld.points[i].y;
+			z = transformed_ptcld.points[i].z;
+			if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
+					((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+		}
+	} else {
+		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+				" and /rear_left_flipper for robot_filter (ignoring this part).");
 	}
 	// remove rear right flipper
-	tf_listener.transformPointCloud("/rear_right_flipper", close_ptcld, transformed_ptcld);
-	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
-		x = transformed_ptcld.points[i].x;
-		y = transformed_ptcld.points[i].y;
-		z = transformed_ptcld.points[i].z;
-		if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
-				((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
-			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	if (tf_listener.waitForTransform(laser_frame, "/rear_right_flipper", time,
+			ros::Duration(1.))) {
+		tf_listener.transformPointCloud("/rear_right_flipper", close_ptcld, transformed_ptcld);
+		for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+			x = transformed_ptcld.points[i].x;
+			y = transformed_ptcld.points[i].y;
+			z = transformed_ptcld.points[i].z;
+			if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
+					((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+		}
+	} else {
+		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+				" and /rear_right_flipper for robot_filter (ignoring this part).");
 	}
 	
 	// remove omnicam
-	tf_listener.transformPointCloud("/omnicam", close_ptcld, transformed_ptcld);
-	for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
-		x = transformed_ptcld.points[i].x;
-		y = transformed_ptcld.points[i].y;
-		z = transformed_ptcld.points[i].z;
-		if ((x*x+y*y<(eps+0.070)*(eps+0.070))&&(abs(z)<eps+(0.15/2)))
-			blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+	if (tf_listener.waitForTransform(laser_frame, "/omnicam", time,
+			ros::Duration(1.))) {
+		tf_listener.transformPointCloud("/omnicam", close_ptcld, transformed_ptcld);
+		for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+			x = transformed_ptcld.points[i].x;
+			y = transformed_ptcld.points[i].y;
+			z = transformed_ptcld.points[i].z;
+			if ((x*x+y*y<(eps+0.070)*(eps+0.070))&&(abs(z)<eps+(0.15/2)))
+				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+		}
+	} else {
+		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+				" and /omnicam for robot_filter (ignoring this part).");
 	}
 
 	// remove blacklisted points
