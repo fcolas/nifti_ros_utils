@@ -213,7 +213,7 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 			laser_geometry::channel_option::None);
 
 	// 2d scans
-	laser_angle_offset = getParam<double>(n_, "laser_angle_offset", 0.0);
+	laser_angle_offset = getParam<double>(n, "laser_angle_offset", 0.0);
 	publish2d = getParam<bool>(n_, "publish2d", true);
 	if (publish2d) {
 		std::string scan2d_topic;
