@@ -1,6 +1,0 @@
-<launch>
-	<include file="$(find nifti_drivers_launchers)/launch/ugv.launch"/>
-
-	<node pkg="tf" type="static_transform_publisher" name="fake_map_tf" args="0 0 0 0 0 0 map odom 100"/>
-
-</launch>
