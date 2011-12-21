@@ -166,7 +166,7 @@ NiftiRobot::NiftiRobot():
 	laserY = params.laserY;
 	laserZ = params.laserZ;
 	steering_efficiency = getParam<double>(n, "steering_efficiency", 0.41);
-	laser_angle_offset = getParam<double>(n_, "laser_angle_offset", 0.0);
+	laser_angle_offset = getParam<double>(n, "laser_angle_offset", 0.0);
 
 	// 2D odometry initialization
 	current_pose.position.x = 0.0;
