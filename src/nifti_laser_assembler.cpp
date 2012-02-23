@@ -736,12 +736,12 @@ double NiftiLaserAssembler::get_laser_angle(const ros::Time &time) const
 	double angle;
 	tf::StampedTransform tmp_tf;
 	geometry_msgs::Quaternion rot;
-	if (!tf_listener.waitForTransform(laser_frame, robot_frame, time,
+	if (!tf_listener.waitForTransform(robot_frame, laser_frame, time,
 		ros::Duration(1.)))
 		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
 				" and "<<robot_frame<<" before getting laser angle.");
 	
-	tf_listener.lookupTransform(laser_frame, robot_frame, time, tmp_tf);
+	tf_listener.lookupTransform(robot_frame, laser_frame, time, tmp_tf);
 	
 		
 	tf::quaternionTFToMsg(tmp_tf.getRotation(), rot);
