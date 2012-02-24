@@ -777,7 +777,7 @@ bool NiftiLaserAssembler::check_no_motion(const ros::Time &time) const
 	ROS_DEBUG_STREAM("Motion: " << norm(mean_speed.linear) << " m/s, " <<
 			norm(mean_speed.angular) << " Rad/s for "<<delta.toSec()<<" s"); 
 	return ((norm(mean_speed.linear)*delta.toSec()<0.02)&&
-			(norm(mean_speed.angular)*delta.toSec()<M_PI/180.));
+			(norm(mean_speed.angular)*delta.toSec()<3*M_PI/180.));
 }
 
 
