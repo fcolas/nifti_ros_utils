@@ -187,6 +187,9 @@ protected:
 	//! Callback for angular velocity limitation
 	void ang_lim_cb(const std_msgs::Float64& ang_lim_val);
 
+	//! Callback for steering efficiency
+	void steering_efficiency_cb(const std_msgs::Float64& msg);
+	
 	// flipper collision avoidance
 	//! detect if a given flipper position is in collision zone
 	bool in_coll_zone(double flipper_angle) const;
@@ -332,6 +335,9 @@ protected:
 
 	//! Subscriber to angular velocity limitation 
 	ros::Subscriber ang_lim_sub;
+
+	//! Subscriber to steering efficiency 
+	ros::Subscriber steering_efficiency_sub;
 
 	//! tf listener to build odometry on top of past estimate
 	tf::TransformListener tf_listener;

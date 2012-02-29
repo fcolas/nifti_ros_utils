@@ -359,8 +359,12 @@ NiftiRobot::NiftiRobot():
 	// linear velocity limitation
 	lin_lim_sub = n_.subscribe("max_linear_speed", 1, &NiftiRobot::lin_lim_cb, this);
 
-	//angular velocity limitation 
+	// angular velocity limitation 
 	ang_lim_sub = n_.subscribe("max_angular_speed", 1, &NiftiRobot::ang_lim_cb, this);
+	
+	// steering efficiency update
+	steering_efficiency_sub = n.subscribe("/steering_efficiency", 1,
+			&NiftiRobot::steering_efficiency_cb, this);
 	
 	/*
 	 * start moving laser if needed
@@ -761,7 +765,7 @@ void NiftiRobot::tracks_vel_cb(const nifti_robot_driver_msgs::Tracks& tracksSpee
  */
 void NiftiRobot::lin_lim_cb(const std_msgs::Float64& lin_lim_val){
 	lin_lim = std::max(0.0, std::min(lin_lim_val.data, vMax));
-	ROS_DEBUG_STREAM("new linear velocity limit: "<<lin_lim<<" (asked: "
+	ROS_DEBUG_STREAM("New linear velocity limit: "<<lin_lim<<" (asked: "
 			<<lin_lim_val.data<< ", max: "<<vMax);
 }
 
@@ -770,10 +774,18 @@ void NiftiRobot::lin_lim_cb(const std_msgs::Float64& lin_lim_val){
  */
 void NiftiRobot::ang_lim_cb(const std_msgs::Float64& ang_lim_val){
 	ang_lim = std::max(0.0, std::min(ang_lim_val.data, 2*steering_efficiency*vMax/robot_width));
-	ROS_DEBUG_STREAM("new angular velocity limit: "<<ang_lim<<" (asked: "
+	ROS_DEBUG_STREAM("New angular velocity limit: "<<ang_lim<<" (asked: "
 			<<ang_lim_val.data<< ", max: "<<2*vMax/robot_width);
 }
 
+/*
+ * Callback for steering efficiency
+ */
+void NiftiRobot::steering_efficiency_cb(const std_msgs::Float64& msg){
+	steering_efficiency = std::max(0.0, std::min(1.0, msg.data));
+	ROS_WARN_STREAM("New steering efficiency: "<<steering_efficiency<<" (asked: "\
+			<<msg.data<<").");
+}
 
 /*
  * 2D Motion model

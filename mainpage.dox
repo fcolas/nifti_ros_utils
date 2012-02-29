@@ -98,7 +98,10 @@ The node (and class) subscribes to a set of topics to listen to commands:
   linear speed limit of the robot,
 - \c /nifti_robot_node/max_angular_speed (<a
   href="http://www.ros.org/doc/api/std_msgs/html/msg/Float64.html">std_msgs::Float64</a>):
-  angular speed limit of the robot.
+  angular speed limit of the robot,
+- \c /steering_efficiency (<a
+  href="http://www.ros.org/doc/api/std_msgs/html/msg/Float64.html">std_msgs::Float64</a>):
+  steering efficiency.
 
 
 \section simu Simulation of the NIFTi robot
