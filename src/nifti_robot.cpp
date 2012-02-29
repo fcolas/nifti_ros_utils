@@ -87,6 +87,8 @@ NiftiRobot::NiftiRobot():
 	battery_level(-1),
 	// publish odom as tf
 	//publish_odom_as_tf(false),
+	// use /tf to update odom
+	//use_tf_for_odom(true),
 	// Public nodehandle
 	n(),
 	// Private nodehandle
@@ -136,6 +138,7 @@ NiftiRobot::NiftiRobot():
 	nrInit(c_CAN_device, &params, bestInit);
 
 	publish_odom_as_tf = getParam<bool>(n_, "publish_odom_as_tf", false);
+	use_tf_for_odom = getParam<bool>(n_, "use_tf_for_odom", true);
 
 	robot_width = params.trackDistance;
 	flippers_altitude = params.trackWheelRadius - params.referentialZ;
@@ -818,12 +821,29 @@ void NiftiRobot::update_2d_odom()
 	local_pose.pose.orientation.z = s;
 	local_pose.pose.orientation.w = c;
 	
-	try{
-		tf_listener.transformPose(odom_frame, local_pose, odom_pose);
-		ROS_DEBUG_STREAM("Using /tf to update odometry estimate.");
-	}
-	catch (tf::TransformException ex){
-		ROS_DEBUG_STREAM("No /tf available, using past estimate: " << ex.what());
+	if (use_tf_for_odom) {
+		try{
+			tf_listener.transformPose(odom_frame, local_pose, odom_pose);
+			ROS_DEBUG_STREAM("Using /tf to update odometry estimate.");
+		}
+		catch (tf::TransformException ex){
+			ROS_DEBUG_STREAM("No /tf available, using past estimate: " << ex.what());
+			double w = current_pose.orientation.w;
+			double x = current_pose.orientation.x;
+			double y = current_pose.orientation.y;
+			double z = current_pose.orientation.z;
+			
+			odom_pose.pose.orientation.w = c*w - s*z;
+			odom_pose.pose.orientation.x = c*x - s*y;
+			odom_pose.pose.orientation.y = c*y + s*x;
+			odom_pose.pose.orientation.z = c*z + s*w;
+
+			odom_pose.pose.position = current_pose.position;
+			odom_pose.pose.position.x += dx*(x*x-y*y-z*z+w*w) + dy*(2*x*y-2*z*w);
+			odom_pose.pose.position.y += dx*(2*x*y+2*z*w) + dy*(-x*x+y*y-z*z+w*w);
+			odom_pose.pose.position.z += dx*(2*x*z-2*y*w) + dy*(2*x*w+2*y*z);
+		}
+	} else {
 		double w = current_pose.orientation.w;
 		double x = current_pose.orientation.x;
 		double y = current_pose.orientation.y;

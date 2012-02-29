@@ -192,6 +192,8 @@ protected:
 	// odometry and tfs update
 	//! Decide if we publish odometry as a /tf or not (default: false)
 	bool publish_odom_as_tf;
+	//! Decide if we use /tf to compute odometry or not (default: true)
+	bool use_tf_for_odom;
 	/**
 	 * 2D Motion model
 	 * Compute linear and angular velocity based on tracks velocity

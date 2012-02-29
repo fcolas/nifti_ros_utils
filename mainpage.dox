@@ -22,6 +22,8 @@ The ROS node can take several parameters:
 - \a ~CAN_device (\c /dev/usb/cpc_usb0): CAN device,
 - \a ~bestInit (\c true): better initialization fo the flippers for more accuracy,
 - \a ~publish_odom_as_tf (\c false): publish \c /odom -> \c /base_link in \c /tf,
+- \a ~use_tf_for_odom (\c true): use the \c /tf transformation \c /odom -> \c
+  /base_link in order to update the odometry published on the \c /odom topic.
 - \a steering_efficiency (0.41): parameter for the kinematic model: depends on the ground surface,
 - \a ~laser_angle_offset (0.0 Rad): roll offset of the laser (for ETHZ it is around 4 deg),
 - \a ~odom_frame (\c /odom): name of the odometry frame,
