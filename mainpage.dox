@@ -87,6 +87,7 @@ also):
 - \a ~brake_topic (\c /brake),
 - \a ~enable_topic (\c /enable),
 - \a ~scanning_speed_topic (\c /scanning_speed_cmd),
+- \a ~steering_efficiency_topic (\c /steering_efficiency),
 - \a ~robot_status_topic (\c /robot_status),
 - \a ~joy_topic (\c /joy),
 - \a ~laser_center_topic (\c /laser_center),

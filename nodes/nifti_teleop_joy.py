@@ -145,6 +145,8 @@ class NiftiTeleopJoy(object):
 		enable_topic = rospy.get_param('~enable_topic', '/enable')
 		# name of the scanning speed command topic of the robot driver
 		scanning_speed_topic = rospy.get_param('~scanning_speed_topic', '/scanning_speed_cmd')
+		# name of the steering efficiency topic
+		steering_efficiency_topic = rospy.get_param('~steering_efficiency_topic', '/steering_efficiency')
 		# name of the robot status topic published by the robot driver
 		robot_status_topic = rospy.get_param('~robot_status_topic', '/robot_status')
 		# name of the joystick topic published by joy_node
@@ -172,6 +174,9 @@ class NiftiTeleopJoy(object):
 		## publisher for the brake command topic
 		# @param ~brake_topic (default: '/brake')
 		self.brake_pub = rospy.Publisher(brake_topic, Bool)
+		## subscriber to the steering_efficiency topic
+		# @param ~steering_efficiency_topic (default: '/steering_efficiency')
+		rospy.Subscriber(steering_efficiency_topic, Float64, self.steering_efficiency_cb)
 		## subscriber to the robot status topic published by the robot driver
 		# @param ~robot_status_topic (default: '/robot_status')
 		rospy.Subscriber(robot_status_topic, RobotStatus, self.statusCallBack)
@@ -206,6 +211,11 @@ class NiftiTeleopJoy(object):
 			rospy.logwarn("Timeout when waiting for mux: proceeding without it.")
 			self.mux_topic = None
 
+
+	## Update the steering efficiency
+	def steering_efficiency_cb(self, msg):
+		'''Update the steering efficiency.'''
+		self.steering_efficiency = max(0.0, min(1.0, msg.data))
 
 	## Listen to the status of the robot.
 	def statusCallBack(self, robot_status):
