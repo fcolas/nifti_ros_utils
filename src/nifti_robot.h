@@ -107,11 +107,17 @@ protected:
 	//! angle offset of the rear right flipper
 	double rear_right_offset;
 	
+	//! tracks steering efficiency $\chi$
+	double steering_efficiency;
+
 	//! maximum track velocity
 	double vMax;
 
-	//! tracks steering efficiency $\chi$
-	double steering_efficiency;
+	//! linear velocity limit
+	double lin_lim;
+
+	//! angular velocity limit
+	double ang_lim;
 
 	//! laser angle offset
 	double laser_angle_offset;
@@ -174,6 +180,12 @@ protected:
 
 	//! Callback for tracks velocity command
 	void tracks_vel_cb(const nifti_robot_driver_msgs::Tracks& tracksSpeed);
+
+	//! Callback for linear velocity limitation
+	void lin_lim_cb(const std_msgs::Float64& lin_lim_val);
+
+	//! Callback for angular velocity limitation
+	void ang_lim_cb(const std_msgs::Float64& ang_lim_val);
 
 	// flipper collision avoidance
 	//! detect if a given flipper position is in collision zone
@@ -314,6 +326,12 @@ protected:
 
 	//! Subscriber to a tracks velocity command
 	ros::Subscriber tracks_vel_sub;
+
+	//! Subscriber to linear velocity limitation
+	ros::Subscriber lin_lim_sub;
+
+	//! Subscriber to angular velocity limitation 
+	ros::Subscriber ang_lim_sub;
 
 	//! tf listener to build odometry on top of past estimate
 	tf::TransformListener tf_listener;

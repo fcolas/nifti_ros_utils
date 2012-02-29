@@ -3,6 +3,7 @@
 #include <iostream>
 #include <math.h>
 #include <sstream>
+#include <algorithm>
 
 #include "nifti_robot_messages.h"
 
@@ -79,6 +80,12 @@ NiftiRobot::NiftiRobot():
 	//rear_right_offset((180-11.1)*M_PI/180.),
 	// tracks steering efficiency $\chi$
 	//steering_efficiency(1.0),
+	// maximum track velocity
+	//vMax(0.6),
+	// linear velocity limit
+	//lin_lim(vMax),
+	// angular velocity limit
+	//ang_lim(2*steering_efficiency*vMax/robot_width),
 	// laser angle offset
 	//laser_angle_offset(0.0),
 	// Battery status
@@ -164,11 +171,13 @@ NiftiRobot::NiftiRobot():
 	front_right_offset = params.flipperOffset;
 	rear_left_offset = M_PI - params.flipperOffset;
 	rear_right_offset = M_PI - params.flipperOffset;
+	steering_efficiency = getParam<double>(n, "steering_efficiency", 0.41);
 	vMax = params.vMax;
+	lin_lim = vMax;
+	ang_lim = 2*steering_efficiency*vMax/robot_width;
 	laserX = params.laserX;
 	laserY = params.laserY;
 	laserZ = params.laserZ;
-	steering_efficiency = getParam<double>(n, "steering_efficiency", 0.41);
 	laser_angle_offset = getParam<double>(n, "laser_angle_offset", 0.0);
 
 	// 2D odometry initialization
@@ -347,6 +356,12 @@ NiftiRobot::NiftiRobot():
 	// tracks velocity command
 	tracks_vel_sub = n.subscribe("/tracks_vel_cmd", 1, &NiftiRobot::tracks_vel_cb, this);
 
+	// linear velocity limitation
+	lin_lim_sub = n_.subscribe("max_linear_speed", 1, &NiftiRobot::lin_lim_cb, this);
+
+	//angular velocity limitation 
+	ang_lim_sub = n_.subscribe("max_angular_speed", 1, &NiftiRobot::ang_lim_cb, this);
+	
 	/*
 	 * start moving laser if needed
 	 */
@@ -378,13 +393,25 @@ void NiftiRobot::cmd_vel_cb(const geometry_msgs::Twist& cmd_vel)
 {
 	ROS_DEBUG_STREAM("received velocity command: " << cmd_vel);
 	double vr, vl;
-	twist_to_tracks(&vl, &vr, cmd_vel.linear.x, cmd_vel.angular.z);
-	if ((vl<=(vMax+EPSILON)) && (vl>=-(vMax+EPSILON)) && (vr<=(vMax+EPSILON)) &&
-			(vr>=-(vMax+EPSILON)))
+	double v, w, av, aw;
+	v = cmd_vel.linear.x;
+	w = cmd_vel.angular.z;
+	av = fabs(v);
+	aw = fabs(w);
+	if ((av>lin_lim)||(aw>ang_lim)) {
+		double ratio = std::min(lin_lim/av, ang_lim/aw);
+		v *= ratio;
+		w *= ratio;
+		ROS_DEBUG_STREAM("Reducing command speed by "<<int(100*ratio)\
+				<<"% to accomodate limits ("<<cmd_vel.linear.x<<", "\
+				<<cmd_vel.angular.z<<") -> ("<<v<<", "<<w<<").");
+	}
+	twist_to_tracks(&vl, &vr, v, w);
+	if ((fabs(vl)<=(vMax+EPSILON)) && (fabs(vr)<=(vMax+EPSILON)))
 		NR_CHECK_AND_RETURN(nrSetSpeedLR, vl, vr);
 	else
-		ROS_WARN_STREAM("Invalid velocity command (v="<<cmd_vel.linear.x\
-				<<", w="<<cmd_vel.angular.z<<") -> (vr="<<vr<<\
+		ROS_WARN_STREAM("Invalid velocity command (v="<<v\
+				<<", w="<<w<<") -> (vr="<<vr<<\
 				", vl="<<vl<<")|vMax="<<vMax<<".");
 }
 
@@ -727,6 +754,24 @@ void NiftiRobot::tracks_vel_cb(const nifti_robot_driver_msgs::Tracks& tracksSpee
 	else
 		ROS_WARN_STREAM("Invalid tracks velocity command (vr="<<vr<<\
 				", vl="<<vl<<")|vMax="<<vMax<<".");
+}
+
+/*
+ * Callback for linear velocity limitation
+ */
+void NiftiRobot::lin_lim_cb(const std_msgs::Float64& lin_lim_val){
+	lin_lim = std::max(0.0, std::min(lin_lim_val.data, vMax));
+	ROS_DEBUG_STREAM("new linear velocity limit: "<<lin_lim<<" (asked: "
+			<<lin_lim_val.data<< ", max: "<<vMax);
+}
+
+/*
+ * Callback for angular velocity limitation
+ */
+void NiftiRobot::ang_lim_cb(const std_msgs::Float64& ang_lim_val){
+	ang_lim = std::max(0.0, std::min(ang_lim_val.data, 2*steering_efficiency*vMax/robot_width));
+	ROS_DEBUG_STREAM("new angular velocity limit: "<<ang_lim<<" (asked: "
+			<<ang_lim_val.data<< ", max: "<<2*vMax/robot_width);
 }
 
 

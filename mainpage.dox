@@ -90,7 +90,15 @@ The node (and class) subscribes to a set of topics to listen to commands:
 - \c /laser_center (<a
   href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>):
   request the laser scanner to go in middle position,
-- \c /tracks_vel_cmd (<a href="../../nifti_robot_driver_msgs/html/msg/Tracks.html">Tracks</a>): direct tracks velocity command (experts only).
+- \c /tracks_vel_cmd (<a
+  href="../../nifti_robot_driver_msgs/html/msg/Tracks.html">Tracks</a>): direct
+  tracks velocity command (experts only),
+- \c /nifti_robot_node/max_linear_speed (<a
+  href="http://www.ros.org/doc/api/std_msgs/html/msg/Float64.html">std_msgs::Float64</a>):
+  linear speed limit of the robot,
+- \c /nifti_robot_node/max_angular_speed (<a
+  href="http://www.ros.org/doc/api/std_msgs/html/msg/Float64.html">std_msgs::Float64</a>):
+  angular speed limit of the robot.
 
 
 \section simu Simulation of the NIFTi robot
