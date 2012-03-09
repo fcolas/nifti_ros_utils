@@ -1,0 +1,12 @@
+<launch>
+	
+	<include file="ugv.launch"/>
+
+	<include file="$(find nifti_mapping_launchers)/launch/mapAndNav.launch"/>
+
+	<!-- This is temporarily not working on the DFKI robot, maybe on others -->
+<!--        <include file="$(find monitoring)/monitoring.launch"/> -->
+
+	<!-- Add the arm code when it's ready -->
+
+</launch>
