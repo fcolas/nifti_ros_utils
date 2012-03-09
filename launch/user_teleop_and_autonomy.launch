@@ -1,6 +1,6 @@
 <launch>
 	
-	<include file="ugv.launch"/>
+	<include file="$(find nifti_drivers_launchers)/launch/ugv.launch"/>
 
 	<include file="$(find nifti_mapping_launchers)/launch/mapAndNav.launch"/>
 
