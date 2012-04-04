@@ -14,8 +14,6 @@ analyzers:
     type: GenericAnalyzer
     path: IMU
     contains: [
-      'Diagnostic IMU',
       'Self Test',
       'XKF Valid',
-      'GPS Fix',
-      'Number of satellite']
+      'GPS Fix']
