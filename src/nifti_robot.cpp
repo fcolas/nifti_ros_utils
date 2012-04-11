@@ -858,16 +858,21 @@ void NiftiRobot::update_2d_odom()
 	dx = d * (1 - dtheta*dtheta/6);
 	dy = d*dtheta/2;
 	*/
+	/*
+	// exact circle
 	if (abs(dtheta)<0.0001) { // straight path
 		dx = d;
 		dy = 0.0;
 	} else {	// circular approximation
 		dx = d/dtheta * sin(dtheta);
 		dy = d/dtheta * (1 - cos(dtheta));
-	}
-	geometry_msgs::PoseStamped local_pose, odom_pose;
+	}*/
+	// common approximation (no numerical instability)
 	double c = cos(dtheta/2);
 	double s = sin(dtheta/2);
+	dx = d*c;
+	dy = d*s;
+	geometry_msgs::PoseStamped local_pose, odom_pose;
 	local_pose.header.stamp = current_timestamp;
 	local_pose.header.frame_id = robot_frame;
 	local_pose.pose.position.x = dx;
