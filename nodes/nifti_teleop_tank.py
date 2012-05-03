@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 ## @file
-# Joystick teleoperation module for the NIFTi robot
-#
-# It handles velocity command of the platform, activation of the brake, motion
-# of the flippers, and selection of the rolling speed of the laser scanner.
+# Joystick teleoperation module for the NIFTi robot in tank mode
+
 import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
 from joy.msg import Joy		# diamondback and less
@@ -35,8 +33,12 @@ class NiftiTeleopTank(object):
 		'''Callback for a joystick message.'''
 		self.joy.update(joy)
 		if self.joy.axis_moved(1) or self.joy.axis_moved(3):
-			self.trackscmd_pub.publish(0.6*self.joy.axes[1],
-					0.6*self.joy.axes[3])
+			if self.joy.buttons[2]:
+				self.trackscmd_pub.publish(0.6*self.joy.axes[1],
+						0.6*self.joy.axes[1])
+			else:
+				self.trackscmd_pub.publish(0.6*self.joy.axes[1],
+						0.6*self.joy.axes[3])
 
 ################################################################################
 
