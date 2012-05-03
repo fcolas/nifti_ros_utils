@@ -6,7 +6,8 @@
 # of the flippers, and selection of the rolling speed of the laser scanner.
 import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
-from sensor_msgs.msg import Joy
+from joy.msg import Joy		# diamondback and less
+#from sensor_msgs.msg import Joy	 # electric and more
 
 from nifti_robot_driver_msgs.msg import Tracks
 
