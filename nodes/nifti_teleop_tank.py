@@ -32,13 +32,16 @@ class NiftiTeleopTank(object):
 	def joyCallBack(self, joy):
 		'''Callback for a joystick message.'''
 		self.joy.update(joy)
+		if self.joy.buttons[3]:
+			self.trackscmd_pub.publish(0.3*self.joy.axes[1],
+						0.4*self.joy.axes[1])
 		if self.joy.axis_moved(1) or self.joy.axis_moved(3):
 			if self.joy.buttons[2]:
-				self.trackscmd_pub.publish(0.6*self.joy.axes[1],
-						0.6*self.joy.axes[1])
+				self.trackscmd_pub.publish(0.5*self.joy.axes[1],
+						0.5*self.joy.axes[1])
 			else:
-				self.trackscmd_pub.publish(0.6*self.joy.axes[1],
-						0.6*self.joy.axes[3])
+				self.trackscmd_pub.publish(0.5*self.joy.axes[1],
+						0.5*self.joy.axes[3])
 
 ################################################################################
 
