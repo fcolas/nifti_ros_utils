@@ -4,7 +4,7 @@
 	<include file="$(find nifti_drivers_launchers)/launch/robot.launch"/>
 
 	<!-- This is temporarily not working on the DFKI robot, maybe on others -->
-<!--        <include file="$(find monitoring)/monitoring.launch"/> -->
+        <include file="$(find monitoring)/monitoring.launch"/>
 
 	<!-- Add the arm code when it's ready -->
 
@@ -23,5 +23,7 @@
 	<!-- This produces traveled path -->
 	<include file="$(find nifti_mapping_launchers)/launch/tf_to_path_converter.launch"/>
 
+        <!-- This allows autonomous flipper control -->
+	<include file="$(find nifti_reactive_flippers_vertscan)/launch/fflip_touch.launch"/>
 
 </launch>

@@ -5,7 +5,10 @@
 	<include file="$(find nifti_mapping_launchers)/launch/mapAndNav.launch"/>
 
 	<!-- This is temporarily not working on the DFKI robot, maybe on others -->
-<!--        <include file="$(find monitoring)/monitoring.launch"/> -->
+        <include file="$(find monitoring)/monitoring.launch"/>
+
+	<!-- This allows autonomous flipper control -->
+	<include file="$(find nifti_reactive_flippers_vertscan)/launch/fflip_touch.launch"/>
 
 	<!-- Add the arm code when it's ready -->
 
