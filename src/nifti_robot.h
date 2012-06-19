@@ -122,6 +122,9 @@ protected:
 	//! laser angle offset
 	double laser_angle_offset;
 
+	//! watchdog timeout
+	double watchdog_timeout;
+
 	// current state
 	//! Current pose
 	geometry_msgs::Pose current_pose;
@@ -131,6 +134,9 @@ protected:
 	
 	//! Current timestamp
 	ros::Time current_timestamp;
+	
+	//! Last speed command timestamp
+	ros::Time last_timestamp;
 	
 	//! Physical configuration transforms
 	std::vector<geometry_msgs::TransformStamped> configuration_tfs;

@@ -88,6 +88,8 @@ NiftiRobot::NiftiRobot():
 	//ang_lim(2*steering_efficiency*vMax/robot_width),
 	// laser angle offset
 	//laser_angle_offset(0.0),
+	// watchdog timeout
+	//watchdog_timeout(1.0),
 	// Battery status
 	battery_status(-1),
 	// Battery level
@@ -179,6 +181,10 @@ NiftiRobot::NiftiRobot():
 	laserY = params.laserY;
 	laserZ = params.laserZ;
 	laser_angle_offset = getParam<double>(n, "laser_angle_offset", 0.0);
+
+	// Watchdog
+	watchdog_timeout = getParam<double>(n_, "watchdog_timeout", 1.0);
+	last_timestamp = ros::Time(0);
 
 	// 2D odometry initialization
 	current_pose.position.x = 0.0;
@@ -411,12 +417,16 @@ void NiftiRobot::cmd_vel_cb(const geometry_msgs::Twist& cmd_vel)
 				<<cmd_vel.angular.z<<") -> ("<<v<<", "<<w<<").");
 	}
 	twist_to_tracks(&vl, &vr, v, w);
-	if ((fabs(vl)<=(vMax+EPSILON)) && (fabs(vr)<=(vMax+EPSILON)))
+	if ((fabs(vl)<=(vMax+EPSILON)) && (fabs(vr)<=(vMax+EPSILON))) {
 		NR_CHECK_AND_RETURN(nrSetSpeedLR, vl, vr);
-	else
+		if (vl||vr) {
+			last_timestamp = ros::Time::now();
+		}
+	} else {
 		ROS_WARN_STREAM("Invalid velocity command (v="<<v\
 				<<", w="<<w<<") -> (vr="<<vr<<\
 				", vl="<<vl<<")|vMax="<<vMax<<".");
+	}
 }
 
 /*
@@ -1364,6 +1374,11 @@ void NiftiRobot::run(){
 	// loop
 	while (ros::ok())
 	{
+		if ((!last_timestamp.is_zero()) && 
+				((ros::Time::now()-last_timestamp).toSec()>watchdog_timeout)) {
+			ROS_WARN_STREAM("Stopping robot due to command timeout.");
+			NR_CHECK_AND_RETURN(nrSetSpeedLR, 0., 0.);
+		}
 		update_all();
 		loop_rate.sleep();
 		ros::spinOnce();
