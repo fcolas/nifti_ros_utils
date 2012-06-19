@@ -189,7 +189,8 @@ NiftiRobot::NiftiRobot():
 	// 2D odometry initialization
 	current_pose.position.x = 0.0;
 	current_pose.position.y = 0.0;
-	current_pose.position.z = 0.0705;
+	// TODO local test current_pose.position.z = 0.0705;
+	current_pose.position.z = 0.0;
 	current_pose.orientation.x = 0.0;
 	current_pose.orientation.y = 0.0;
 	current_pose.orientation.z = 0.0;
@@ -421,6 +422,8 @@ void NiftiRobot::cmd_vel_cb(const geometry_msgs::Twist& cmd_vel)
 		NR_CHECK_AND_RETURN(nrSetSpeedLR, vl, vr);
 		if (vl||vr) {
 			last_timestamp = ros::Time::now();
+		} else {
+			last_timestamp = ros::Time(0);
 		}
 	} else {
 		ROS_WARN_STREAM("Invalid velocity command (v="<<v\
@@ -841,17 +844,17 @@ geometry_msgs::Twist NiftiRobot::motion_model_2d(double vl, double vr) const
 void NiftiRobot::update_2d_odom()
 {
 	// get current velocity
-	double vl, vr, v, w;
+	double vl, vr, vtrans, vrot;
 	NR_CHECK_AND_RETURN(nrGetSpeedLR, &vl, &vr);
 	ros::Time new_timestamp = ros::Time::now();
-	tracks_to_twist(vl, vr, &v, &w);
+	tracks_to_twist(vl, vr, &vtrans, &vrot);
 	geometry_msgs::Twist new_velocity;
-	new_velocity.linear.x = v;
+	new_velocity.linear.x = vtrans;
 	new_velocity.linear.y = 0.0;
 	new_velocity.linear.z = 0.0;
 	new_velocity.angular.x = 0.0;
 	new_velocity.angular.y = 0.0;
-	new_velocity.angular.z = w;
+	new_velocity.angular.z = vrot;
 
 	
 	// update pose
@@ -1378,6 +1381,7 @@ void NiftiRobot::run(){
 				((ros::Time::now()-last_timestamp).toSec()>watchdog_timeout)) {
 			ROS_WARN_STREAM("Stopping robot due to command timeout.");
 			NR_CHECK_AND_RETURN(nrSetSpeedLR, 0., 0.);
+			last_timestamp = ros::Time(0);
 		}
 		update_all();
 		loop_rate.sleep();
