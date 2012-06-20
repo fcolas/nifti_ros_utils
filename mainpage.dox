@@ -31,7 +31,8 @@ The ROS node can take several parameters:
 - \a ~laser_frame (\c /laser): name of the laser frame,
 - \a ~omni_frame (\c /omnicam): name of the omnicam base frame,
 - \a ~imu_frame (\c /imu): name of the IMU frame,
-- \a ~initial_scanning_speed (\c 0.0 Rad/s): initial speed of the laser.
+- \a ~initial_scanning_speed (\c 0.0 Rad/s): initial speed of the laser,
+- \a ~watchdog_timeout (\c 1 s): timeout before cancelling velocity commands.
 
 
 \subsection topics Published topics and tfs
