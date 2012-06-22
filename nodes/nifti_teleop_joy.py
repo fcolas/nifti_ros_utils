@@ -8,10 +8,13 @@ import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, Float64
+# diamonback:
 from joy.msg import Joy
-from topic_tools.srv import MuxAdd, MuxSelect
+# electric and later:
+#from sensor_msgs.msg import Joy
 
 from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus, FlipperCommand
+from nifti_teleop.srv import Acquire, Release
 
 from math import pi, floor
 
@@ -30,7 +33,7 @@ class NiftiTeleopJoy(object):
 	'''
 	
 	## Instantiate a NiftiTeleopJoy object
-	def __init__(self, mux_topic=None):
+	def __init__(self):
 		## current flippers state
 		self.fs = FlippersState()
 		self.fs.frontLeft = None 
@@ -124,92 +127,55 @@ class NiftiTeleopJoy(object):
 		# @param /scanning_once_speed (default: 0.60)
 		self.scanning_once_speed = rospy.get_param('/scanning_once_speed', 1.20)
 
-		# topic names
-		## topic with which to mux
-		self.mux_topic = rospy.get_param('~cmd_vel_mux_topic', '/nav/cmd_vel')
-		## name of the velocity command topic of the robot driver
-		self.command_topic = rospy.get_param('~cmd_vel_topic',
+		## cmd_vel topic
+		self.cmd_vel_topic = rospy.get_param('~cmd_vel_topic',
 				'/nifti_teleop_joy/cmd_vel')
-		# name of the all flippers command topic of the robot driver
-		flippers_cmd_topic = rospy.get_param('~flippers_cmd_topic',
-				'/flippers_cmd')
-		# name of the individual flipper command topic of the robot driver
-		flipper_cmd_topic = rospy.get_param('~flipper_cmd_topic',
-				'/flipper_cmd')
-		# name of the flippers state topic published by the robot driver
-		flippers_state_topic = rospy.get_param('~flippers_state_topic',
-				'/flippers_state')
-		# name of the brake command topic of the robot driver
-		brake_topic = rospy.get_param('~brake_topic', '/brake')
-		# name of the enable command topic of the robot driver
-		enable_topic = rospy.get_param('~enable_topic', '/enable')
-		# name of the scanning speed command topic of the robot driver
-		scanning_speed_topic = rospy.get_param('~scanning_speed_topic', '/scanning_speed_cmd')
-		# name of the steering efficiency topic
-		steering_efficiency_topic = rospy.get_param('~steering_efficiency_topic', '/steering_efficiency')
-		# name of the robot status topic published by the robot driver
-		robot_status_topic = rospy.get_param('~robot_status_topic', '/robot_status')
-		# name of the joystick topic published by joy_node
-		joy_topic = rospy.get_param('~joy_topic', '/joy')
-		# name of the joystick topic published by joy_node
-		laser_center_topic = rospy.get_param('~laser_center_topic', '/laser_center')
-		# name of the scanning_once topic for nifti_teleop_helper
-		scanning_once_topic = rospy.get_param('~scanning_once_topic', '/scanning_once')
-		# name of the mapping_control topic for nifti_laser_assembler
-		mapping_control_topic = rospy.get_param('~mapping_control_topic', '/mapping_control')
-
 		# publisher and subscribers
 		## publisher for the velocity command topic
-		# @param ~cmd_vel_topic (default: '/cmd_vel')
-		self.cmdvel_pub = rospy.Publisher(self.command_topic, Twist)
+		# @param ~cmd_vel_topic (default: '/nifti_teleop_joy/cmd_vel')
+		self.cmdvel_pub = rospy.Publisher(self.cmd_vel_topic, Twist)
 		## publisher for the all flippers command topic
-		# @param ~flippers_cmd_topic (default: '/flippers_cmd')
-		self.flippers_pub = rospy.Publisher(flippers_cmd_topic, FlippersState)
+		self.flippers_pub = rospy.Publisher('/flippers_cmd', FlippersState)
 		## publisher for the individual flipper command topic
-		# @param ~flipper_cmd_topic (default: '/flipper_cmd')
-		self.flipper_pub = rospy.Publisher(flipper_cmd_topic, FlipperCommand)
+		self.flipper_pub = rospy.Publisher('/flipper_cmd', FlipperCommand)
 		## subscriber to the flippers state topic published by the robot driver
 		# @param ~flippers_state_topic (default: '/flippers_state')
-		rospy.Subscriber(flippers_state_topic, FlippersState, self.flippersCallBack)
+		rospy.Subscriber('/flippers_state', FlippersState, self.flippersCallBack)
 		## publisher for the brake command topic
-		# @param ~brake_topic (default: '/brake')
-		self.brake_pub = rospy.Publisher(brake_topic, Bool)
+		self.brake_pub = rospy.Publisher('/brake', Bool)
 		## subscriber to the steering_efficiency topic
-		# @param ~steering_efficiency_topic (default: '/steering_efficiency')
-		rospy.Subscriber(steering_efficiency_topic, Float64, self.steering_efficiency_cb)
+		rospy.Subscriber('/steering_efficiency', Float64, self.steering_efficiency_cb)
 		## subscriber to the robot status topic published by the robot driver
-		# @param ~robot_status_topic (default: '/robot_status')
-		rospy.Subscriber(robot_status_topic, RobotStatus, self.statusCallBack)
+		rospy.Subscriber('/robot_status', RobotStatus, self.statusCallBack)
 		## subscriber to the joystick topic published by joy_node
-		# @param ~joy_topic (default: '/joy')
-		rospy.Subscriber(joy_topic, Joy, self.joyCallBack)
+		rospy.Subscriber('/joy', Joy, self.joyCallBack)
 		## publisher for the enable command topic
-		# @param ~enable_topic (default: '/enable')
-		self.enable_pub = rospy.Publisher(enable_topic, Bool)
+		self.enable_pub = rospy.Publisher('/enable', Bool)
 		## publisher for the scanning speed command topic
-		# @param ~scanning_speed_topic (default: '/scanning_speed_cmd')
-		self.scanning_speed_pub = rospy.Publisher(scanning_speed_topic, Float64)
+		self.scanning_speed_pub = rospy.Publisher('/scanning_speed_cmd', Float64)
 		## publisher for the laser centering command topic
-		# @param ~laser_center_topic (default: '/laser_center')
-		self.laser_center_pub = rospy.Publisher(laser_center_topic, Bool)
+		self.laser_center_pub = rospy.Publisher('/laser_center', Bool)
 		## publisher for the scanning once topic
-		# @param ~scanning_once_topic (default: '/scanning_once')
-		self.scanning_once_pub = rospy.Publisher(scanning_once_topic, Float64)
+		self.scanning_once_pub = rospy.Publisher('/scanning_once', Float64)
 		## publisher for the mapping control topic
-		# @param ~mapping_control_topic (default: '/mapping_control')
-		self.mapping_control_pub = rospy.Publisher(mapping_control_topic, Bool)
+		self.mapping_control_pub = rospy.Publisher('/mapping_control', Bool)
 
 		# current mapping state
 		self.mapping_on = True
-		# setting up muxing with upwards velocity commands
-		try:
-			## service proxy to change outpuc topic of the mux
-			self.mux_select = rospy.ServiceProxy('mux/select', MuxSelect)
-			rospy.wait_for_service('mux/select', 10)
-			self.mux_select(self.mux_topic)
-		except rospy.ROSException:
-			rospy.logwarn("Timeout when waiting for mux: proceeding without it.")
-			self.mux_topic = None
+
+		# setting up priority requests
+		gotit = False
+		while not gotit:
+			try:
+				rospy.wait_for_service('/mux_cmd_vel/acquire', 10)
+				rospy.wait_for_service('/mux_cmd_vel/release', 10)
+				gotit = True
+			except rospy.ROSException:
+				rospy.logwarn("Waiting for mux control services...")
+		self.priority_acquire = rospy.ServiceProxy('/mux_cmd_vel/acquire',
+				Acquire)
+		self.priority_release = rospy.ServiceProxy('/mux_cmd_vel/release',
+				Release)
 
 
 	## Update the steering efficiency
@@ -270,12 +236,12 @@ class NiftiTeleopJoy(object):
 		self.mux_jcb(self.joy)
 
 
-	## Handle mux topic selection based on the joystick input.
+	## Handle priority based on the joystick input.
 	def mux_jcb(self, joy):
 		if joy.pressed(self.deadman_button):
-			self.mux_select(self.command_topic)
+			self.priority_acquire(self.cmd_vel_topic)
 		elif joy.released(self.deadman_button):
-			self.mux_select(self.mux_topic)
+			self.priority_release(self.cmd_vel_topic)
 
 
 
