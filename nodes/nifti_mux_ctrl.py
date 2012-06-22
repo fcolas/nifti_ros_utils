@@ -6,7 +6,7 @@ from nifti_teleop.srv import *
 from std_msgs.msg import String
 
 from threading import Lock
-from time import sleep, clock
+from time import sleep, time
 
 ## priority definition
 # higher values have higher priority
@@ -45,55 +45,53 @@ class NiftiMuxCtrl(object):
 
 
 	def handle_acquire(self, req):
-		print self.stack
 		resp = False
 		self.lock.acquire()
+		while self.requesting:
+			sleep(0.010)
 		if priority[self.stack[-1]]<priority.get(req.topic, -1):
-			rospy.loginfo('Giving lock to "%s".', req.topic)
+			rospy.logdebug('Giving lock to "%s".', req.topic)
 			self.requesting = req.topic
 			self.mux_select(req.topic)
-			self.requesting = None
 			if not self.selected == req.topic:
-				start = clock()
+				start = time()
 				sleep(0.001)
-				while (not self.selected == req.topic) and (clock()-start<0.5):
+				while (not self.selected == req.topic) and (time()-start<0.5):
 					sleep(0.010)
-				print "Waited for %f s."%(clock()-start) 
 			if self.selected == req.topic:
 				resp = True
-				rospy.loginfo("Lock given.")
+				rospy.logdebug("Lock given.")
 			else:
-				rospy.logwarn("Lock failed somehow.")
+				rospy.logwarn('Lock failed somehow for "%s".', req.topic)
 		self.lock.release()
-		print self.stack
 		return AcquireResponse(resp)
 
 
 	def handle_release(self, req):
-		print self.stack
 		resp = False
 		self.lock.acquire()
+		while self.requesting:
+			sleep(0.010)
 		if (req.topic in self.stack) and (req.topic != '__none'):
-			rospy.loginfo('Releasing request for "%s".', req.topic)
+			rospy.logdebug('Releasing request for "%s".', req.topic)
 			if self.stack[-1] == req.topic:
 				self.stack.pop()
 				self.requesting = self.stack[-1]
 				self.mux_select(self.requesting)
-				self.requesting = None
 			else:
 				self.stack.remove(req.topic)
-			rospy.loginfo("Request released.")
+			rospy.logdebug("Request released.")
 			resp = True
 		self.lock.release()
-		print self.stack
 		return ReleaseResponse(resp)
 			
 	def selected_cb(self, msg):
 		rospy.loginfo('Selected: "%s"', msg.data)
 		self.selected = msg.data
 		if self.requesting and self.selected!=self.requesting:
-			rospy.logerror('Requesting "%s" but selected is "%s"!',
+			rospy.logerr('Requesting "%s" but selected is "%s"!',
 					self.requesting, self.selected)
+		self.requesting = None
 		if self.stack[-1]!=self.selected:
 			self.stack.append(self.selected)
 

@@ -10,4 +10,18 @@
 	</node>
 
 	<node pkg="nifti_teleop" type="nifti_mux_ctrl.py" name="nifti_mux_control" output="screen"/>
+
+	<node pkg="joy" type="joy_node" name="robot_joy_node" >
+		<param name="dev" value="/dev/input/by-id/usb-Logitech_Logitech_Cordless_RumblePad_2-joystick" />
+		<param name="autorepeat_rate" value="2.0" />
+		<remap from="/joy" to="/local_joy/joy" />
+	</node>
+
+	<node pkg="nifti_teleop" type="nifti_teleop_joy2.py"
+		name="robot_teleop_joy" output="screen" >
+		<remap from="/joy" to="/local_joy/joy" />
+		<param name="cmd_vel_topic" value="/local_joy/cmd_vel" />
+	</node>
+
+
 </launch>
