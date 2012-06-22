@@ -23,5 +23,7 @@
 		<param name="cmd_vel_topic" value="/local_joy/cmd_vel" />
 	</node>
 
+	<node pkg="nifti_teleop" type="nifti_teleop_helper.py"
+		name="nifti_teleop_helper" />
 
 </launch>
