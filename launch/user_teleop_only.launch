@@ -3,16 +3,17 @@
 	<!-- Launches the robot drivers for the Bluebotics hardware (not the bullet, not the arm) -->
 	<include file="$(find nifti_drivers_launchers)/launch/robot.launch"/>
 
-	<!-- This is temporarily not working on the DFKI robot, maybe on others -->
-        <include file="$(find monitoring)/monitoring.launch"/>
-
-	<!-- Add the arm code when it's ready -->
-
 	<!-- Launches the laser driver (no processing) -->
 	<include file="$(find nifti_drivers_launchers)/launch/laser.launch"/>
 
 	<!-- Produces the feed for the omnicam and virtual PTZ (no detection) -->
 	<include file="$(find nifti_drivers_launchers)/launch/omnicamera.launch"/> 
+
+	<include file="$(find nifti_drivers_launchers)/launch/imu.launch"/> 
+
+        <include file="$(find monitoring)/monitoring.launch"/>
+
+	<!-- Add the arm code when it's ready -->
 	
 	<!-- This forwards /scan to /scan2d -->
 	<include file="$(find nifti_mapping_launchers)/launch/nifti_laser_assembler.launch"/>
