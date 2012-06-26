@@ -9,6 +9,7 @@
 	<!-- Produces the feed for the omnicam and virtual PTZ (no detection) -->
 	<include file="$(find nifti_drivers_launchers)/launch/omnicamera.launch"/> 
 
+	<!-- Launches the IMU drivers (and related diagnostics) -->
 	<include file="$(find nifti_drivers_launchers)/launch/imu.launch"/> 
 
         <include file="$(find monitoring)/monitoring.launch"/>
