@@ -15,8 +15,8 @@ from time import sleep, time
 priority = {
 	"__none": -1,
 	"/nav/cmd_vel": 0,
-	"/ocu/cmd_vel": 2,
-	"/nifti_teleop_joy/cmd_vel": 4,
+	"/teleop_ocu/cmd_vel": 2,
+	"/teleop_joy/cmd_vel": 4,
 	"/local_joy/cmd_vel": 10
 }
 

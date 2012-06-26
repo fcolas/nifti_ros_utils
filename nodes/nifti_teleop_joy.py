@@ -9,9 +9,9 @@ import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, Float64
 # diamonback:
-from joy.msg import Joy
+#from joy.msg import Joy
 # electric and later:
-#from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Joy
 
 from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus, FlipperCommand
 from nifti_teleop.srv import Acquire, Release
@@ -129,10 +129,10 @@ class NiftiTeleopJoy(object):
 
 		## cmd_vel topic
 		self.cmd_vel_topic = rospy.get_param('~cmd_vel_topic',
-				'/nifti_teleop_joy/cmd_vel')
+				'/teleop_joy/cmd_vel')
 		# publisher and subscribers
 		## publisher for the velocity command topic
-		# @param ~cmd_vel_topic (default: '/nifti_teleop_joy/cmd_vel')
+		# @param ~cmd_vel_topic (default: '/teleop_joy/cmd_vel')
 		self.cmdvel_pub = rospy.Publisher(self.cmd_vel_topic, Twist)
 		## publisher for the all flippers command topic
 		self.flippers_pub = rospy.Publisher('/flippers_cmd', FlippersState)
