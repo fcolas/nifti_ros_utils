@@ -8,10 +8,16 @@ The main node, \b nifti_teleop_joy, allows the user to control the robot with a
 joystick. This node just instantiates the nifti_teleop_joy::NiftiTeleopJoy
 class.
 
+This package also provides the \b nifti_mux_control
+(nifti_mux_ctrl::NiftiMuxCtrl) and \b priority_wrapper
+(priority_wrapper::PriorityWrapper) nodes to handle the priorities for the
+different \c /cmd_vel publishers.
+
 Additionally, \b nifti_teleop_helper eases the process of taking a single 3D
 scan (see nifti_teleop_helper::ScanningService).
 
-The launch file to be launched is \c teleop_joy.launch. 
+The launch file to be launched is \c nifti_ugv_teleop.launch on the robot or \c
+nifti_joy.launch on any remote computer with a joystick.
 
 \section controls Controls
 
@@ -76,23 +82,9 @@ that the numbers start from 0 here and from 1 in the section above):
 - \a ~rear_right_flipper_button (\c 7): select the rear right flipper to move,
 - \a ~scanning_once_button (\c 2): button to launch a single scan.
 
-\subsection topic_params Topic names
+\subsection misc_params Misc parameters
 
-These parameters allow to change the name of topics (remap should be working
-also):
-- \a ~cmd_vel_topic (\c /cmd_vel),
-- \a ~flippers_cmd_topic (\c /flippers_cmd),
-- \a ~flipper_cmd_topic (\c /flipper_cmd),
-- \a ~flippers_state_topic (\c /flippers_state),
-- \a ~brake_topic (\c /brake),
-- \a ~enable_topic (\c /enable),
-- \a ~scanning_speed_topic (\c /scanning_speed_cmd),
-- \a ~steering_efficiency_topic (\c /steering_efficiency),
-- \a ~robot_status_topic (\c /robot_status),
-- \a ~joy_topic (\c /joy),
-- \a ~laser_center_topic (\c /laser_center),
-- \a ~scanning_once_topic (\c /scanning_once).
-
-
+- \a ~cmd_vel_topic (\c /teleop_joy/cmd_vel) the topic to publish velocity
+  commands.
 
 */
