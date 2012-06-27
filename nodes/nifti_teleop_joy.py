@@ -9,9 +9,9 @@ import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, Float64
 # diamonback:
-#from joy.msg import Joy
+from joy.msg import Joy
 # electric and later:
-from sensor_msgs.msg import Joy
+#from sensor_msgs.msg import Joy
 
 from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus, FlipperCommand
 from nifti_teleop.srv import Acquire, Release
