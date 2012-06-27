@@ -1,0 +1,158 @@
+#!/usr/bin/env python
+## @file
+# Set of helper tools for the teleoperation of the NIFTi robot
+#
+# Right now only ScanningService is implemented: it listens on a topic and
+# handles the motion of the rolling laser.
+import roslib; roslib.load_manifest('nifti_teleop')
+import rospy
+from rospy.rostime import get_time
+from std_msgs.msg import Bool, Float64
+from sensor_msgs.msg import PointCloud2
+from nifti_robot_driver_msgs.msg import RobotStatus
+import tf
+
+import actionlib
+from nifti_teleop.msg import *
+
+from math import atan2, pi
+
+## ScanningService class
+class ScanningService(object):
+	'''Handle the motion of the rolling laser for taking a single 3D scan.
+	'''
+
+	## Instantiate the ScanningService class
+	def __init__(self):
+		## scanning speed command publisher
+		self.scanning_speed_pub = rospy.Publisher('/scanning_speed_cmd', Float64)
+		## laser center command publisher
+		self.laser_center_pub = rospy.Publisher('/laser_center', Bool)
+		## robot status subscriber (to get the current speed of the laser)
+		rospy.Subscriber('/robot_status', RobotStatus, self.status_cb)
+		## scanning_once subscriber
+		rospy.Subscriber('/scanning_once', Float64, self.scanning_once_cb)
+		## point cloud control publisher
+		self.ptcld_ctrl_pub = rospy.Publisher('/pointcloud_control', Bool)
+		## scanning state
+		self.scanning_state = ScanningFeedback.READY
+		## last goal time set, to avoid race condition
+		self.last_goal_time = get_time()
+		## action server
+		self.action_server = actionlib.SimpleActionServer('ScanningOnceAS',
+				ScanningAction, auto_start=False)
+		self.action_server.register_goal_callback(self.goal_cb)
+		#self.action_server.register_preempt_callback(self.preempt_cb)
+		self.action_server.start()
+
+		## tf listener for laser scanner angle
+		self.tf_listener = tf.TransformListener()
+
+	
+	## robot status callback to get the current speed of the laser
+	def status_cb(self, robot_status):
+		self.scanning_speed = robot_status.scanning_speed
+		if (self.scanning_speed == 0.0) and \
+				(get_time() - self.last_goal_time>0.5):	
+			# if not moving, updating state
+			rospy.logdebug('NTH - Laser speed 0: setting state to "Not scanning".')
+			self.scanning_state = ScanningFeedback.READY
+
+	#def preempt_cb(self):
+	#	pass
+		#TODO implement?!
+
+	## callback when a goal is received
+	def goal_cb(self):
+		scanning_goal = self.action_server.next_goal
+		if scanning_goal.action == ScanningGoal.START_SCANNING:
+			self.start_scanning(scanning_goal.speed)
+		elif scanning_goal.action == ScanningGoal.STOP_SCANNING:
+			self.stop_scanning()
+
+
+	## scanning once callback to start th
+	def scanning_once_cb(self, speed):
+		self.start_scanning(speed.data)
+
+	def start_scanning(self, speed):
+		if self.scanning_state!=ScanningFeedback.READY: # don't do anything if we're already scanning
+			return
+		if self.scanning_speed: # don't do anything if the laser is already moving
+			return
+		# clip speed
+		speed = max(min(speed, 0.1), 1.2)
+		# send command
+		rospy.loginfo("NTH - Sending scanning speed command: %f and disabling \
+publication of the messy point cloud."%speed)
+		self.ptcld_ctrl_pub.publish(False)
+		self.scanning_speed_pub.publish(speed)
+		self.last_goal_time = get_time()
+		# update state
+		self.scanning_state = ScanningFeedback.WAITING_FOR_FIRST_SWIPE
+	
+	def run(self):
+		r = rospy.Rate(15)
+		last_angle = 0
+		last_direction = 0
+		direction = 0
+		last_tf = rospy.Time(0)
+		while not rospy.is_shutdown():
+			r.sleep()
+			try:
+				tf_time = self.tf_listener.getLatestCommonTime("/base_link",
+						"/laser")
+				if tf_time==last_tf:
+					continue
+				_, (x, _, _, w) = self.tf_listener.lookupTransform("/base_link", "/laser",
+					tf_time)
+				angle = atan2(-2*x*w, 2*x*x-1)
+				if angle>last_angle:
+					direction = 1
+				elif angle<last_angle:
+					direction = -1
+				print last_angle, angle, last_direction, direction, self.scanning_speed
+				if self.scanning_speed*direction*last_direction < 0 and\
+						abs(angle)>pi/3:
+					# End of swipe event
+					rospy.loginfo("NTH - End of swipe")
+					if self.scanning_state == ScanningFeedback.WAITING_FOR_FIRST_SWIPE:
+						# no end of swipe received before
+						rospy.loginfo("NTH - Detected first end of swipe: waiting for a \
+second one and activating point cloud publication.")
+						self.ptcld_ctrl_pub.publish(True)
+						self.scanning_state = ScanningFeedback.WAITING_FOR_COMPLETE_SWIPE
+					elif self.scanning_state == ScanningFeedback.WAITING_FOR_COMPLETE_SWIPE:
+						# first end of swipe received before
+						rospy.loginfo("NTH - Detected second end of swipe: stopping laser and \
+centering it.")
+						self.scanning_state = ScanningFeedback.READY
+						#self.scanning_speed_pub.publish(0.0) # may be unnecessary
+						self.laser_center_pub.publish(True)
+					else:
+						rospy.loginfo("NTH - end of swipe received and ignored.")
+				last_angle = angle
+				last_direction = direction
+				last_tf = tf_time
+			except tf.Exception, e:
+				rospy.logwarn(e)
+
+
+
+
+def main():
+	try:
+		# starts the node
+		rospy.init_node('nth')
+		# instantiate the class
+		scan3d = ScanningService()
+		# wait until closed
+		scan3d.run()
+	except rospy.ROSInterruptException:
+		pass
+
+
+if __name__== '__main__':
+	main()
+	
+
