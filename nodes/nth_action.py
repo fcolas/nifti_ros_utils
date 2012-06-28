@@ -67,10 +67,9 @@ class ScanningService(object):
 				self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
 
 
-	# We don't preempt goals
-	#def preempt_cb(self):
-	#	self.stop_scanning()	# Temporary
-	#	self.action_server.set_preempted(text="Preempted")
+	def cancel_cb(self, goal):
+		if goal==self.goal:
+			self.stop_scanning()	# Temporary
 
 	## callback when a goal is received
 	def goal_cb(self, goal):
@@ -100,9 +99,14 @@ class ScanningService(object):
 	def stop_scanning(self):
 		rospy.loginfo("NTH - Stopping and centering laser")
 		self.laser_center_pub.publish(True)
-		self.goal.set_succeeded(ScanningResult(ScanningResult.SUCCESS))
+		if self.goal.get_goal().action==ScanningGoal.STOP_SCANNING:
+			goal.set_succeeded(ScanningResult(ScanningResult.SUCCESS),
+					"Success in stopping laser")
+		else:
+			goal.set_succeeded(ScanningResult(ScanningResult.WARNING),
+					"Scan aborted")
 		self.scanning_state = ScanningFeedback.READY
-		self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
+		goal.publish_feedback(ScanningFeedback(self.scanning_state))
 
 	## forwarding scanning_once topic to a new goal
 	def scanning_once_cb(self, speed):
