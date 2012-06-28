@@ -13,6 +13,8 @@ from nifti_robot_driver_msgs.msg import RobotStatus
 import tf
 
 import actionlib
+from actionlib.server_goal_handle import ServerGoalHandle
+from actionlib_msgs.msg import GoalStatus
 from nifti_teleop.msg import *
 
 from math import atan2, pi
@@ -39,10 +41,9 @@ class ScanningService(object):
 		## last goal time set, to avoid race condition
 		self.last_goal_time = get_time()
 		## action server
-		self.action_server = actionlib.SimpleActionServer('ScanningOnceAS',
-				ScanningAction, auto_start=False)
-		self.action_server.register_goal_callback(self.goal_cb)
-		#self.action_server.register_preempt_callback(self.preempt_cb)
+		self.goal = ServerGoalHandle()
+		self.action_server = actionlib.ActionServer('ScanningOnceAS',
+				ScanningAction, self.goal_cb, auto_start=False)
 		self.action_server.start()
 		## action client
 		self.action_client = actionlib.SimpleActionClient('ScanningOnceAS',
@@ -61,31 +62,47 @@ class ScanningService(object):
 			rospy.logdebug('NTH - Laser speed 0: setting state to "Not scanning".')
 			if self.scanning_state != ScanningFeedback.READY:
 				self.scanning_state = ScanningFeedback.READY
-				self.action_server.set_succeeded(ScanningResult.ERROR)
-				self.action_server.publish_feedback(self.scanning_state)
+				self.goal.set_succeeded(ScanningResult(ScanningResult.ERROR),
+						"Aborting as laser is not moving")
+				self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
 
 
+	# We don't preempt goals
 	#def preempt_cb(self):
-	#	pass
-		#TODO implement?!
+	#	self.stop_scanning()	# Temporary
+	#	self.action_server.set_preempted(text="Preempted")
 
 	## callback when a goal is received
-	def goal_cb(self):
-		scanning_goal = self.action_server.next_goal.goal.goal
-		if scanning_goal.action == ScanningGoal.START_SCANNING and\
-				self.scanning_state == ScanningFeedback.READY:
-			self.action_server.accept_new_goal()
-			self.start_scanning(scanning_goal.speed)
+	def goal_cb(self, goal):
+		if self.goal.get_goal() and \
+				self.goal.get_goal_status().status == GoalStatus.ACTIVE:
+			goal.set_rejected(ScanningResult(ScanningResult.WARNING),
+				"Can only do one scan at a time")
+			return
+		scanning_goal = goal.get_goal()
+		if scanning_goal.action == ScanningGoal.START_SCANNING:
+			if self.scanning_state == ScanningFeedback.READY and\
+					self.scanning_speed==0:
+				self.goal = goal
+				self.goal.set_accepted("Scan accepted")
+				self.start_scanning(scanning_goal.speed)
+			else:
+				goal.set_rejected(ScanningResult(ScanningResult.ERROR),
+						"Already scanning")
 		elif scanning_goal.action == ScanningGoal.STOP_SCANNING:
-			self.action_server.accept_new_goal()
+			self.goal = goal
+			self.goal.set_accepted("Stop accepted")
 			self.stop_scanning()
+		else:
+			goal.set_rejected(ScanningResult(ScanningResult.ERROR),
+					"Unknown action")
 
 	def stop_scanning(self):
 		rospy.loginfo("NTH - Stopping and centering laser")
 		self.laser_center_pub.publish(True)
-		self.action_server.set_succeeded(ScanningResult(ScanningResult.WARNING))
+		self.goal.set_succeeded(ScanningResult(ScanningResult.SUCCESS))
 		self.scanning_state = ScanningFeedback.READY
-		self.action_server.publish_feedback(ScanningFeedback(self.scanning_state))
+		self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
 
 	## forwarding scanning_once topic to a new goal
 	def scanning_once_cb(self, speed):
@@ -96,12 +113,6 @@ class ScanningService(object):
 		self.action_client.send_goal(goal)
 
 	def start_scanning(self, speed):
-		#if self.scanning_state!=ScanningFeedback.READY: # don't do anything if we're already scanning
-		#	self.action_server.set_succeeded(ScanningResult(ScanningResult.WARNING))
-		#	return
-		if self.scanning_speed: # don't do anything if the laser is already moving
-			self.action_server.set_succeeded(ScanningResult(ScanningResult.WARNING))
-			return
 		# clip speed
 		speed = max(min(speed, 0.1), 1.2)
 		# send command
@@ -113,7 +124,7 @@ publication of the messy point cloud."%speed)
 		self.last_goal_time = get_time()
 		# update state
 		self.scanning_state = ScanningFeedback.WAITING_FOR_FIRST_SWIPE
-		self.action_server.publish_feedback(ScanningFeedback(self.scanning_state))
+		self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
 	
 	def run(self):
 		r = rospy.Rate(15)
@@ -146,7 +157,7 @@ publication of the messy point cloud."%speed)
 second one and activating point cloud publication.")
 						self.ptcld_ctrl_pub.publish(True)
 						self.scanning_state = ScanningFeedback.WAITING_FOR_COMPLETE_SWIPE
-						self.action_server.publish_feedback(ScanningFeedback(self.scanning_state))
+						self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
 					elif self.scanning_state == ScanningFeedback.WAITING_FOR_COMPLETE_SWIPE:
 						# first end of swipe received before
 						rospy.logdebug("NTH - Detected second end of swipe: stopping laser and \
@@ -154,8 +165,9 @@ centering it.")
 						self.scanning_state = ScanningFeedback.READY
 						#self.scanning_speed_pub.publish(0.0) # may be unnecessary
 						self.laser_center_pub.publish(True)
-						self.action_server.publish_feedback(ScanningFeedback(self.scanning_state))
-						self.action_server.set_succeeded(ScanningResult(ScanningResult.SUCCESS))
+						self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
+						self.goal.set_succeeded(ScanningResult(ScanningResult.SUCCESS),
+								"Scan succeeded")
 						rospy.loginfo("NTH - Scan ended")
 					else:
 						rospy.logdebug("NTH - end of swipe received and ignored.")
