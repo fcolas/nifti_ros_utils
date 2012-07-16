@@ -28,6 +28,7 @@ double scanning_speed;
 double laser_pos;
 double last_laser_time;
 RoverParams roverParams;
+int flippersInitState;
 
 /* fill in a structure with factory parameters (geometry of rover, min/max
 values and position of dofs, xyzrpy du laser scanner, etc.). This
@@ -80,8 +81,51 @@ void nrInit(const char* CAN_device, RoverParams* params, int bestInit)
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	last_laser_time = (tv.tv_sec + 0.000001*tv.tv_usec);
+	nrInitFlippers(bestInit);
 }
 
+/*  Initialise flippers. Return value: 1 = SUCCESS; 0 = ESTOP is pressed
+*/
+int nrInitFlippers(int bestInit)
+{
+	SETPRINT("nrInitFlippers(bestInit=%d)\n", bestInit);
+	int estop;
+	nrGetEstop(&estop);
+	// mimicking structure from the library
+	if (bestInit)
+	{
+		if (!estop)
+		{
+			frontLeft = -3*M_PI/4;
+			frontRight = -3*M_PI/4;
+			rearLeft = 3*M_PI/4;
+			rearRight = 3*M_PI/4;
+			flippersInitState = 1;
+		} else 
+		{
+			flippersInitState = 0;
+		}
+	} else {
+		flippersInitState = 1;
+	}
+	return flippersInitState;
+}
+
+/* Restart 3D laser scanner
+*/
+int nrRestart3D()
+{
+	SETPRINT("nrRestart3D()\n");
+	scanning_speed = 0.0;
+	laser_pos = 0.0;
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	last_laser_time = (tv.tv_sec + 0.000001*tv.tv_usec);
+	RETURN_ERROR;
+}
+
+/* Retrieve the current rover parameters.
+*/
 void nrGetRoverParams(RoverParams *params){
 	memcpy(params, &roverParams, sizeof(RoverParams));
 }
@@ -178,6 +222,16 @@ int nrSetFlippers(double fL, double fR, double rL,
 	RETURN_ERROR;
 }
 
+/* Set flipper torques [\a A] while conserving the positions of the flippers.
+*/
+int nrSetFlippersTorque(double frontTorque, double rearTorque)
+{
+	SETPRINT("nrSetFlippersTorque(frontTorque=%f, rearTorque=%f)\n",
+			frontTorque, rearTorque);
+	RETURN_ERROR;
+}
+
+
 /* Set flipper angles [\a rad]. All flippers has the same referential coordinate. They all rotate around the \a Y-axis.
  *  That means negative values for front flippers makes the flipper to move up.
  *  \param[in] angle Angle to be set [\a rad].
@@ -227,6 +281,7 @@ int nrGetFlippers(double *fL, double *fR, double *rL,
 int nrFlippersAngleReached(int *reached)
 {
 	*reached = 1;
+	GETPRINT("nrFlippersAngleReached(*reached=1)\n");
 	RETURN_ERROR;
 }
 
@@ -353,9 +408,32 @@ int nrGetBatteryLevel(double *level, int *state)
 	RETURN_ERROR;
 }
 
-int nrGoMiddlePos(){
-	SETPRINT("nrGoMiddlePos()\n");
+/* Get the actual E-Stop state.
+*/
+int nrGetEstop(int *eStop)
+{
+	*eStop = rand()>0.95;
+	GETPRINT("nrGetEstop(*eStop=%s)\n", *eStop?"true":"false");
+	RETURN_ERROR;
+}
+
+/* Actual initialisation state: 1 = initialised; 0 = NOT initialised
+*/
+int GetFlippersInitState()
+{
+	GETPRINT("GetFlippersInitState()=%s\n", flippersInitState?"true":"false");
+	return flippersInitState;
+}
+
+/* Tell the 3D laser scanner to go to the predefined middle position with an user offset.
+*/
+int nrGoMiddlePos(double angleOffset){
+	SETPRINT("nrGoMiddlePos(angleOffset=%f)\n", angleOffset);
+	scanning_speed = 0.0;
 	laser_pos = 0.0;
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	last_laser_time = (tv.tv_sec + 0.000001*tv.tv_usec);
 	RETURN_ERROR;
 }
 
