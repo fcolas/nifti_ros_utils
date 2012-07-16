@@ -754,7 +754,7 @@ void NiftiRobot::brake_cb(const std_msgs::Bool& brake_on)
 void NiftiRobot::laser_center_cb(const std_msgs::Bool& center)
 {
 	ROS_DEBUG_STREAM("received laser center command: " << center.data);
-	NR_CHECK_AND_RETURN(nrGoMiddlePos);
+	NR_CHECK_AND_RETURN(nrGoMiddlePos, 0.);
 }
 
 /*
@@ -1388,7 +1388,7 @@ void NiftiRobot::run(){
 		ros::spinOnce();
 	}
 	ROS_INFO_STREAM("Centering laser and disabling motors before exiting.");
-	NR_CHECK_AND_RETURN(nrGoMiddlePos);
+	NR_CHECK_AND_RETURN(nrGoMiddlePos, 0.);
 	NR_CHECK_AND_RETURN(nrEnable, 0);
 
 }
