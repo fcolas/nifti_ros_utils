@@ -4,6 +4,7 @@
 #include <math.h>
 #include <sstream>
 #include <algorithm>
+#include <unistd.h>
 
 #include "nifti_robot_messages.h"
 
@@ -145,6 +146,12 @@ NiftiRobot::NiftiRobot():
 	bestInit = getParam<bool>(n_, "bestInit", true);
 	ROS_INFO_STREAM("trying to " << (bestInit?"best ":"") << "init " << c_CAN_device);
 	nrInit(c_CAN_device, &params, bestInit);
+	while (!GetFlippersInitState())
+	{
+		ROS_WARN_STREAM("Flippers not initialized: is emergency stop on? Retrying...");
+		NR_CHECK_AND_RETURN(nrInitFlippers, bestInit);
+		sleep(5);
+	}
 
 	publish_odom_as_tf = getParam<bool>(n_, "publish_odom_as_tf", false);
 	use_tf_for_odom = getParam<bool>(n_, "use_tf_for_odom", true);
