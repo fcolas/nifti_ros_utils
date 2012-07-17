@@ -412,7 +412,7 @@ int nrGetBatteryLevel(double *level, int *state)
 */
 int nrGetEstop(int *eStop)
 {
-	*eStop = rand()>0.95;
+	*eStop = (rand()>(int)(0.95*RAND_MAX));
 	GETPRINT("nrGetEstop(*eStop=%s)\n", *eStop?"true":"false");
 	RETURN_ERROR;
 }
