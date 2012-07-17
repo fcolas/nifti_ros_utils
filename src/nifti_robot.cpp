@@ -149,7 +149,7 @@ NiftiRobot::NiftiRobot():
 	while (!GetFlippersInitState())
 	{
 		ROS_WARN_STREAM("Flippers not initialized: is emergency stop on? Retrying...");
-		NR_CHECK_AND_RETURN(nrInitFlippers, bestInit);
+		nrInitFlippers(bestInit);
 		sleep(5);
 	}
 
@@ -188,6 +188,14 @@ NiftiRobot::NiftiRobot():
 	laserY = params.laserY;
 	laserZ = params.laserZ;
 	laser_angle_offset = getParam<double>(n, "laser_angle_offset", 0.0);
+	ROS_INFO_STREAM("Centering laser with offset "<<laser_angle_offset<<" Rad.");
+	// cannot call macro in case of premature return
+	//NR_CHECK_AND_RETURN(nrGoMiddlePos, laser_angle_offset);
+	if (int e=nrGoMiddlePos(laser_angle_offset))
+	{
+		ROS_WARN_STREAM("Error " << e << " (" << CAN_error_messages[e]
+				<< ") while calling nrGoMiddlePos.");
+	}
 
 	// Watchdog
 	watchdog_timeout = getParam<double>(n_, "watchdog_timeout", 1.0);
@@ -761,7 +769,7 @@ void NiftiRobot::brake_cb(const std_msgs::Bool& brake_on)
 void NiftiRobot::laser_center_cb(const std_msgs::Bool& center)
 {
 	ROS_DEBUG_STREAM("received laser center command: " << center.data);
-	NR_CHECK_AND_RETURN(nrGoMiddlePos, 0.);
+	NR_CHECK_AND_RETURN(nrGoMiddlePos, laser_angle_offset);
 }
 
 /*
@@ -1084,11 +1092,13 @@ void NiftiRobot::update_config()
 	configuration_tfs[6].transform.translation.y = laserY;
 	configuration_tfs[6].transform.translation.z = laserZ;
 	configuration_tfs[6].transform.rotation.x =
-			sin((M_PI+laser_angle+laser_angle_offset)/2.);
+			//sin((M_PI+laser_angle+laser_angle_offset)/2.);
+			sin((M_PI+laser_angle)/2.);	// no offset after librover@6250
 	configuration_tfs[6].transform.rotation.y = 0.0;
 	configuration_tfs[6].transform.rotation.z = 0.0;
 	configuration_tfs[6].transform.rotation.w =
-			cos((M_PI+laser_angle+laser_angle_offset)/2.);
+			//cos((M_PI+laser_angle+laser_angle_offset)/2.);
+			cos((M_PI+laser_angle)/2.); // no offset after librover@6250
 	// update timestamp for omnicam and IMU
 	configuration_tfs[7].header.stamp = timestamp;
 	configuration_tfs[8].header.stamp = timestamp;
