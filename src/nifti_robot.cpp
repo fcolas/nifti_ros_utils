@@ -388,6 +388,9 @@ NiftiRobot::NiftiRobot():
 	steering_efficiency_sub = n.subscribe("/steering_efficiency", 1,
 			&NiftiRobot::steering_efficiency_cb, this);
 	
+	// restart 3D laser
+	restart3d_sub = n.subscribe("/restart3d", 1, &NiftiRobot::restart3d_cb, this);
+
 	/*
 	 * start moving laser if needed
 	 */
@@ -811,8 +814,18 @@ void NiftiRobot::ang_lim_cb(const std_msgs::Float64& ang_lim_val){
  */
 void NiftiRobot::steering_efficiency_cb(const std_msgs::Float64& msg){
 	steering_efficiency = std::max(0.0, std::min(1.0, msg.data));
-	ROS_WARN_STREAM("New steering efficiency: "<<steering_efficiency<<" (asked: "\
+	ROS_INFO_STREAM("New steering efficiency: "<<steering_efficiency<<" (asked: "\
 			<<msg.data<<").");
+}
+
+/*
+ * Callback for restart3d
+ */
+void NiftiRobot::restart3d_cb(const std_msgs::Bool& restart)
+{
+	ROS_INFO_STREAM("Restarting laser.");
+	NR_CHECK_AND_RETURN(nrRestart3D);
+	ROS_INFO_STREAM("Done.");
 }
 
 /*

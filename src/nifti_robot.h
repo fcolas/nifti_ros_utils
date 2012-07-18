@@ -197,6 +197,9 @@ protected:
 
 	//! Callback for steering efficiency
 	void steering_efficiency_cb(const std_msgs::Float64& msg);
+
+	//! Callback for restart3D
+	void restart3d_cb(const std_msgs::Bool& restart);
 	
 	// flipper collision avoidance
 	//! detect if a given flipper position is in collision zone
@@ -346,6 +349,9 @@ protected:
 
 	//! Subscriber to steering efficiency 
 	ros::Subscriber steering_efficiency_sub;
+
+	//! Subscriber to restart 3D
+	ros::Subscriber restart3d_sub;
 
 	//! tf listener to build odometry on top of past estimate
 	tf::TransformListener tf_listener;
