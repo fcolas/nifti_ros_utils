@@ -120,15 +120,15 @@ NiftiRobot::NiftiRobot():
 	// 2D odometry publisher in message
 	odom_pub(n.advertise<nav_msgs::Odometry>("/odom", 50)),
 	// Robot status publisher
-	robot_status_pub(n.advertise<nifti_robot_driver_msgs::RobotStatus>
+	robot_status_pub(n.advertise<nifti_robot_driver_msgs::RobotStatusStamped>
 			("/robot_status", 50)),
 	// Configuration publisher
 	configuration_broadcaster(),
-	flippers_state_pub(n.advertise<nifti_robot_driver_msgs::FlippersState>
+	flippers_state_pub(n.advertise<nifti_robot_driver_msgs::FlippersStateStamped>
 			("/flippers_state", 50)),
-	currents_pub(n.advertise<nifti_robot_driver_msgs::Currents>
+	currents_pub(n.advertise<nifti_robot_driver_msgs::CurrentsStamped>
 			("/currents", 50)),
-	tracks_vel_pub(n.advertise<nifti_robot_driver_msgs::Tracks>
+	tracks_vel_pub(n.advertise<nifti_robot_driver_msgs::TracksStamped>
 			("/tracks_vel", 50))
 	// subscribers are initialized at the end, after nrInit
 {
@@ -993,9 +993,11 @@ void NiftiRobot::update_2d_odom()
 	odom_pub.publish(odom_msg);
 
 	// publish direct tracks speed
-	nifti_robot_driver_msgs::Tracks tracks_msg;
+	nifti_robot_driver_msgs::TracksStamped tracks_msg;
 	tracks_msg.left = vl;
 	tracks_msg.right = vr;
+	tracks_msg.header.frame_id = robot_frame;
+	tracks_msg.header.stamp = current_timestamp;
 	tracks_vel_pub.publish(tracks_msg);
 	
 }
@@ -1025,7 +1027,9 @@ void NiftiRobot::update_config()
 	}
 */
 
-	nifti_robot_driver_msgs::FlippersState flippers_state_msg;
+	nifti_robot_driver_msgs::FlippersStateStamped flippers_state_msg;
+	flippers_state_msg.header.frame_id = robot_frame;
+	flippers_state_msg.header.stamp = timestamp;
 	flippers_state_msg.frontLeft = frontLeft;
 	flippers_state_msg.frontRight = frontRight;
 	flippers_state_msg.rearLeft = rearLeft;
@@ -1122,10 +1126,11 @@ void NiftiRobot::update_robot_state()
 {
 	//int controllers_status[7];
 	int brake_on;
+	int estop_on;
 	int err = 0;
 	double scanning_speed;
-	nifti_robot_driver_msgs::RobotStatus robot_status;
-	nifti_robot_driver_msgs::Currents currents;
+	nifti_robot_driver_msgs::RobotStatusStamped robot_status;
+	nifti_robot_driver_msgs::CurrentsStamped currents;
 	double current;
 
 
@@ -1157,12 +1162,16 @@ void NiftiRobot::update_robot_state()
 		flippers_targets.rearRight = flippers_positions.rearRight;
 
 	NR_CHECK_AND_RETURN(nrGetBrake, &brake_on);
+	NR_CHECK_AND_RETURN(nrGetEstop, &estop_on);
 	NR_CHECK_AND_RETURN(nrGetScanningSpeed, &scanning_speed);
 	//ROS_INFO_STREAM("Scanning_speed: " << scanning_speed);
 
+	robot_status.header.frame_id = robot_frame;
+	robot_status.header.stamp = ros::Time(0);
 	robot_status.battery_level = battery_level;
 	robot_status.battery_status = battery_status;
 	robot_status.brake_on = brake_on;
+	robot_status.emergency_stop_on = estop_on;
 	robot_status.scanning_speed = scanning_speed;
 	robot_status.controllers_status.core = controllers_status[ID_CORE];
 	robot_status.controllers_status.track_left =
@@ -1205,6 +1214,8 @@ void NiftiRobot::update_robot_state()
 	currents.rearLeft=current;
 	NR_CHECK_AND_RETURN(nrReadDOFCurrent, &current, ID_FLIPPER_REAR_RIGHT);
 	currents.rearRight=current;
+	currents.header.frame_id = robot_frame;
+	currents.header.stamp = ros::Time(0);
 	
 	currents_pub.publish(currents);
 

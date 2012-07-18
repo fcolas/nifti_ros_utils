@@ -20,10 +20,12 @@
 
 #include <librover/librover.h>
 
+#include <nifti_robot_driver_msgs/FlippersStateStamped.h>
 #include <nifti_robot_driver_msgs/FlippersState.h>
-#include <nifti_robot_driver_msgs/RobotStatus.h>
-#include <nifti_robot_driver_msgs/Currents.h>
+#include <nifti_robot_driver_msgs/RobotStatusStamped.h>
+#include <nifti_robot_driver_msgs/CurrentsStamped.h>
 #include <nifti_robot_driver_msgs/FlipperCommand.h>
+#include <nifti_robot_driver_msgs/TracksStamped.h>
 #include <nifti_robot_driver_msgs/Tracks.h>
 
 
@@ -157,7 +159,7 @@ protected:
 	int controllers_error[ID_CTRL_MAX];
 
 	//! Positions of the flippers
-	nifti_robot_driver_msgs::FlippersState flippers_positions;
+	nifti_robot_driver_msgs::FlippersStateStamped flippers_positions;
 
 	//! Targets of the flippers
 	nifti_robot_driver_msgs::FlippersState flippers_targets;
