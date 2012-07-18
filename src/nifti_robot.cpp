@@ -391,6 +391,10 @@ NiftiRobot::NiftiRobot():
 	// restart 3D laser
 	restart3d_sub = n.subscribe("/restart3d", 1, &NiftiRobot::restart3d_cb, this);
 
+	// set flippers torque
+	set_flippers_torque_sub = n.subscribe("/set_flippers_torque", 1,
+			&NiftiRobot::set_flippers_torque_cb, this);
+
 	/*
 	 * start moving laser if needed
 	 */
@@ -826,6 +830,18 @@ void NiftiRobot::restart3d_cb(const std_msgs::Bool& restart)
 	ROS_INFO_STREAM("Restarting laser.");
 	NR_CHECK_AND_RETURN(nrRestart3D);
 	ROS_INFO_STREAM("Done.");
+}
+
+/*
+ * Callback for setting flippers torque
+ */
+void NiftiRobot::set_flippers_torque_cb(const
+		nifti_robot_driver_msgs::FlippersTorque& flippers_torque)
+{
+	ROS_INFO_STREAM("Setting flippers torque: (front="<<flippers_torque.front\
+			<<", rear="<<flippers_torque.rear<<").");
+	NR_CHECK_AND_RETURN(nrSetFlippersTorque, flippers_torque.front,
+			flippers_torque.rear);
 }
 
 /*

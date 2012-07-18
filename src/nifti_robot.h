@@ -25,6 +25,7 @@
 #include <nifti_robot_driver_msgs/RobotStatusStamped.h>
 #include <nifti_robot_driver_msgs/CurrentsStamped.h>
 #include <nifti_robot_driver_msgs/FlipperCommand.h>
+#include <nifti_robot_driver_msgs/FlippersTorque.h>
 #include <nifti_robot_driver_msgs/TracksStamped.h>
 #include <nifti_robot_driver_msgs/Tracks.h>
 
@@ -200,6 +201,10 @@ protected:
 
 	//! Callback for restart3D
 	void restart3d_cb(const std_msgs::Bool& restart);
+
+	//! Callback for SetFlippersTorque
+	void set_flippers_torque_cb(const nifti_robot_driver_msgs::FlippersTorque&
+			flippers_torque);
 	
 	// flipper collision avoidance
 	//! detect if a given flipper position is in collision zone
@@ -352,6 +357,9 @@ protected:
 
 	//! Subscriber to restart 3D
 	ros::Subscriber restart3d_sub;
+
+	//! Subscriber to set flippers torque
+	ros::Subscriber set_flippers_torque_sub;
 
 	//! tf listener to build odometry on top of past estimate
 	tf::TransformListener tf_listener;
