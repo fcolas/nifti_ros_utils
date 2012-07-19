@@ -15,6 +15,8 @@
 #include <std_msgs/Float64.h>
 #include <std_msgs/Int32.h>
 #include <diagnostic_updater/diagnostic_updater.h>
+#include <sensor_msgs/JointState.h>
+
 
 #include <tf/transform_listener.h>
 
@@ -158,6 +160,9 @@ protected:
 
 	//! Status for each controller
 	int controllers_error[ID_CTRL_MAX];
+	
+	//! Joint state
+	sensor_msgs::JointState joint_states;
 
 	//! Positions of the flippers
 	nifti_robot_driver_msgs::FlippersStateStamped flippers_positions;
@@ -225,6 +230,8 @@ protected:
 	bool publish_odom_as_tf;
 	//! Decide if we use /tf to compute odometry or not (default: true)
 	bool use_tf_for_odom;
+	//! Decide if we publish /tf for robot joint state or not (default: false)
+	bool publish_joint_state_as_tf;
 	/**
 	 * 2D Motion model
 	 * Compute linear and angular velocity based on tracks velocity
@@ -311,6 +318,9 @@ protected:
 
 	//! Configuration publisher
 	tf::TransformBroadcaster configuration_broadcaster;
+
+	//! JointState publisher
+	ros::Publisher joint_state_pub;
 
 	//! Flippertate publisher
 	ros::Publisher flippers_state_pub;

@@ -99,6 +99,8 @@ NiftiRobot::NiftiRobot():
 	//publish_odom_as_tf(false),
 	// use /tf to update odom
 	//use_tf_for_odom(true),
+	// publish joint state as tf
+	//publish_joint_state_as_tf(false),
 	// Public nodehandle
 	n(),
 	// Private nodehandle
@@ -124,6 +126,7 @@ NiftiRobot::NiftiRobot():
 			("/robot_status", 50)),
 	// Configuration publisher
 	configuration_broadcaster(),
+	joint_state_pub(n.advertise<sensor_msgs::JointState>("/joint_states", 50)),
 	flippers_state_pub(n.advertise<nifti_robot_driver_msgs::FlippersStateStamped>
 			("/flippers_state", 50)),
 	currents_pub(n.advertise<nifti_robot_driver_msgs::CurrentsStamped>
@@ -155,6 +158,7 @@ NiftiRobot::NiftiRobot():
 
 	publish_odom_as_tf = getParam<bool>(n_, "publish_odom_as_tf", false);
 	use_tf_for_odom = getParam<bool>(n_, "use_tf_for_odom", true);
+	publish_joint_state_as_tf = getParam<bool>(n_, "publish_joint_state_as_tf", false);
 
 	robot_width = params.trackDistance;
 	flippers_altitude = params.trackWheelRadius - params.referentialZ;
@@ -222,6 +226,16 @@ NiftiRobot::NiftiRobot():
 	laser_frame = getParam<std::string>(n_, "laser_frame", "/laser");
 	omni_frame = getParam<std::string>(n_, "omni_frame", "/omnicam");
 	imu_frame = getParam<std::string>(n_, "imu_frame", "/imu");
+
+	// joint states
+	joint_states.header.frame_id = robot_frame;
+	joint_states.name.push_back("left_track_j");
+	joint_states.name.push_back("right_track_j");
+	joint_states.name.push_back("front_left_flipper_j");
+	joint_states.name.push_back("front_right_flipper_j");
+	joint_states.name.push_back("rear_left_flipper_j");
+	joint_states.name.push_back("rear_right_flipper_j");
+	joint_states.name.push_back("laser_j");
 
 	// configuration tf
 	geometry_msgs::TransformStamped left_track_tf;
@@ -1142,7 +1156,20 @@ void NiftiRobot::update_config()
 	configuration_tfs[13].header.stamp = timestamp;
 	configuration_tfs[14].header.stamp = timestamp;
 	// publish configuration
-	configuration_broadcaster.sendTransform(configuration_tfs);
+	if (publish_joint_state_as_tf)
+		configuration_broadcaster.sendTransform(configuration_tfs);
+
+	// publish joint states
+	joint_states.header.stamp = timestamp;
+	joint_states.position.clear();
+	joint_states.position.push_back(left_angle); // left track
+	joint_states.position.push_back(right_angle); // right track
+	joint_states.position.push_back(frontLeft); // front left flipper
+	joint_states.position.push_back(frontRight); // front right flipper
+	joint_states.position.push_back(rearLeft); // rear left flipper
+	joint_states.position.push_back(rearRight); // rear right flipper
+	joint_states.position.push_back(laser_angle); // laser
+	joint_state_pub.publish(joint_states);
 
 	// publish the flippers status
 	flippers_state_pub.publish(flippers_state_msg);
