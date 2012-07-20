@@ -338,9 +338,9 @@ int nrGetControllersError(int error[])
 /* Get the current differential angles */
 int nrGetDifferentialAngles(double *left, double *right)
 {
-	GETPRINT("nrGetDifferentialAngles(*left=0.0, *right=0.0)\n");
-	*left = 0.0;
-	*right = 0.0; 
+	*left = -0.1 + 0.03*rand()/RAND_MAX;
+	*right = -*left;
+	GETPRINT("nrGetDifferentialAngles(*left=%f, *right=%f)\n", *left, *right);
 	RETURN_ERROR;
 }
 
