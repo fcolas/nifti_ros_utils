@@ -419,9 +419,9 @@ int nrGetEstop(int *eStop)
 
 /* Actual initialisation state: 1 = initialised; 0 = NOT initialised
 */
-int GetFlippersInitState()
+int nrGetFlippersInitState()
 {
-	GETPRINT("GetFlippersInitState()=%s\n", flippersInitState?"true":"false");
+	GETPRINT("nrGetFlippersInitState()=%s\n", flippersInitState?"true":"false");
 	return flippersInitState;
 }
 

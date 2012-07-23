@@ -149,7 +149,7 @@ NiftiRobot::NiftiRobot():
 	bestInit = getParam<bool>(n_, "bestInit", true);
 	ROS_INFO_STREAM("trying to " << (bestInit?"best ":"") << "init " << c_CAN_device);
 	nrInit(c_CAN_device, &params, bestInit);
-	while (!GetFlippersInitState())
+	while (!nrGetFlippersInitState())
 	{
 		ROS_WARN_STREAM("Flippers not initialized: is emergency stop on? Retrying...");
 		nrInitFlippers(bestInit);
@@ -790,7 +790,7 @@ void NiftiRobot::brake_cb(const std_msgs::Bool& brake_on)
 void NiftiRobot::laser_center_cb(const std_msgs::Bool& center)
 {
 	ROS_DEBUG_STREAM("received laser center command: " << center.data);
-	NR_CHECK_AND_RETURN(nrGoMiddlePos, laser_angle_offset);
+	NR_CHECK_AND_RETURN(nrGoMiddlePos, 0.0); //laser_angle_offset
 }
 
 /*
@@ -843,6 +843,7 @@ void NiftiRobot::restart3d_cb(const std_msgs::Bool& restart)
 {
 	ROS_INFO_STREAM("Restarting laser.");
 	NR_CHECK_AND_RETURN(nrRestart3D);
+	NR_CHECK_AND_RETURN(nrGoMiddlePos, laser_angle_offset);
 	ROS_INFO_STREAM("Done.");
 }
 
