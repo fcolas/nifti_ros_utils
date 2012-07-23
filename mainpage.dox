@@ -22,6 +22,8 @@ The ROS node can take several parameters:
 - \a ~CAN_device (\c /dev/usb/cpc_usb0): CAN device,
 - \a ~bestInit (\c true): better initialization fo the flippers for more accuracy,
 - \a ~publish_odom_as_tf (\c false): publish \c /odom -> \c /base_link in \c /tf,
+- \a ~publish_joint_state_as_tf (\c false): publish the information of the
+  joints as \c /tf,
 - \a ~use_tf_for_odom (\c true): use the \c /tf transformation \c /odom -> \c
   /base_link in order to update the odometry published on the \c /odom topic.
 - \a steering_efficiency (0.41): parameter for the kinematic model: depends on the ground surface,
@@ -34,15 +36,24 @@ The ROS node can take several parameters:
 - \a ~initial_scanning_speed (\c 0.0 Rad/s): initial speed of the laser,
 - \a ~watchdog_timeout (\c 1 s): timeout before cancelling velocity commands.
 
+\warning
+\a ~publish_odom_as_tf and \a ~publish_joint_state_as_tf are deprecated and
+remain for compatibility reasons only. You should not change their default unless
+you don't need to read this warning.
+\warning
+Changing the names of the \c /tf frames might lead to undesired side effects.
 
 \subsection topics Published topics and tfs
 The node (and class) is publishing topics and \c /tf transformations at \a loop_rate Hz.
 
 \subsubsection pub_topics Topics
-- \c /robot_status (<a href="../../nifti_robot_driver_msgs/html/msg/RobotStatus.html">RobotStatus</a>): describes the status of the robot,
-- \c /flippers_state (<a href="../../nifti_robot_driver_msgs/html/msg/FlippersState.html">FlippersState</a>): the 4
-  angles of the flippers,
-- \c /currents (<a href="../../nifti_robot_driver_msgs/html/msg/Currents.html">Currents</a>): the current reading
+- \c /robot_status (<a
+  href="../../nifti_robot_driver_msgs/html/msg/RobotStatusStamped.html">RobotStatusStamped</a>): describes the status of the robot,
+- \c /flippers_state (<a
+  href="../../nifti_robot_driver_msgs/html/msg/FlippersStateStamped.html">FlippersStateStamped</a>): the 4
+  angles of the flippers (deprecated see below),
+- \c /currents (<a
+  href="../../nifti_robot_driver_msgs/html/msg/CurrentsStamped.html">CurrentsStamped</a>): the current reading
   of each of the flippers in A,
 - \c /odom (<a
   href="http://www.ros.org/doc/api/nav_msgs/html/msg/Odometry.html">nav_msgs::Odometry</a>):
@@ -50,10 +61,15 @@ The node (and class) is publishing topics and \c /tf transformations at \a loop_
 - \c /diagnostics (<a
   href="http://www.ros.org/doc/api/diagnostic_msgs/html/msg/DiagnosticStatus.html">diagnostic_msgs::DiagnosticStatus</a>):
   diagnostics (see \ref diag),
-- \c /tracks_vel (<a href="../../nifti_robot_driver_msgs/html/msg/Tracks.html">Tracks</a>): the current tracks velocity.
+- \c /tracks_vel (<a
+  href="../../nifti_robot_driver_msgs/html/msg/TracksStamped.html">TracksStamped</a>):
+  the current tracks velocity,
+- \c /joint_states (<a
+  href="http://www.ros.org/doc/api/sensor_msgs/html/msg/JointState.html">sensor_msgs::JointState</a>):
+  current state of the joints of the robot (see \ref joints).
 
 
-\subsection diag Diagnostics information
+\subsubsection diag Diagnostics information
 We're using <a href="http://www.ros.org/wiki/diagnostics">diagnostics</a> to
 publish general status information and level of issue. The current diagnostics
 published are:
@@ -64,7 +80,7 @@ published are:
 
 
 \subsubsection pub_tf Transformations
-- \c /odom -> \c /base_link (rough 2D odometry) only if \a ~publish_odom_as_tf is set,
+- \c /odom -> \c /base_link (rough 2D odometry),
 - \c /base_link -> \c /left_track and \c /right_track (based on the
   differential configuration),
 - \c /left_track -> \c /front_left_flipper and \c /rear_left_flipper, 
@@ -74,10 +90,33 @@ published are:
 - \c /base_link -> \c /omnicam (fixed),
 - \c /omnicam -> \c /camera0 ... \c /camera5 (fixed).
 
+\warning
+The first transformation is published by the node itself only if \a
+~publish_odom_as_tf is set (which should not happen). Otherwise it is fused with
+IMU information and published by the \c inso node (strongly prefered).
+All other transformations are published by the node itself only if \a
+~publish_joint_state_as_tf is set (which should not happen). Otherwise, it is
+published by a \c robot_state_publisher node (strongly prefered).
+
+
+\subsubsection joints Joints
+Here is the list of joints published by \b nifti_robot_node:
+- \c left_track_j: the angle between the left track and the body of the robot,
+- \c right_track_j: the angle betweent the right track and the body of the
+  robot,
+- \c front_left_flipper_j: the angle of the front left flipper,
+- \c front_right_flipper_j: the angle of the front right flipper,
+- \c rear_left_flipper_j: the angle of the rear left flipper,
+- \c rear_right_flipper_j: the angle of the rear right flipper,
+- \c laser_j: the angle of the laser.
+
+Those joints are published in a <a
+href="http://www.ros.org/doc/api/sensor_msgs/html/msg/JointState.html">sensor_msgs::JointState</a>
+message. No effort nor velocity is published, only the \c name and \c position
+arrays are populated. This message supersedes the old \c /flippers_state topic.
 
 \subsection sub_topics Subscribed topics
 The node (and class) subscribes to a set of topics to listen to commands:
-
 - \c /cmd_vel (<a href="http://www.ros.org/doc/api/geometry_msgs/html/msg/Twist.html">geometry_msgs::Twist</a>): velocity command,
 - \c /enable (<a
   href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>): (re)enable motors if they are in some fault state,
@@ -111,6 +150,12 @@ library (nifti_robot_simulation.c). This interface can still be used by setting 
 flag to \c true in \c cmake (with \c ccmake for example).
 
 
+\section diff Differential filtering
+
+The differential angle reported by the robot is subject to noise and sometimes
+bias. \b differential_filter.py implements a steady state Kalman filter to
+remove the noise and this bias. It is initialized during the first measurements
+(around 10s) to estimate both noise and bias.
 
 <!-- 
 Provide an overview of your package.
