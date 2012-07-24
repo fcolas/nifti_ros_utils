@@ -790,7 +790,7 @@ void NiftiRobot::brake_cb(const std_msgs::Bool& brake_on)
 void NiftiRobot::laser_center_cb(const std_msgs::Bool& center)
 {
 	ROS_DEBUG_STREAM("received laser center command: " << center.data);
-	NR_CHECK_AND_RETURN(nrGoMiddlePos, 0.0); //laser_angle_offset
+	NR_CHECK_AND_RETURN(nrGoMiddlePos, laser_angle_offset);
 }
 
 /*
@@ -855,8 +855,14 @@ void NiftiRobot::set_flippers_torque_cb(const
 {
 	ROS_INFO_STREAM("Setting flippers torque: (front="<<flippers_torque.front\
 			<<", rear="<<flippers_torque.rear<<").");
-	NR_CHECK_AND_RETURN(nrSetFlippersTorque, flippers_torque.front,
-			flippers_torque.rear);
+	double f, r;
+	int e;
+	f = flippers_torque.front;
+	r = flippers_torque.rear;
+	e = nrSetFlippersTorque(f, r);
+//	NR_CHECK_AND_RETURN(nrSetFlippersTorque, flippers_torque.front,
+//			flippers_torque.rear);
+	ROS_INFO_STREAM("Setting flippers torque: "<<e);
 }
 
 /*
