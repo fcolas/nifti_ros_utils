@@ -13,7 +13,7 @@ from joy.msg import Joy
 # electric and later:
 #from sensor_msgs.msg import Joy
 
-from nifti_robot_driver_msgs.msg import FlippersState, RobotStatus, FlipperCommand
+from nifti_robot_driver_msgs.msg import FlippersState, RobotStatusStamped, FlipperCommand, FlippersStateStamped
 from nifti_teleop.srv import Acquire, Release
 
 from math import pi, floor
@@ -140,13 +140,13 @@ class NiftiTeleopJoy(object):
 		self.flipper_pub = rospy.Publisher('/flipper_cmd', FlipperCommand)
 		## subscriber to the flippers state topic published by the robot driver
 		# @param ~flippers_state_topic (default: '/flippers_state')
-		rospy.Subscriber('/flippers_state', FlippersState, self.flippersCallBack)
+		rospy.Subscriber('/flippers_state', FlippersStateStamped, self.flippersCallBack)
 		## publisher for the brake command topic
 		self.brake_pub = rospy.Publisher('/brake', Bool)
 		## subscriber to the steering_efficiency topic
 		rospy.Subscriber('/steering_efficiency', Float64, self.steering_efficiency_cb)
 		## subscriber to the robot status topic published by the robot driver
-		rospy.Subscriber('/robot_status', RobotStatus, self.statusCallBack)
+		rospy.Subscriber('/robot_status', RobotStatusStamped, self.statusCallBack)
 		## subscriber to the joystick topic published by joy_node
 		rospy.Subscriber('/joy', Joy, self.joyCallBack)
 		## publisher for the enable command topic
