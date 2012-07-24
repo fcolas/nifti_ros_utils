@@ -9,7 +9,7 @@ import rospy
 from rospy.rostime import get_time
 from std_msgs.msg import Bool, Float64
 from sensor_msgs.msg import PointCloud2
-from nifti_robot_driver_msgs.msg import RobotStatus
+from nifti_robot_driver_msgs.msg import RobotStatuStamped
 import tf
 
 import actionlib
@@ -31,7 +31,7 @@ class ScanningService(object):
 		## laser center command publisher
 		self.laser_center_pub = rospy.Publisher('/laser_center', Bool)
 		## robot status subscriber (to get the current speed of the laser)
-		rospy.Subscriber('/robot_status', RobotStatus, self.status_cb)
+		rospy.Subscriber('/robot_status', RobotStatusStamped, self.status_cb)
 		## scanning_once subscriber
 		rospy.Subscriber('/scanning_once', Float64, self.scanning_once_cb)
 		## point cloud control publisher
