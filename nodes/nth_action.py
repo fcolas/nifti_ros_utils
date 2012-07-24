@@ -9,7 +9,7 @@ import rospy
 from rospy.rostime import get_time
 from std_msgs.msg import Bool, Float64
 from sensor_msgs.msg import PointCloud2
-from nifti_robot_driver_msgs.msg import RobotStatuStamped
+from nifti_robot_driver_msgs.msg import RobotStatusStamped
 import tf
 
 import actionlib
