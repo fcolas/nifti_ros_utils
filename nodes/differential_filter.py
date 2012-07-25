@@ -5,9 +5,9 @@ from sensor_msgs.msg import JointState
 from math import radians, degrees, sqrt
 
 class DifferentialFilter(object):
-	def __init__(self, N, s0):
-		self.N = N
-		self.s0 = s0
+	def __init__(self):
+		self.N = rospy.get_param('~samples_number', 100)
+		self.s0 = rospy.get_param('~stddev_motion', radians(0.2))
 		self.bias_left = self.bias_right = 0
 		self.K = 1
 		self.last_seq = None
@@ -33,16 +33,16 @@ class DifferentialFilter(object):
 		else:
 			self.bias_left += left/self.N
 			self.acc += left*left/self.N/2
-			self.last_left = left
 			self.bias_right += right/self.N
 			self.acc += right*right/self.N/2
-			self.last_right = right
 			bl = self.bias_left
 			br = self.bias_right
 			s = self.s0
-			self.K = s/(s+sqrt(self.acc-0.5*(bl*bl+br*br)))
+			self.K = s*s/(s*s+(self.acc-0.5*(bl*bl+br*br)))
 			n_left = left
 			n_right = right
+		self.last_left = n_left
+		self.last_right = n_right
 		if seq==self.last_seq:
 			rospy.loginfo("left bias=%f deg, right bias=%f deg, K=%f",
 					degrees(self.bias_left), degrees(self.bias_right), self.K)
@@ -53,7 +53,7 @@ def main():
 	'''Create a ROS node and instantiate the class.'''
 	try:
 		rospy.init_node('differential_filter')
-		df = DifferentialFilter(N=150, s0=radians(0.5))
+		df = DifferentialFilter()
 		rospy.spin()
 	except rospy.ROSInterruptException:
 		pass
