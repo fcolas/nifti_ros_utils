@@ -9,14 +9,14 @@ import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, Float64
 # diamonback:
-from joy.msg import Joy
+#from joy.msg import Joy
 # electric and later:
-#from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Joy
 
 from nifti_robot_driver_msgs.msg import FlippersState, RobotStatusStamped, FlipperCommand, FlippersStateStamped
 from nifti_teleop.srv import Acquire, Release
 
-from math import pi, floor
+from math import pi, floor, radians
 
 # TODO: should be part of the message definition
 ID_FLIPPER_FRONT_LEFT=3
@@ -130,7 +130,16 @@ class NiftiTeleopJoy(object):
 		## cmd_vel topic
 		self.cmd_vel_topic = rospy.get_param('~cmd_vel_topic',
 				'/teleop_joy/cmd_vel')
-		# publisher and subscribers
+
+		## current mapping state
+		self.mapping_on = True
+
+		## last front command
+		self.last_front_time = rospy.Time(0)
+		## last rear command
+		self.last_rear_time = rospy.Time(0)
+
+		# publishers
 		## publisher for the velocity command topic
 		# @param ~cmd_vel_topic (default: '/teleop_joy/cmd_vel')
 		self.cmdvel_pub = rospy.Publisher(self.cmd_vel_topic, Twist)
@@ -138,17 +147,8 @@ class NiftiTeleopJoy(object):
 		self.flippers_pub = rospy.Publisher('/flippers_cmd', FlippersState)
 		## publisher for the individual flipper command topic
 		self.flipper_pub = rospy.Publisher('/flipper_cmd', FlipperCommand)
-		## subscriber to the flippers state topic published by the robot driver
-		# @param ~flippers_state_topic (default: '/flippers_state')
-		rospy.Subscriber('/flippers_state', FlippersStateStamped, self.flippersCallBack)
 		## publisher for the brake command topic
 		self.brake_pub = rospy.Publisher('/brake', Bool)
-		## subscriber to the steering_efficiency topic
-		rospy.Subscriber('/steering_efficiency', Float64, self.steering_efficiency_cb)
-		## subscriber to the robot status topic published by the robot driver
-		rospy.Subscriber('/robot_status', RobotStatusStamped, self.statusCallBack)
-		## subscriber to the joystick topic published by joy_node
-		rospy.Subscriber('/joy', Joy, self.joyCallBack)
 		## publisher for the enable command topic
 		self.enable_pub = rospy.Publisher('/enable', Bool)
 		## publisher for the scanning speed command topic
@@ -159,9 +159,6 @@ class NiftiTeleopJoy(object):
 		self.scanning_once_pub = rospy.Publisher('/scanning_once', Float64)
 		## publisher for the mapping control topic
 		self.mapping_control_pub = rospy.Publisher('/mapping_control', Bool)
-
-		# current mapping state
-		self.mapping_on = True
 
 		# setting up priority requests
 		gotit = False
@@ -176,6 +173,18 @@ class NiftiTeleopJoy(object):
 				Acquire)
 		self.priority_release = rospy.ServiceProxy('/mux_cmd_vel/release',
 				Release)
+
+		# subscribers
+		## subscriber to the flippers state topic published by the robot driver
+		# @param ~flippers_state_topic (default: '/flippers_state')
+		rospy.Subscriber('/flippers_state', FlippersStateStamped, self.flippersCallBack)
+		## subscriber to the steering_efficiency topic
+		rospy.Subscriber('/steering_efficiency', Float64, self.steering_efficiency_cb)
+		## subscriber to the robot status topic published by the robot driver
+		rospy.Subscriber('/robot_status', RobotStatusStamped, self.statusCallBack)
+		## subscriber to the joystick topic published by joy_node
+		rospy.Subscriber('/joy', Joy, self.joyCallBack)
+
 
 
 	## Update the steering efficiency
@@ -232,8 +241,76 @@ class NiftiTeleopJoy(object):
 		self.scanning_speed_jcb(self.joy)
 		self.scanning_once_jcb(self.joy)
 		self.mapping_control_jcb(self.joy)
+		self.easy_flipper_jcb(self.joy)
 
 		self.mux_jcb(self.joy)
+
+	#TODO test and parametrize correctly
+	def easy_flipper_jcb(self, joy):
+		fb = -joy.axes[2]
+		ud = joy.axes[3]
+		if joy.pressed(11):
+			fs = FlippersState()
+			if fb>0.5 and ud>0.5:
+				fs.frontLeft = radians(-40)
+				fs.frontRight = radians(-40)
+				fs.rearLeft = radians(0)
+				fs.rearRight = radians(0)
+				self.flippers_pub.publish(fs)
+			if fb>0.5 and ud<-0.5:
+				fs.frontLeft = radians(50)
+				fs.frontRight = radians(50)
+				fs.rearLeft = radians(-30)
+				fs.rearRight = radians(-30)
+				self.flippers_pub.publish(fs)
+			if fb<-0.5 and ud>0.5:
+				fs.frontLeft = radians(0)
+				fs.frontRight = radians(0)
+				fs.rearLeft = radians(40)
+				fs.rearRight = radians(40)
+				self.flippers_pub.publish(fs)
+			if fb<-0.5 and ud<-0.5:
+				fs.frontLeft = radians(30)
+				fs.frontRight = radians(30)
+				fs.rearLeft = radians(-50)
+				fs.rearRight = radians(-50)
+				self.flippers_pub.publish(fs)
+			if abs(fb)<0.2 and abs(ud)<0.2:
+				fs.frontLeft = radians(0)
+				fs.frontRight = radians(0)
+				fs.rearLeft = radians(0)
+				fs.rearRight = radians(0)
+				self.flippers_pub.publish(fs)
+		elif joy.buttons[self.deadman_button]:
+			if ud<-0.5:
+				flipper_change = -self.flipper_increment
+			elif ud>0.5:
+				flipper_change = self.flipper_increment
+			else:
+				return
+			flipperMotion = FlipperCommand()
+			now = rospy.Time.now()
+			if fb>0.5:
+				if (now-self.last_front_time).to_sec()>0.5:
+					rospy.loginfo("Moving front")
+					self.last_front_time = now
+					flipperMotion.object_id = ID_FLIPPER_FRONT_LEFT
+					flipperMotion.angle = self.fs.frontLeft + flipper_change
+					self.flipper_pub.publish(flipperMotion)
+					flipperMotion.object_id = ID_FLIPPER_FRONT_RIGHT
+					flipperMotion.angle = self.fs.frontRight + flipper_change
+					self.flipper_pub.publish(flipperMotion)
+			elif fb<-0.5:
+				if (now-self.last_rear_time).to_sec()>0.5:
+					self.last_rear_time = now
+					flipperMotion.object_id = ID_FLIPPER_REAR_LEFT
+					flipperMotion.angle = self.fs.rearLeft + flipper_change
+					self.flipper_pub.publish(flipperMotion)
+					flipperMotion.object_id = ID_FLIPPER_REAR_RIGHT
+					flipperMotion.angle = self.fs.rearRight + flipper_change
+					self.flipper_pub.publish(flipperMotion)
+
+
 
 
 	## Handle priority based on the joystick input.
@@ -397,6 +474,8 @@ class HistoryJoystick(Joy):
 		self.buttons = None
 		## Current state of the axes
 		self.axes = None
+		## Header
+		self.header = None
 
 	## To be called with each new joystick data.
 	def update(self, joy):
@@ -407,6 +486,7 @@ class HistoryJoystick(Joy):
 		self.old_axes = self.axes
 		self.buttons = joy.buttons
 		self.axes = joy.axes
+		self.header = joy.header
 
 	## Check if a given button is currently pressed down (state 1)
 	def is_down(self, button_id):
