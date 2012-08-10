@@ -205,6 +205,15 @@ NiftiRobot::NiftiRobot():
 	watchdog_timeout = getParam<double>(n_, "watchdog_timeout", 1.0);
 	last_timestamp = ros::Time(0);
 
+	// initialize flipper torque
+	double init_current_limit = getParam<double>(n_, "initial_current_limit", 1.625);
+	ROS_INFO_STREAM("Setting flipper current limit to "<<init_current_limit<<" A.");
+	// cannot call macro in case of premature return
+	if (int e=nrSetFlippersTorque(init_current_limit, init_current_limit))
+	{
+		ROS_WARN_STREAM("Error " << e << " while calling nrSetFlippersTorque.");
+	}
+
 	// 2D odometry initialization
 	current_pose.position.x = 0.0;
 	current_pose.position.y = 0.0;
@@ -832,7 +841,7 @@ void NiftiRobot::ang_lim_cb(const std_msgs::Float64& ang_lim_val){
  */
 void NiftiRobot::steering_efficiency_cb(const std_msgs::Float64& msg){
 	steering_efficiency = std::max(0.0, std::min(1.0, msg.data));
-	ROS_INFO_STREAM("New steering efficiency: "<<steering_efficiency<<" (asked: "\
+	ROS_DEBUG_STREAM("New steering efficiency: "<<steering_efficiency<<" (asked: "\
 			<<msg.data<<").");
 }
 
@@ -841,10 +850,10 @@ void NiftiRobot::steering_efficiency_cb(const std_msgs::Float64& msg){
  */
 void NiftiRobot::restart3d_cb(const std_msgs::Bool& restart)
 {
-	ROS_INFO_STREAM("Restarting laser.");
+	ROS_DEBUG_STREAM("Restarting laser.");
 	NR_CHECK_AND_RETURN(nrRestart3D);
 	NR_CHECK_AND_RETURN(nrGoMiddlePos, laser_angle_offset);
-	ROS_INFO_STREAM("Done.");
+	ROS_DEBUG_STREAM("Done.");
 }
 
 /*
@@ -853,16 +862,12 @@ void NiftiRobot::restart3d_cb(const std_msgs::Bool& restart)
 void NiftiRobot::set_flippers_torque_cb(const
 		nifti_robot_driver_msgs::FlippersTorque& flippers_torque)
 {
-	ROS_INFO_STREAM("Setting flippers torque: (front="<<flippers_torque.front\
+	ROS_DEBUG_STREAM("Setting flippers torque: (front="<<flippers_torque.front\
 			<<", rear="<<flippers_torque.rear<<").");
-	double f, r;
-	int e;
-	f = flippers_torque.front;
-	r = flippers_torque.rear;
-	e = nrSetFlippersTorque(f, r);
-//	NR_CHECK_AND_RETURN(nrSetFlippersTorque, flippers_torque.front,
-//			flippers_torque.rear);
-	ROS_INFO_STREAM("Setting flippers torque: "<<e);
+	if (int e=nrSetFlippersTorque(flippers_torque.front, flippers_torque.rear))
+	{
+		ROS_WARN_STREAM("Error " << e << " while calling nrSetFlippersTorque.");
+	}
 }
 
 /*
