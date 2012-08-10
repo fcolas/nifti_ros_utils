@@ -9,9 +9,9 @@ import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool, Float64
 # diamonback:
-#from joy.msg import Joy
+from joy.msg import Joy
 # electric and later:
-from sensor_msgs.msg import Joy
+#from sensor_msgs.msg import Joy
 
 from nifti_robot_driver_msgs.msg import FlippersState, RobotStatusStamped, FlipperCommand, FlippersStateStamped
 from nifti_teleop.srv import Acquire, Release
@@ -263,6 +263,12 @@ class NiftiTeleopJoy(object):
 				fs.rearLeft = radians(-30)
 				fs.rearRight = radians(-30)
 				self.flippers_pub.publish(fs)
+			if fb>0.5 and abs(ud)<0.5:
+				fs.frontLeft = radians(-165)
+				fs.frontRight = radians(-165)
+				fs.rearLeft = radians(115)
+				fs.rearRight = radians(115)
+				self.flippers_pub.publish(fs)
 			if fb<-0.5 and ud>0.5:
 				fs.frontLeft = radians(0)
 				fs.frontRight = radians(0)
@@ -295,10 +301,10 @@ class NiftiTeleopJoy(object):
 					rospy.loginfo("Moving front")
 					self.last_front_time = now
 					flipperMotion.object_id = ID_FLIPPER_FRONT_LEFT
-					flipperMotion.angle = self.fs.frontLeft + flipper_change
+					flipperMotion.angle = self.fs.frontLeft - flipper_change
 					self.flipper_pub.publish(flipperMotion)
 					flipperMotion.object_id = ID_FLIPPER_FRONT_RIGHT
-					flipperMotion.angle = self.fs.frontRight + flipper_change
+					flipperMotion.angle = self.fs.frontRight - flipper_change
 					self.flipper_pub.publish(flipperMotion)
 			elif fb<-0.5:
 				if (now-self.last_rear_time).to_sec()>0.5:
@@ -475,7 +481,7 @@ class HistoryJoystick(Joy):
 		## Current state of the axes
 		self.axes = None
 		## Header
-		self.header = None
+		#self.header = None
 
 	## To be called with each new joystick data.
 	def update(self, joy):
@@ -486,7 +492,7 @@ class HistoryJoystick(Joy):
 		self.old_axes = self.axes
 		self.buttons = joy.buttons
 		self.axes = joy.axes
-		self.header = joy.header
+		#self.header = joy.header
 
 	## Check if a given button is currently pressed down (state 1)
 	def is_down(self, button_id):

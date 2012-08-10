@@ -65,8 +65,11 @@ class NiftiTestFlippers(object):
 			if v>self.peak_abs_current:
 				self.peak_abs_current = v
 				print "New max current: %f A"%v
-			if v>1. and (v - self.previous_abs_current)>1:
+			if v>2. and (v - self.previous_abs_current)>1.5:
 				print "old: %f A -> new %f A"%(self.previous_abs_current, v)
+			if (v>3.7):# or (v+self.previous_abs_current)>6:
+				print "#################### Stop!: %f A -> %f A"%(self.previous_abs_current, v)
+				self.enable_pub.publish(False)
 		self.previous_abs_current = v
 
 
