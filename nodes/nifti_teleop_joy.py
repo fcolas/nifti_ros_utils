@@ -251,37 +251,31 @@ class NiftiTeleopJoy(object):
 		ud = joy.axes[3]
 		if joy.pressed(11):
 			fs = FlippersState()
-			if fb>0.5 and ud>0.5:
-				fs.frontLeft = radians(-40)
-				fs.frontRight = radians(-40)
+			if fb>0.75 and abs(ud)<0.25:
+				fs.frontLeft = radians(-45)
+				fs.frontRight = radians(-45)
 				fs.rearLeft = radians(0)
 				fs.rearRight = radians(0)
 				self.flippers_pub.publish(fs)
-			if fb>0.5 and ud<-0.5:
-				fs.frontLeft = radians(50)
-				fs.frontRight = radians(50)
-				fs.rearLeft = radians(-30)
-				fs.rearRight = radians(-30)
+			if ud<-0.75 and abs(fb)<0.25:
+				fs.frontLeft = radians(40)
+				fs.frontRight = radians(40)
+				fs.rearLeft = radians(-40)
+				fs.rearRight = radians(-40)
 				self.flippers_pub.publish(fs)
-			if fb>0.5 and abs(ud)<0.5:
+			if ud>0.75 and abs(fb)<0.25:
 				fs.frontLeft = radians(-165)
 				fs.frontRight = radians(-165)
 				fs.rearLeft = radians(115)
 				fs.rearRight = radians(115)
 				self.flippers_pub.publish(fs)
-			if fb<-0.5 and ud>0.5:
+			if fb<-0.75 and abs(ud)<0.25:
 				fs.frontLeft = radians(0)
 				fs.frontRight = radians(0)
-				fs.rearLeft = radians(40)
-				fs.rearRight = radians(40)
+				fs.rearLeft = radians(45)
+				fs.rearRight = radians(45)
 				self.flippers_pub.publish(fs)
-			if fb<-0.5 and ud<-0.5:
-				fs.frontLeft = radians(30)
-				fs.frontRight = radians(30)
-				fs.rearLeft = radians(-50)
-				fs.rearRight = radians(-50)
-				self.flippers_pub.publish(fs)
-			if abs(fb)<0.2 and abs(ud)<0.2:
+			if abs(fb)<0.25 and abs(ud)<0.25:
 				fs.frontLeft = radians(0)
 				fs.frontRight = radians(0)
 				fs.rearLeft = radians(0)
