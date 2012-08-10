@@ -59,11 +59,17 @@ class NiftiTeleopJoy(object):
 		## axis for scanning velocity
 		# @param ~scanning_speed_axis (default: 4)
 		self.scanning_speed_axis = rospy.get_param('~scanning_speed_axis', 4)
+		## left-right axis of right thumbstick
+		# @param ~right_ts_lr_axis  (default: 2)
+		self.right_ts_lr_axis = rospy.get_param('~right_ts_lr_axis', 2)
+		## up-down axis of right thumbstick
+		# @param ~right_ts_ud_axis  (default: 3)
+		self.right_ts_ud_axis = rospy.get_param('~right_ts_ud_axis', 3)
 		
 		# joystick buttons
-		## deadman button
-		# @param ~deadman_button (default: 1)
-		self.deadman_button = rospy.get_param('~deadman_button', 1)
+		## deadman buttons
+		# @param ~deadman_buttons (default: [1, 10])
+		self.deadman_buttons = rospy.get_param('~deadman_buttons', [1,10])
 		## run button
 		# @param ~run_button (default: 0)
 		self.run_button = rospy.get_param('~run_button', 0)
@@ -77,16 +83,16 @@ class NiftiTeleopJoy(object):
 		# @param ~flipper_reset_button (default: 3)
 		self.flipper_reset_button = rospy.get_param('~flipper_reset_button', 3)
 		## button to select the front left flipper
-		# @param ~deadman_button (default: 4)
+		# @param ~front_left_flipper_button (default: 4)
 		self.flipper_button_fl = rospy.get_param('~front_left_flipper_button', 4)
 		## button to select the front right flipper
-		# @param ~deadman_button (default: 5)
+		# @param ~front_right_flipper_button (default: 5)
 		self.flipper_button_fr = rospy.get_param('~front_right_flipper_button', 5)
 		## button to select the rear left flipper
-		# @param ~deadman_button (default: 6)
+		# @param ~rear_left_flipper_button (default: 6)
 		self.flipper_button_rl = rospy.get_param('~rear_left_flipper_button', 6)
 		## button to select the rear right flipper
-		# @param ~deadman_button (default: 7)
+		# @param ~rear_right_flipper_button (default: 7)
 		self.flipper_button_rr = rospy.get_param('~rear_right_flipper_button', 7)
 		## scanning once button
 		# @param ~scanning_once_button (default: 2)
@@ -94,6 +100,9 @@ class NiftiTeleopJoy(object):
 		## mapping toggle button
 		# @param ~mapping_toggle_button (default: 11)
 		self.mapping_toggle_button = rospy.get_param('~mapping_toggle_button', 11)
+		## button of right thumbstick
+		# @param ~right_ts_button (default: 11)
+		self.right_ts_button = rospy.get_param('~right_ts_button', 11)
 
 		# speed limits
 		## maximum linear velocity (in m/s)
@@ -245,11 +254,10 @@ class NiftiTeleopJoy(object):
 
 		self.mux_jcb(self.joy)
 
-	#TODO test and parametrize correctly
 	def easy_flipper_jcb(self, joy):
-		fb = -joy.axes[2]
-		ud = joy.axes[3]
-		if joy.pressed(11):
+		fb = -joy.axes[self.right_ts_lr_axis]
+		ud = joy.axes[self.right_ts_ud_axis]
+		if joy.pressed(self.right_ts_button):
 			fs = FlippersState()
 			if fb>0.75 and abs(ud)<0.25:
 				fs.frontLeft = radians(-45)
@@ -281,43 +289,43 @@ class NiftiTeleopJoy(object):
 				fs.rearLeft = radians(0)
 				fs.rearRight = radians(0)
 				self.flippers_pub.publish(fs)
-		elif joy.buttons[self.deadman_button]:
-			if ud<-0.5:
-				flipper_change = -self.flipper_increment
-			elif ud>0.5:
-				flipper_change = self.flipper_increment
-			else:
-				return
-			flipperMotion = FlipperCommand()
-			now = rospy.Time.now()
-			if fb>0.5:
-				if (now-self.last_front_time).to_sec()>0.5:
-					rospy.loginfo("Moving front")
-					self.last_front_time = now
-					flipperMotion.object_id = ID_FLIPPER_FRONT_LEFT
-					flipperMotion.angle = self.fs.frontLeft - flipper_change
-					self.flipper_pub.publish(flipperMotion)
-					flipperMotion.object_id = ID_FLIPPER_FRONT_RIGHT
-					flipperMotion.angle = self.fs.frontRight - flipper_change
-					self.flipper_pub.publish(flipperMotion)
-			elif fb<-0.5:
-				if (now-self.last_rear_time).to_sec()>0.5:
-					self.last_rear_time = now
-					flipperMotion.object_id = ID_FLIPPER_REAR_LEFT
-					flipperMotion.angle = self.fs.rearLeft + flipper_change
-					self.flipper_pub.publish(flipperMotion)
-					flipperMotion.object_id = ID_FLIPPER_REAR_RIGHT
-					flipperMotion.angle = self.fs.rearRight + flipper_change
-					self.flipper_pub.publish(flipperMotion)
+#		elif joy.is_down_any(self.deadman_buttons):
+#			if ud<-0.5:
+#				flipper_change = -self.flipper_increment
+#			elif ud>0.5:
+#				flipper_change = self.flipper_increment
+#			else:
+#				return
+#			flipperMotion = FlipperCommand()
+#			now = rospy.Time.now()
+#			if fb>0.5:
+#				if (now-self.last_front_time).to_sec()>0.5:
+#					rospy.loginfo("Moving front")
+#					self.last_front_time = now
+#					flipperMotion.object_id = ID_FLIPPER_FRONT_LEFT
+#					flipperMotion.angle = self.fs.frontLeft - flipper_change
+#					self.flipper_pub.publish(flipperMotion)
+#					flipperMotion.object_id = ID_FLIPPER_FRONT_RIGHT
+#					flipperMotion.angle = self.fs.frontRight - flipper_change
+#					self.flipper_pub.publish(flipperMotion)
+#			elif fb<-0.5:
+#				if (now-self.last_rear_time).to_sec()>0.5:
+#					self.last_rear_time = now
+#					flipperMotion.object_id = ID_FLIPPER_REAR_LEFT
+#					flipperMotion.angle = self.fs.rearLeft + flipper_change
+#					self.flipper_pub.publish(flipperMotion)
+#					flipperMotion.object_id = ID_FLIPPER_REAR_RIGHT
+#					flipperMotion.angle = self.fs.rearRight + flipper_change
+#					self.flipper_pub.publish(flipperMotion)
 
 
 
 
 	## Handle priority based on the joystick input.
 	def mux_jcb(self, joy):
-		if joy.pressed(self.deadman_button):
+		if joy.pressed_any(self.deadman_buttons):
 			self.priority_acquire(self.cmd_vel_topic)
-		elif joy.released(self.deadman_button):
+		elif joy.released_all(self.deadman_buttons):
 			self.priority_release(self.cmd_vel_topic)
 
 
@@ -326,7 +334,7 @@ class NiftiTeleopJoy(object):
 	def cmdvel_jcb(self, joy):
 		'''Handle velocity command based on the joystick input.'''
 		tw = Twist()
-		if joy.buttons[self.deadman_button]:
+		if joy.is_down_any(self.deadman_buttons):
 			if joy.buttons[self.run_button]:
 				lin_scale = self.max_lin_vel_run
 				ang_scale = self.max_ang_vel_run
@@ -352,7 +360,7 @@ class NiftiTeleopJoy(object):
 			tw.angular.z = w
 
 			self.cmdvel_pub.publish(tw)
-		elif joy.released(self.deadman_button):	# make sure we ask the robot to stop
+		elif joy.released_all(self.deadman_buttons):	# make sure we ask the robot to stop
 			tw.linear.x = 0.0
 			tw.angular.z = 0.0
 			self.cmdvel_pub.publish(tw)
@@ -363,7 +371,7 @@ class NiftiTeleopJoy(object):
 	## Handle flippers command based on the joystick input.
 	def flipper_jcb(self, joy):
 		'''Handle flippers command based on the joystick input.'''
-		if joy.buttons[self.deadman_button]:
+		if joy.is_down_any(self.deadman_buttons):
 			if joy.pressed(self.flipper_reset_button):	# flat button
 				self.fs.frontLeft = 2*pi*floor((self.fs.frontLeft+1.5*pi)/(2*pi))
 				self.fs.frontRight = 2*pi*floor((self.fs.frontRight+1.5*pi)/(2*pi))
@@ -406,7 +414,7 @@ class NiftiTeleopJoy(object):
 	## Handle brake command based on the joystick input.
 	def brake_jcb(self, joy):
 		'''Handle brake command based on the joystick input.'''
-		if joy.buttons[self.deadman_button] and joy.pressed(self.brake_button):
+		if joy.is_down_any(self.deadman_buttons) and joy.pressed(self.brake_button):
 			try:
 				self.brake_pub.publish(not self.brake_on)
 			except AttributeError:
@@ -416,7 +424,7 @@ class NiftiTeleopJoy(object):
 	## Handle scanning_once command based on the joystick input.
 	def scanning_once_jcb(self, joy):
 		'''Handle scanning_once command based on the joystick input.'''
-		if joy.buttons[self.deadman_button] and joy.pressed(self.scanning_once_button):
+		if joy.is_down_any(self.deadman_buttons) and joy.pressed(self.scanning_once_button):
 			rospy.loginfo('Initiating 3D scan at speed %f rad/s.'\
 					%self.scanning_once_speed)
 			self.scanning_once_pub.publish(self.scanning_once_speed)
@@ -425,7 +433,7 @@ class NiftiTeleopJoy(object):
 	## Handle scanning_once command based on the joystick input.
 	def mapping_control_jcb(self, joy):
 		'''Handle mapping_control command based on the joystick input.'''
-		if joy.buttons[self.deadman_button] and joy.pressed(self.mapping_toggle_button):
+		if joy.is_down_any(self.deadman_buttons) and joy.pressed(self.mapping_toggle_button):
 			if self.mapping_on:
 				rospy.loginfo('Disabling mapping.')
 			else:
@@ -437,14 +445,14 @@ class NiftiTeleopJoy(object):
 	## Handle enable command based on the joystick input.
 	def enable_jcb(self, joy):
 		'''Handle enable command based on the joystick input.'''
-		if joy.buttons[self.deadman_button] and joy.pressed(self.enable_button):
+		if joy.is_down_any(self.deadman_buttons) and joy.pressed(self.enable_button):
 			self.enable_pub.publish(True)
 
 
 	## Handle scanning speed command based on the joystick input.
 	def scanning_speed_jcb(self, joy):
 		'''Handle scanning speed command based on the joystick input.'''
-		if joy.buttons[self.deadman_button] and\
+		if joy.is_down_any(self.deadman_buttons) and\
 				joy.axis_touched(self.scanning_speed_axis):
 			try:
 				v = self.scanning_speed-self.scanning_speed_increment*joy.axes[self.scanning_speed_axis]
@@ -491,8 +499,33 @@ class HistoryJoystick(Joy):
 	## Check if a given button is currently pressed down (state 1)
 	def is_down(self, button_id):
 		'''Check if a given button is currently pressed down (state 1).'''
+		return self.is_down_any((button_id,))
+
+	## Check if any of given buttons is currently pressed down (state 1)
+	def is_down_any(self, button_ids):
+		'''Check if any of given button is currently pressed down (state 1).'''
 		try:
-			return self.buttons[button_id]
+			res = False
+			for button_id in button_ids:
+				res = res or self.buttons[button_id]
+			return res
+		except TypeError:
+			# no joystick messages yet?
+			return False
+
+	## Check if a given button was pressed down (state 1)
+	def was_down(self, button_id):
+		'''Check if a given button was pressed down (state 1).'''
+		return self.was_down_any((button_id,))
+
+	## Check if any of given buttons was pressed down (state 1)
+	def was_down_any(self, button_ids):
+		'''Check if any of given button was pressed down (state 1).'''
+		try:
+			res = False
+			for button_id in button_ids:
+				res = res or self.old_buttons[button_id]
+			return res
 		except TypeError:
 			# no joystick messages yet?
 			return False
@@ -500,9 +533,14 @@ class HistoryJoystick(Joy):
 	## Check if a given button has just been pressed (transition 0->1).
 	def pressed(self, button_id):
 		'''Check if a given button has just been pressed (transition 0->1).'''
+		return self.pressed_any((button_id,))
+
+	## Check if at least one in a given list of buttons has just been pressed (transition 0->1).
+	def pressed_any(self, button_ids):
+		'''Check if at least one in a given list of buttons has just been pressed (transition 0->1).'''
 		try:
-			return self.buttons[button_id] and\
-					not self.old_buttons[button_id]
+			return self.is_down_any(button_ids) and\
+					not self.was_down_any(button_ids)
 		except (AttributeError, TypeError), e:
 			# not enough joystick messages yet?
 			return False
@@ -510,9 +548,27 @@ class HistoryJoystick(Joy):
 	## Check if a given button has just been released (transition 1->0).
 	def released(self, button_id):
 		'''Check if a given button has just been released (transition 1->0).'''
+		return self.released_any((button_id,))
+
+	## Check if any of given buttons has just been released (transition 1->0).
+	def released_any(self, button_ids):
+		'''Check if any of given buttons has just been released (transition 1->0).'''
 		try:
-			return not self.buttons[button_id] and\
-					self.old_buttons[button_id]
+			res = False
+			for button_id in button_ids:
+				res = res or (not self.buttons[button_id] and\
+					self.old_buttons[button_id])
+			return res
+		except (AttributeError, TypeError), e:
+			# not enough joystick messages yet?
+			return False
+
+	## Check if all of given buttons have just been released (transition 1->0).
+	def released_all(self, button_ids):
+		'''Check if all of given buttons have just been released (transition 1->0).'''
+		try:
+			return not self.is_down_any(button_ids) and\
+					self.was_down_any(button_ids)
 		except (AttributeError, TypeError), e:
 			# not enough joystick messages yet?
 			return False
@@ -520,9 +576,17 @@ class HistoryJoystick(Joy):
 	## Check if a given button state has just changed (either transitions).
 	def button_changed(self, button_id):
 		'''Check if a given button state has just changed (either transitions).'''
+		return self.button_changed_any((button_id,))
+
+	## Check if any of given buttons state has just changed (either transitions).
+	def button_changed_any(self, button_ids):
+		'''Check if any of given buttons state has just changed (either transitions).'''
 		try:
-			return self.buttons[button_id] != \
-					self.old_buttons[button_id]
+			res = False
+			for button_id in button_ids:
+				res = res or (self.buttons[button_id] !=\
+					self.old_buttons[button_id])
+			return res
 		except (TypeError, AttributeError), e:
 			# not enough joystick messages yet?
 			return False
