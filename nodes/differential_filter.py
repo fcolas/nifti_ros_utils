@@ -8,11 +8,11 @@ class DifferentialFilter(object):
 	def __init__(self):
 		self.N = rospy.get_param('~samples_number', 100)
 		self.s0 = rospy.get_param('~stddev_motion', radians(0.2))
-		self.bias_left = self.bias_right = 0
-		self.K = 1
+		self.bias_left = self.bias_right = 0.
+		self.K = 1.
 		self.last_seq = None
 		self.last_left = self.last_right = None
-		self.acc = 0
+		self.acc = 0.
 		self.joints_pub = rospy.Publisher("/filtered_joint_states", JointState)
 		rospy.Subscriber("/joint_states", JointState, self.js_cb)
 	
@@ -22,7 +22,7 @@ class DifferentialFilter(object):
 		seq = joints.header.seq
 		K = self.K
 		if not self.last_seq:
-			self.last_seq = seq+self.N
+			self.last_seq = seq+self.N-1
 		if seq>self.last_seq:
 			n_left = (1-K)*self.last_left + K*(left-self.bias_left)
 			new_pos = list(joints.position)
@@ -32,9 +32,9 @@ class DifferentialFilter(object):
 			joints.position = new_pos
 		else:
 			self.bias_left += left/self.N
-			self.acc += left*left/self.N/2
+			self.acc += 0.5*left*left/self.N
 			self.bias_right += right/self.N
-			self.acc += right*right/self.N/2
+			self.acc += 0.5*right*right/self.N
 			bl = self.bias_left
 			br = self.bias_right
 			s = self.s0
