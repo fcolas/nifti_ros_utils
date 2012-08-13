@@ -133,7 +133,7 @@ class NiftiTeleopJoy(object):
 		# @param ~flipper_increment (default: 10*pi/180)
 		self.flipper_increment = rospy.get_param('~flipper_increment', 20*pi/180.)
 		## scanning once speed (in rad/s)
-		# @param /scanning_once_speed (default: 0.60)
+		# @param /scanning_once_speed (default: 1.20)
 		self.scanning_once_speed = rospy.get_param('/scanning_once_speed', 1.20)
 
 		## cmd_vel topic
@@ -167,7 +167,7 @@ class NiftiTeleopJoy(object):
 		## publisher for the scanning once topic
 		self.scanning_once_pub = rospy.Publisher('/scanning_once', Float64)
 		## publisher for the mapping control topic
-		self.mapping_control_pub = rospy.Publisher('/mapping_control', Bool)
+		#self.mapping_control_pub = rospy.Publisher('/mapping_control', Bool)
 
 		# setting up priority requests
 		gotit = False
@@ -249,7 +249,7 @@ class NiftiTeleopJoy(object):
 		self.enable_jcb(self.joy)
 		self.scanning_speed_jcb(self.joy)
 		self.scanning_once_jcb(self.joy)
-		self.mapping_control_jcb(self.joy)
+		#self.mapping_control_jcb(self.joy)
 		self.easy_flipper_jcb(self.joy)
 
 		self.mux_jcb(self.joy)
