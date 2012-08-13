@@ -40,7 +40,6 @@ class DifferentialFilter(object):
 			self.K = s*s/(s*s+(self.acc/n-0.5*(bl*bl+br*br)/(n*n)))
 			n_left = left
 			n_right = right
-			rospy.loginfo("K=%f (%d/%d)"%(self.K, self.n, self.N))
 		self.last_left = n_left
 		self.last_right = n_right
 		if self.n==self.N:
