@@ -22,19 +22,21 @@ The ROS node can take several parameters:
 - \a ~CAN_device (\c /dev/usb/cpc_usb0): CAN device,
 - \a ~bestInit (\c true): better initialization fo the flippers for more accuracy,
 - \a ~publish_odom_as_tf (\c false): publish \c /odom -> \c /base_link in \c /tf,
+- \a ~use_tf_for_odom (\c true): use the \c /tf transformation \c /odom -> \c
+  /base_link in order to update the odometry published on the \c /odom topic,
 - \a ~publish_joint_state_as_tf (\c false): publish the information of the
   joints as \c /tf,
-- \a ~use_tf_for_odom (\c true): use the \c /tf transformation \c /odom -> \c
-  /base_link in order to update the odometry published on the \c /odom topic.
-- \a steering_efficiency (0.41): parameter for the kinematic model: depends on the ground surface,
-- \a ~laser_angle_offset (0.0 Rad): roll offset of the laser (for ETHZ it is around 4 deg),
+- \a steering_efficiency (\c 0.41): parameter for the kinematic model: depends on the ground surface,
+- \a laser_angle_offset (\c 0.0 Rad): roll offset of the laser (for ETHZ it is around 4 deg),
+- \a ~watchdog_timeout (\c 1 s): timeout before cancelling velocity commands,
+- \a ~initial_current_limit (\c 1.625 A): initial limit of current for the
+  flippers,
 - \a ~odom_frame (\c /odom): name of the odometry frame,
 - \a ~robot_frame (\c /base_link): name of the robot main frame,
 - \a ~laser_frame (\c /laser): name of the laser frame,
 - \a ~omni_frame (\c /omnicam): name of the omnicam base frame,
 - \a ~imu_frame (\c /imu): name of the IMU frame,
-- \a ~initial_scanning_speed (\c 0.0 Rad/s): initial speed of the laser,
-- \a ~watchdog_timeout (\c 1 s): timeout before cancelling velocity commands.
+- \a ~initial_scanning_speed (\c 0.0 Rad/s): initial speed of the laser.
 
 \warning
 \a ~publish_odom_as_tf and \a ~publish_joint_state_as_tf are deprecated and
@@ -141,7 +143,13 @@ The node (and class) subscribes to a set of topics to listen to commands:
   angular speed limit of the robot,
 - \c /steering_efficiency (<a
   href="http://www.ros.org/doc/api/std_msgs/html/msg/Float64.html">std_msgs::Float64</a>):
-  steering efficiency.
+  steering efficiency,
+- \c /restart3d (<a
+  href="http://www.ros.org/doc/api/std_msgs/html/msg/Bool.html">std_msgs::Bool</a>):
+  request the laser scanner to reset and recalibrate,
+- \c /set_flippers_torque (<a
+  href="../../nifti_robot_driver_msgs/html/msg/FlippersTorque.html">FlippersTorque</a>):
+  change maximum torque for the front and rear flippers.
 
 
 \section simu Simulation of the NIFTi robot
@@ -155,7 +163,13 @@ flag to \c true in \c cmake (with \c ccmake for example).
 The differential angle reported by the robot is subject to noise and sometimes
 bias. \b differential_filter.py implements a steady state Kalman filter to
 remove the noise and this bias. It is initialized during the first measurements
-(around 10s) to estimate both noise and bias.
+(typically less than 10s) to estimate both noise and bias.
+
+This node can take several parameters:
+- \a ~samples_number (\c 100): number of samples used for calibration,
+- \a ~stddev_motion (\c 0.2 deg): expected change (too high means no filtering,
+  too low means slow response to actual tracks motion).
+
 
 <!-- 
 Provide an overview of your package.
