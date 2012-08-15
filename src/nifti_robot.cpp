@@ -211,7 +211,9 @@ NiftiRobot::NiftiRobot():
 	// cannot call macro in case of premature return
 	if (int e=nrSetFlippersTorque(init_current_limit, init_current_limit))
 	{
-		ROS_WARN_STREAM("Error " << e << " while calling nrSetFlippersTorque.");
+		ROS_WARN_STREAM("Error " << e << " (" << \
+				(e==7?"Incompatible controller mode":CAN_error_messages[e])\
+				<< ") while calling nrSetFlippersTorque.");
 	}
 
 	// 2D odometry initialization
@@ -866,7 +868,9 @@ void NiftiRobot::set_flippers_torque_cb(const
 			<<", rear="<<flippers_torque.rear<<").");
 	if (int e=nrSetFlippersTorque(flippers_torque.front, flippers_torque.rear))
 	{
-		ROS_WARN_STREAM("Error " << e << " while calling nrSetFlippersTorque.");
+		ROS_WARN_STREAM("Error " << e << " (" << \
+				(e==7?"Incompatible controller mode":CAN_error_messages[e])\
+				<< ") while calling nrSetFlippersTorque.");
 	}
 }
 
