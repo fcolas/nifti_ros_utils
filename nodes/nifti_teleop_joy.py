@@ -355,11 +355,7 @@ class NiftiTeleopJoy(object):
 		'''Handle flippers command based on the joystick input.'''
 		if joy.is_down_any(self.deadman_buttons):
 			if joy.pressed(self.flipper_reset_button):	# flat button
-				self.fs.frontLeft = 2*pi*floor((self.fs.frontLeft+1.5*pi)/(2*pi))
-				self.fs.frontRight = 2*pi*floor((self.fs.frontRight+1.5*pi)/(2*pi))
-				self.fs.rearLeft = 2*pi*floor((self.fs.rearLeft+0.5*pi)/(2*pi))
-				self.fs.rearRight = 2*pi*floor((self.fs.rearRight+0.5*pi)/(2*pi))
-				self.flippers_pub.publish(self.fs)
+				self.posture_cmd_pub.publish(0)
 			elif joy.axis_touched(self.flipper_axis):
 				try:
 					if all([joy.buttons[self.flipper_button_fl],

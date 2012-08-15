@@ -18,7 +18,7 @@ from actionlib.server_goal_handle import ServerGoalHandle
 from actionlib_msgs.msg import GoalStatus
 from nifti_teleop.msg import *
 
-from math import atan2, pi, radians
+from math import atan2, pi, radians, floor, sin
 
 class FlipperPosture(object):
 	'''Handle the configuration of the flippers.
@@ -35,10 +35,11 @@ class FlipperPosture(object):
 		# 4: convex edge
 		4: (radians(40), radians(40), radians(-40), radians(-40)),
 		# 5: bestInit
-		5: (radians(-120), radians(-120), radians(120), radians(120))}
+		5: (radians(-135), radians(-135), radians(135), radians(135))}
 		
 
 	def __init__(self):
+		self.flippers_offset = FlippersState()
 		self.flippers_pub = rospy.Publisher('/flippers_cmd', FlippersState)
 		self.posture_pub = rospy.Publisher('/posture', Int32)
 		rospy.Subscriber('/flippers_state', FlippersStateStamped,
@@ -51,10 +52,10 @@ class FlipperPosture(object):
 		try:
 			fl, fr, rl, rr = self.postures[pid]
 			fs = FlippersState()
-			fs.frontLeft = fl
-			fs.frontRight = fr
-			fs.rearLeft = rl
-			fs.rearRight = rr
+			fs.frontLeft = fl + self.flippers_offset.frontLeft
+			fs.frontRight = fr + self.flippers_offset.frontRight
+			fs.rearLeft = rl + self.flippers_offset.rearLeft
+			fs.rearRight = rr + self.flippers_offset.rearRight
 			self.flippers_pub.publish(fs)
 		except IndexError:
 			rospy.logerr("NTH - Unknow posture id: %d"%pid)
@@ -64,11 +65,15 @@ class FlipperPosture(object):
 		fr = flippers.frontRight
 		rl = flippers.rearLeft
 		rr = flippers.rearRight
-		tol = radians(5)
+		self.flippers_offset.frontLeft = 2*pi*floor((fl+1.5*pi)/(2*pi))
+		self.flippers_offset.frontRight = 2*pi*floor((fr+1.5*pi)/(2*pi))
+		self.flippers_offset.rearLeft = 2*pi*floor((rl+0.5*pi)/(2*pi))
+		self.flippers_offset.rearRight = 2*pi*floor((rr+0.5*pi)/(2*pi))
+		tol = sin(radians(5))
 		ret_pid = -1
 		for pid, (pfl, pfr, prl, prr) in self.postures.items():
-			if abs(fl-pfl)<=tol and abs(fr-pfr)<=tol and abs(rl-prl)<=tol\
-					and abs(rr-prr)<=tol:
+			if abs(sin(fl-pfl))<=tol and abs(sin(fr-pfr))<=tol\
+					and abs(sin(rl-prl))<=tol and abs(sin(rr-prr))<=tol:
 				ret_pid = pid
 				break
 		self.posture_pub.publish(ret_pid)
