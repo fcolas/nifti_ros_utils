@@ -7,9 +7,10 @@
 import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
 from rospy.rostime import get_time
-from std_msgs.msg import Bool, Float64
+from std_msgs.msg import Bool, Float64, Int32
 from sensor_msgs.msg import PointCloud2
-from nifti_robot_driver_msgs.msg import RobotStatusStamped
+from nifti_robot_driver_msgs.msg import RobotStatusStamped, FlippersState,\
+		FlippersStateStamped
 import tf
 
 import actionlib
@@ -17,7 +18,61 @@ from actionlib.server_goal_handle import ServerGoalHandle
 from actionlib_msgs.msg import GoalStatus
 from nifti_teleop.msg import *
 
-from math import atan2, pi
+from math import atan2, pi, radians
+
+class FlipperPosture(object):
+	'''Handle the configuration of the flippers.
+	'''
+	postures={
+		# 0: flat
+		0: (0, 0, 0, 0),
+		# 1: drive
+		1: (radians(-165), radians(-165), radians(115), radians(115)),
+		# 2: climb forward
+		2: (radians(-45), radians(-45), radians(0), radians(0)),
+		# 3: climb backward
+		3: (radians(0), radians(0), radians(45), radians(45)),
+		# 4: convex edge
+		4: (radians(40), radians(40), radians(-40), radians(-40)),
+		# 5: bestInit
+		5: (radians(-120), radians(-120), radians(120), radians(120))}
+		
+
+	def __init__(self):
+		self.flippers_pub = rospy.Publisher('/flippers_cmd', FlippersState)
+		self.posture_pub = rospy.Publisher('/posture', Int32)
+		rospy.Subscriber('/flippers_state', FlippersStateStamped,
+				self.flippers_cb)
+		rospy.Subscriber('/posture_cmd', Int32, self.cmd_cb)
+
+	def cmd_cb(self, posture):
+		pid = posture.data
+#		rospy.logdebug("NTH - Received posture command: %d"%pid)
+		try:
+			fl, fr, rl, rr = self.postures[pid]
+			fs = FlippersState()
+			fs.frontLeft = fl
+			fs.frontRight = fr
+			fs.rearLeft = rl
+			fs.rearRight = rr
+			self.flippers_pub.publish(fs)
+		except IndexError:
+			rospy.logerr("NTH - Unknow posture id: %d"%pid)
+	
+	def flippers_cb(self, flippers):
+		fl = flippers.frontLeft
+		fr = flippers.frontRight
+		rl = flippers.rearLeft
+		rr = flippers.rearRight
+		tol = radians(5)
+		ret_pid = -1
+		for pid, (pfl, pfr, prl, prr) in self.postures.items():
+			if abs(fl-pfl)<=tol and abs(fr-pfr)<=tol and abs(rl-prl)<=tol\
+					and abs(rr-prr)<=tol:
+				ret_pid = pid
+				break
+		self.posture_pub.publish(ret_pid)
+
 
 ## ScanningService class
 class ScanningService(object):
@@ -179,7 +234,7 @@ centering it.")
 				last_direction = direction
 				last_tf = tf_time
 			except tf.Exception, e:
-				rospy.logwarn(e)
+				rospy.logwarn("NTH - Exception: %s"%str(e))
 
 
 
@@ -190,6 +245,7 @@ def main():
 		rospy.init_node('nth')
 		# instantiate the class
 		scan3d = ScanningService()
+		fp = FlipperPosture()
 		# wait until closed
 		scan3d.run()
 	except rospy.ROSInterruptException:

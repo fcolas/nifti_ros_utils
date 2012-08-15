@@ -7,7 +7,7 @@
 import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool, Float64
+from std_msgs.msg import Bool, Float64, Int32
 # diamonback:
 from joy.msg import Joy
 # electric and later:
@@ -168,6 +168,8 @@ class NiftiTeleopJoy(object):
 		self.scanning_once_pub = rospy.Publisher('/scanning_once', Float64)
 		## publisher for the mapping control topic
 		#self.mapping_control_pub = rospy.Publisher('/mapping_control', Bool)
+		## publisher for posture control
+		self.posture_cmd_pub = rospy.Publisher('/posture_cmd', Int32)
 
 		# setting up priority requests
 		gotit = False
@@ -260,35 +262,15 @@ class NiftiTeleopJoy(object):
 		if joy.pressed(self.right_ts_button):
 			fs = FlippersState()
 			if fb>0.75 and abs(ud)<0.25:
-				fs.frontLeft = radians(-45)
-				fs.frontRight = radians(-45)
-				fs.rearLeft = radians(0)
-				fs.rearRight = radians(0)
-				self.flippers_pub.publish(fs)
+				self.posture_cmd_pub.publish(2)
 			if ud<-0.75 and abs(fb)<0.25:
-				fs.frontLeft = radians(40)
-				fs.frontRight = radians(40)
-				fs.rearLeft = radians(-40)
-				fs.rearRight = radians(-40)
-				self.flippers_pub.publish(fs)
+				self.posture_cmd_pub.publish(4)
 			if ud>0.75 and abs(fb)<0.25:
-				fs.frontLeft = radians(-165)
-				fs.frontRight = radians(-165)
-				fs.rearLeft = radians(115)
-				fs.rearRight = radians(115)
-				self.flippers_pub.publish(fs)
+				self.posture_cmd_pub.publish(1)
 			if fb<-0.75 and abs(ud)<0.25:
-				fs.frontLeft = radians(0)
-				fs.frontRight = radians(0)
-				fs.rearLeft = radians(45)
-				fs.rearRight = radians(45)
-				self.flippers_pub.publish(fs)
+				self.posture_cmd_pub.publish(3)
 			if abs(fb)<0.25 and abs(ud)<0.25:
-				fs.frontLeft = radians(0)
-				fs.frontRight = radians(0)
-				fs.rearLeft = radians(0)
-				fs.rearRight = radians(0)
-				self.flippers_pub.publish(fs)
+				self.posture_cmd_pub.publish(0)
 #		elif joy.is_down_any(self.deadman_buttons):
 #			if ud<-0.5:
 #				flipper_change = -self.flipper_increment
