@@ -2,8 +2,9 @@
 ## @file
 # Set of helper tools for the teleoperation of the NIFTi robot
 #
-# Right now only ScanningService is implemented: it listens on a topic and
-# handles the motion of the rolling laser.
+# Two things are implemented:
+# - ScanningService: handle the motion of the rolling laser;
+# - FlipperPosture: handle flipper postures.
 import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
 from rospy.rostime import get_time

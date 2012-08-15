@@ -14,7 +14,8 @@ This package also provides the \b nifti_mux_control
 different \c /cmd_vel publishers.
 
 Additionally, \b nifti_teleop_helper eases the process of taking a single 3D
-scan (see nth_action::ScanningService).
+scan (see nth_action::ScanningService) and controling flipper configuration
+(see nth_action::FlipperPosture).
 
 The launch file to be launched is \c nifti_ugv_teleop.launch on the robot or \c
 nifti_joy.launch on any remote computer with a joystick.
