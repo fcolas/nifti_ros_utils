@@ -240,7 +240,7 @@ centering it.")
 				last_direction = direction
 				last_tf = tf_time
 			except tf.Exception, e:
-				rospy.logwarn("NTH - Exception: %s"%str(e))
+				rospy.logdebug("NTH - Exception: %s"%str(e))
 
 
 
