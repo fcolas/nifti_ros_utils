@@ -1,3 +1,6 @@
 <launch>
-	<include file="$(find xsens_driver)/launch/imu.launch"/>
+	<node pkg="xsens_driver" type="mtnode.py" name="mtig_node" output="screen">
+		<param name="device" value="/dev/ttyS1"/>
+		<param name="frame_id" value="/imu"/>
+	</node>
 </launch>

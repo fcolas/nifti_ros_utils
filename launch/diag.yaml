@@ -13,6 +13,7 @@ analyzers:
   xsens_mtig:
     type: GenericAnalyzer
     path: IMU
+    remove_prefix: 'mtnode'
     contains: [
       'Self Test',
       'XKF Valid',
