@@ -118,9 +118,9 @@ class ScanningService(object):
 		#self.tf_listener = tf.TransformListener()
 
 	## joint state callback to get the current position of the laser
-	def joint_state_cb(self, joint_states):
+	def joint_states_cb(self, joint_states):
 		try:
-			laser_idx = joint_states.name.find('laser_j')
+			laser_idx = joint_states.name.index('laser_j')
 		except ValueError:
 			rospy.logwarn("NTH - laser joint angle not found in joint_state \
 message.")
@@ -129,6 +129,8 @@ message.")
 			direction = 1
 		elif angle<self.last_angle:
 			direction = -1
+		else:
+			direction = 0
 		if self.scanning_speed*direction*self.last_direction < 0 and\
 				abs(angle)>pi/3:	# TODO might be problematic
 			# End of swipe event
