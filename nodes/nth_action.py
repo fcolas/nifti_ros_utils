@@ -12,7 +12,8 @@ from std_msgs.msg import Bool, Float64, Int32
 from sensor_msgs.msg import PointCloud2
 from nifti_robot_driver_msgs.msg import RobotStatusStamped, FlippersState,\
 		FlippersStateStamped
-import tf
+#import tf
+from sensor_msgs.msg import JointState
 
 import actionlib
 from actionlib.server_goal_handle import ServerGoalHandle
@@ -110,9 +111,51 @@ class ScanningService(object):
 		self.action_client = actionlib.SimpleActionClient('ScanningOnceAS',
 				ScanningAction)
 
-		## tf listener for laser scanner angle
-		self.tf_listener = tf.TransformListener()
+		self.last_angle = 0
+		self.last_direction = 0
+		rospy.Subscriber('/joint_states', JointState, self.joint_states_cb)
+		# tf listener for laser scanner angle
+		#self.tf_listener = tf.TransformListener()
 
+	## joint state callback to get the current position of the laser
+	def joint_state_cb(self, joint_states):
+		try:
+			laser_idx = joint_states.name.find('laser_j')
+		except ValueError:
+			rospy.logwarn("NTH - laser joint angle not found in joint_state \
+message.")
+		angle = joint_states.position[laser_idx]
+		if angle>self.last_angle:
+			direction = 1
+		elif angle<self.last_angle:
+			direction = -1
+		if self.scanning_speed*direction*self.last_direction < 0 and\
+				abs(angle)>pi/3:	# TODO might be problematic
+			# End of swipe event
+			rospy.logdebug("NTH - End of swipe")
+			if self.scanning_state == ScanningFeedback.WAITING_FOR_FIRST_SWIPE:
+				# no end of swipe received before
+				rospy.logdebug("NTH - Detected first end of swipe: waiting for a \
+second one and activating point cloud publication.")
+				self.ptcld_ctrl_pub.publish(True)
+				self.scanning_state = ScanningFeedback.WAITING_FOR_COMPLETE_SWIPE
+				self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
+			elif self.scanning_state == ScanningFeedback.WAITING_FOR_COMPLETE_SWIPE:
+				# first end of swipe received before
+				rospy.logdebug("NTH - Detected second end of swipe: stopping laser and \
+centering it.")
+				self.scanning_state = ScanningFeedback.READY
+				#self.scanning_speed_pub.publish(0.0) # may be unnecessary
+				self.laser_center_pub.publish(True)
+				self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
+				self.goal.set_succeeded(ScanningResult(ScanningResult.SUCCESS),
+						"Scan succeeded")
+				rospy.loginfo("NTH - Scan ended")
+			else:
+				rospy.logdebug("NTH - end of swipe received and ignored.")
+		self.last_direction = direction
+		self.last_angle = angle
+	
 	
 	## robot status callback to get the current speed of the laser
 	def status_cb(self, robot_status):
@@ -191,58 +234,6 @@ publication of the messy point cloud."%speed)
 		self.scanning_state = ScanningFeedback.WAITING_FOR_FIRST_SWIPE
 		self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
 	
-	def run(self):
-		r = rospy.Rate(15)
-		last_angle = 0
-		last_direction = 0
-		direction = 0
-		last_tf = rospy.Time(0)
-		while not rospy.is_shutdown():
-			r.sleep()
-			try:
-				tf_time = self.tf_listener.getLatestCommonTime("/base_link",
-						"/laser")
-				if tf_time==last_tf:
-					continue
-				_, (x, _, _, w) = self.tf_listener.lookupTransform("/base_link", "/laser",
-					tf_time)
-				angle = atan2(-2*x*w, 2*x*x-1)
-				if angle>last_angle:
-					direction = 1
-				elif angle<last_angle:
-					direction = -1
-				#print last_angle, angle, last_direction, direction, self.scanning_speed
-				if self.scanning_speed*direction*last_direction < 0 and\
-						abs(angle)>pi/3:	# TODO might be problematic
-					# End of swipe event
-					rospy.logdebug("NTH - End of swipe")
-					if self.scanning_state == ScanningFeedback.WAITING_FOR_FIRST_SWIPE:
-						# no end of swipe received before
-						rospy.logdebug("NTH - Detected first end of swipe: waiting for a \
-second one and activating point cloud publication.")
-						self.ptcld_ctrl_pub.publish(True)
-						self.scanning_state = ScanningFeedback.WAITING_FOR_COMPLETE_SWIPE
-						self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
-					elif self.scanning_state == ScanningFeedback.WAITING_FOR_COMPLETE_SWIPE:
-						# first end of swipe received before
-						rospy.logdebug("NTH - Detected second end of swipe: stopping laser and \
-centering it.")
-						self.scanning_state = ScanningFeedback.READY
-						#self.scanning_speed_pub.publish(0.0) # may be unnecessary
-						self.laser_center_pub.publish(True)
-						self.goal.publish_feedback(ScanningFeedback(self.scanning_state))
-						self.goal.set_succeeded(ScanningResult(ScanningResult.SUCCESS),
-								"Scan succeeded")
-						rospy.loginfo("NTH - Scan ended")
-					else:
-						rospy.logdebug("NTH - end of swipe received and ignored.")
-				last_angle = angle
-				last_direction = direction
-				last_tf = tf_time
-			except tf.Exception, e:
-				rospy.logdebug("NTH - Exception: %s"%str(e))
-
-
 
 
 def main():
@@ -253,7 +244,7 @@ def main():
 		scan3d = ScanningService()
 		fp = FlipperPosture()
 		# wait until closed
-		scan3d.run()
+		rospy.spin()
 	except rospy.ROSInterruptException:
 		pass
 
