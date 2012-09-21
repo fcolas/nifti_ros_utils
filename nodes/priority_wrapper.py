@@ -2,6 +2,7 @@
 import roslib; roslib.load_manifest('nifti_teleop')
 import rospy
 import rospy.rostime as rostime
+from time import sleep
 from geometry_msgs.msg import Twist
 from nifti_teleop.srv import Acquire, Release
 
@@ -20,6 +21,9 @@ class PriorityWrapper(object):
 		# @param ~input_topic (default: '/private/nav/cmd_vel')
 		sub = rospy.Subscriber(self.input_topic, Twist, self.cmdvel_cb)
 
+		self.last_msg = rostime.Time(0)
+		self.last_request = rostime.Time(0)
+
 		# setting up priority requests
 		gotit = False
 		while not gotit:
@@ -29,13 +33,11 @@ class PriorityWrapper(object):
 				gotit = True
 			except rospy.ROSException:
 				rospy.logwarn("Waiting for mux control services...")
+			sleep(1)
 		self.priority_acquire = rospy.ServiceProxy('/mux_cmd_vel/acquire',
 				Acquire)
 		self.priority_release = rospy.ServiceProxy('/mux_cmd_vel/release',
 				Release)
-
-		self.last_msg = rostime.Time(0)
-		self.last_request = rostime.Time(0)
 
 	def cmdvel_cb(self, msg):
 		now = rostime.get_rostime()
