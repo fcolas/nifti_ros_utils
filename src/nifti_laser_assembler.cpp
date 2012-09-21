@@ -147,6 +147,11 @@ protected:
 	//! Filter close points for Karto
 	void karto_filter(sensor_msgs::LaserScan& scan);
 
+	bool using_gmapping;
+	//! Invert scan for gmapping
+	void invert_gmapping(const sensor_msgs::LaserScan& scan_in,
+			sensor_msgs::LaserScan& scan_out);
+
 	//! remove points on the robot
 	void robot_filter(sensor_msgs::LaserScan& scan);
 
@@ -204,6 +209,8 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	laser_frame = getParam<std::string>(n_, "laser_frame", "/laser");
 	robot_frame = getParam<std::string>(n_, "robot_frame", "/base_link");
 	world_frame = getParam<std::string>(n_, "world_frame", "/odom");
+
+	using_gmapping = getParam<bool>(n_, "using_gmapping", false);
 
 	// max number of point
 	max_size = getParam<int>(n_, "max_size", 1000000);
@@ -347,6 +354,16 @@ void NiftiLaserAssembler::karto_filter(sensor_msgs::LaserScan& scan)
 	}
 }
 
+void NiftiLaserAssembler::invert_gmapping(const sensor_msgs::LaserScan& scan_in,
+			sensor_msgs::LaserScan& scan_out)
+{
+	unsigned int nb = scan_in.ranges.size();
+	for (unsigned int i=0; i<nb; i++)
+	{
+		scan_out.ranges[i] = scan_in.ranges[nb-i-1];
+	}
+}
+
 /* 
  * Undistort
  */
@@ -453,7 +470,7 @@ void NiftiLaserAssembler::robot_filter(sensor_msgs::LaserScan& scan)
 			y = transformed_ptcld.points[i].y;
 			z = transformed_ptcld.points[i].z;
 			if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
-					((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+					((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<3*eps+0.090))
 				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
 		}
 	} else {
@@ -469,7 +486,8 @@ void NiftiLaserAssembler::robot_filter(sensor_msgs::LaserScan& scan)
 			y = transformed_ptcld.points[i].y;
 			z = transformed_ptcld.points[i].z;
 			if ((fabs(y)<eps+(0.050/2))&&(x>-eps-0.090)&&(x<eps+0.3476)&&
-					((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<eps+0.090))
+					((x*sin(11.1*M_PI/180)+fabs(z)*cos(11.1*M_PI/180))<3*eps+0.090))
+					// Beware 3*eps !
 				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
 		}
 	} else {
@@ -638,7 +656,14 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::LaserScan& scan)
 				((fabs(angle-previous_angle)<0.5*M_PI/180.)&&
 						(fabs(angle-laser_angle_offset)<10*M_PI/180.))) {
 			ROS_DEBUG_STREAM("Publishing 2d scan.");
-			scan2d_pub.publish(tmp_scan);
+			if (using_gmapping)
+			{
+				sensor_msgs::LaserScan inv_scan = tmp_scan;
+				invert_gmapping(tmp_scan, inv_scan);
+				scan2d_pub.publish(inv_scan);
+			} else {
+				scan2d_pub.publish(tmp_scan);
+			}
 		}
 	}
 
