@@ -8,7 +8,12 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/nifti_drivers_launchers</url>
-
+  <depend package="nifti_robot_driver"/>
+  <depend package="omnicamera"/>
+  <depend package="xsens_driver"/>
+  <depend package="LMS1xx"/>
+  <depend package="nifti_teleop"/>
+  <depend package="diagnostic_aggregator"/>
 </package>
 
 
