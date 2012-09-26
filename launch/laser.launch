@@ -3,4 +3,5 @@
 		<param name="host" value="192.168.1.72"/>
 		<param name="frame_id" value="/laser"/>
 	</node>
+	<include file="$(find nifti_laser_filtering)/launch/nifti_laser_filtering.launch"/>
 </launch>

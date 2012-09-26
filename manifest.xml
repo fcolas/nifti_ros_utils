@@ -13,6 +13,7 @@
   <depend package="xsens_driver"/>
   <depend package="LMS1xx"/>
   <depend package="nifti_teleop"/>
+  <depend package="nifti_laser_filtering"/>
   <depend package="diagnostic_aggregator"/>
 </package>
 
