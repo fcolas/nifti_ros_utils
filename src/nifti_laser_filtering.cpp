@@ -115,8 +115,8 @@ NiftiLaserFiltering::NiftiLaserFiltering():
 	// initialized so that the first test always fails
 
 	if (!tf_listener.waitForTransform(laser_frame, world_frame, ros::Time(0),
-			ros::Duration(10.)))
-		ROS_WARN_STREAM("Timeout (10s) while waiting between "<<laser_frame<<
+			ros::Duration(30.)))
+		ROS_WARN_STREAM("Timeout (30s) while waiting between "<<laser_frame<<
 				" and "<<world_frame<<" at startup.");
 
 	// laser scan subscriber
