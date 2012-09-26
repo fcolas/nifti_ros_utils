@@ -102,8 +102,6 @@ NiftiLaserFiltering::NiftiLaserFiltering():
 	robot_frame = getParam<std::string>(n_, "robot_frame", "/base_link");
 	world_frame = getParam<std::string>(n_, "world_frame", "/odom");
 
-	using_gmapping = getParam<bool>(n_, "using_gmapping", false);
-
 	// 2d scans
 	std::string scan_filtered_topic = getParam<std::string>(n_, "scan_filtered_topic",
 			"/scan_filtered");
@@ -115,7 +113,6 @@ NiftiLaserFiltering::NiftiLaserFiltering():
 	time_offset = ros::Duration(offset);
 	min_distance = getParam<double>(n_, "min_distance", 0.0);
 	// initialized so that the first test always fails
-	previous_angle = NAN;
 
 	if (!tf_listener.waitForTransform(laser_frame, world_frame, ros::Time(0),
 			ros::Duration(10.)))
@@ -340,7 +337,7 @@ void NiftiLaserFiltering::robot_filter(sensor_msgs::LaserScan& scan)
 			x = transformed_ptcld.points[i].x;
 			y = transformed_ptcld.points[i].y;
 			z = transformed_ptcld.points[i].z;
-			if ((x*x+y*y<(eps+0.070)*(eps+0.070))&&(abs(z)<eps+(0.15/2)))
+			if ((x*x+y*y<(eps+0.070)*(eps+0.070))&&(fabs(z)<eps+(0.15/2)))
 				blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
 		}
 	} else {
