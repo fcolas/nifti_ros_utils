@@ -1074,6 +1074,7 @@ void NiftiRobot::update_config()
 	//ROS_DEBUG_STREAM("angles: "<< left_angle << "Rad and " << right_angle << "Rad");
 	NR_CHECK_AND_RETURN(nrGetFlippers, &frontLeft, &frontRight, &rearLeft, &rearRight);
 	NR_CHECK_AND_RETURN(nrGetScannerAngle, &laser_angle);
+	laser_angle -= laser_angle_offset;
 	ros::Time timestamp = ros::Time::now();
 
 /*	if (in_collision(frontLeft, rearLeft))
