@@ -16,6 +16,7 @@
   <depend package="geometry_msgs"/>
   <depend package="sensor_msgs"/>
   <depend package="pcl_ros"/>
+  <!--depend package="nifti_pcl_common"/-->
 
 </package>
 

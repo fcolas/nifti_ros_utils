@@ -1,8 +1,12 @@
 <launch>
-  <node type="laser_scan_assembler" pkg="laser_assembler" name="scan_assembler">
-    <param name="max_scans" type="int" value="786"/>
-    <param name="tf_cache_time_secs" type="double" value="16.0"/>
-    <param name="fixed_frame" type="string" value="/odom"/>
-  </node>
-  <node type="nifti_laser_assembler_old.py" pkg="nifti_laser_assembler" name="nifti_laser_assembler"/>
+	<rosparam command="load" file="$(find nifti_launchers)/launch/robot.yaml"/>
+
+	<node type="nifti_laser_assembler_old" pkg="nifti_laser_assembler"
+			name="nifti_laser_assembler_old" output="screen">
+		<param name="publish_in_motion" value="false"/>
+		<param name="time_offset" value="-0.025" />
+		<!--param name="min_distance" value="0.10" /-->
+		<param name="shadow_filter_min_angle" value="0.14" />
+		<param name="using_gmapping" value="false" />
+	</node>
 </launch>
