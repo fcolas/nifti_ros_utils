@@ -366,9 +366,8 @@ void NiftiLaserFiltering::scan_cb(const sensor_msgs::LaserScan& scan)
 	//ROS_INFO_STREAM("Got scan");
 	tmp_scan = scan;
 	time_correct(tmp_scan);
-	//filtering scan 
-	undistort(tmp_scan); // disable due to feature freeze
-	robot_filter(tmp_scan); // disabled due to feature freeze
+	undistort(tmp_scan);
+	robot_filter(tmp_scan);
 	shadow_filter(tmp_scan);
 
 	scan_filtered_pub.publish(tmp_scan);
