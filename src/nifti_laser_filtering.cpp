@@ -103,9 +103,7 @@ NiftiLaserFiltering::NiftiLaserFiltering():
 	world_frame = getParam<std::string>(n_, "world_frame", "/odom");
 
 	// 2d scans
-	std::string scan_filtered_topic = getParam<std::string>(n_, "scan_filtered_topic",
-			"/scan_filtered");
-	scan_filtered_pub = n.advertise<sensor_msgs::LaserScan>(scan_filtered_topic, 50);
+	scan_filtered_pub = n.advertise<sensor_msgs::LaserScan>("/scan_filtered", 50);
 
 	// filtering
 	double offset;
@@ -120,9 +118,7 @@ NiftiLaserFiltering::NiftiLaserFiltering():
 				" and "<<world_frame<<" at startup.");
 
 	// laser scan subscriber
-	std::string laser_scan_topic;
-	laser_scan_topic = getParam<std::string>(n_, "laser_scan_topic", "/scan");
-	laser_scan_sub = n.subscribe(laser_scan_topic, 50,
+	laser_scan_sub = n.subscribe("/scan", 50,
 			&NiftiLaserFiltering::scan_cb, this);
 }
 
