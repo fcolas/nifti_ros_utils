@@ -223,19 +223,13 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	laser_angle_offset = getParam<double>(n, "laser_angle_offset", 0.0);
 	publish2d = getParam<bool>(n_, "publish2d", true);
 	if (publish2d) {
-		std::string scan2d_topic;
-		scan2d_topic = getParam<std::string>(n_, "scan2d_topic",
-			"/scan2d");
-		scan2d_pub = n.advertise<sensor_msgs::LaserScan>(scan2d_topic, 50);
+		scan2d_pub = n.advertise<sensor_msgs::LaserScan>("/scan2d", 50);
 	}
 
 	// relay
 	relay_scans = getParam<bool>(n_, "relay_scans", true);
 	if (relay_scans) {
-		std::string relay_topic;
-		relay_topic = getParam<std::string>(n_, "relay_topic",
-			"/scan_relay");
-		relay_pub = n.advertise<sensor_msgs::LaserScan>(relay_topic, 50);
+		relay_pub = n.advertise<sensor_msgs::LaserScan>("/scan_relay", 50);
 	}
 
 	// moving
@@ -255,43 +249,27 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 				" and "<<world_frame<<" at startup.");
 
 	// point cloud publisher
-	std::string point_cloud_topic;
-	point_cloud_topic = getParam<std::string>(n_, "static_point_cloud_topic",
-			"/static_point_cloud");
 	point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
-			(point_cloud_topic, 50);
-	point_cloud_topic = getParam<std::string>(n_, "dynamic_point_cloud_topic",
-			"/dynamic_point_cloud");
+			("/static_point_cloud", 50);
 	dynamic_point_cloud_pub = n.advertise<sensor_msgs::PointCloud2>
-			(point_cloud_topic, 50);
+			("/dynamic_point_cloud", 50);
 	
 	// laser scan subscriber
-	std::string laser_scan_topic;
-	laser_scan_topic = getParam<std::string>(n_, "laser_scan_topic", "/scan");
-	laser_scan_sub = n.subscribe(laser_scan_topic, 50,
+	laser_scan_sub = n.subscribe("/scan", 50,
 			&NiftiLaserAssembler::scan_cb, this);
 
 	// mapping control subscriber
-	std::string map_ctrl_topic;
-	map_ctrl_topic = getParam<std::string>(n_, "mapping_control_topic",
-			"/mapping_control");
-	map_ctrl_sub = n.subscribe(map_ctrl_topic, 50,
+	map_ctrl_sub = n.subscribe("/mapping_control", 50,
 			&NiftiLaserAssembler::map_ctrl_cb, this);
 	map_ctrl_on = true;
 
 	// point cloud control subscriber
-	std::string ptcld_ctrl_topic;
-	ptcld_ctrl_topic = getParam<std::string>(n_, "pointcloud_control_topic",
-			"/pointcloud_control");
-	ptcld_ctrl_sub = n.subscribe(ptcld_ctrl_topic, 50,
+	ptcld_ctrl_sub = n.subscribe("/pointcloud_control", 50,
 			&NiftiLaserAssembler::ptcld_ctrl_cb, this);
 	ptcld_ctrl_on = true;
 
 	// end of swipe publisher
-	std::string end_of_swipe_topic;
-	end_of_swipe_topic = getParam<std::string>(n_, "end_of_swipe_topic",
-			"/end_of_swipe");
-	end_of_swipe_pub = n.advertise<std_msgs::Bool>(end_of_swipe_topic, 50);
+	end_of_swipe_pub = n.advertise<std_msgs::Bool>("/end_of_swipe", 50);
 
 	// synthetic 2d scans
 	//scan2dsyn_pub = n.advertise<sensor_msgs::LaserScan>("/scan2dsyn", 50);
