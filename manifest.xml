@@ -15,6 +15,8 @@
   <depend package="nifti_teleop"/>
   <depend package="nifti_laser_filtering"/>
   <depend package="diagnostic_aggregator"/>
+  <depend package="inso"/>
+  <depend package="point_cloud_color"/>
 </package>
 
 
