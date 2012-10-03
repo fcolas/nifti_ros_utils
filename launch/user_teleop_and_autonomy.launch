@@ -12,7 +12,7 @@
 	<!-- Launches the IMU drivers (and related diagnostics) -->
 	<include file="$(find nifti_drivers_launchers)/launch/imu.launch"/> 
 
-        <include file="$(find monitoring)/monitoring.launch"/>
+        <include file="$(find monitoring)/launch/monitoring.launch"/>
 
 	<!-- Add the arm code when it's ready -->
 

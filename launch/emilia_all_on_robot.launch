@@ -7,7 +7,7 @@
 	<!-- Launches the joystic listener and MUX -->
 	<include file="$(find nifti_drivers_launchers)/launch/ugv.launch"/> 
 
-	<include file="$(find monitoring)/monitoring.launch"/>
+	<include file="$(find monitoring)/launch/monitoring.launch"/>
 
 	<!-- Add the arm code when it's ready -->
 	
