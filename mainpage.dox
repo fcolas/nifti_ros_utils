@@ -103,4 +103,22 @@ that the numbers start from 0 here and from 1 in the section above):
 - \a ~cmd_vel_topic (\c /teleop_joy/cmd_vel) the topic to publish velocity
   commands.
 
+\section mux Priority control
+
+The handling of priorities is done by the \b nifti_mux_control
+(nifti_mux_ctrl::NiftiMuxCtrl) node that commands a standard \b mux node.
+In order to publish velocity commands, one must end a request to that node
+(on the \c /mux_cmd_vel/acquire service) and can then publish on its own
+defined topic. When a node is done sending commands, it must release the
+control (so that lower-priority processes can control the robot) using a second
+service (\c /mux_cmd_vel/release).
+
+For external packages, the \b priority_wrapper
+(priority_wrapper::PriorityWrapper) node can be used to do this acquisition and
+release automatically. The drawback in that case is that the node sending the
+commands is not aware of whether or not his commands are passed.
+
+In order to know which is the topic currently having access to the robot, one
+can listent to the \c /mux_cmd_vel/selected topic.
+
 */
