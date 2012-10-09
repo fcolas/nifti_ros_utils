@@ -113,6 +113,12 @@ defined topic. When a node is done sending commands, it must release the
 control (so that lower-priority processes can control the robot) using a second
 service (\c /mux_cmd_vel/release).
 
+The topics are, with decreasing priority:
+- /local_joy/cmd_vel	(for the joystick on board the robot)
+- /teleop_joy/cmd_vel	(for all other joysticks)
+- /teleop_ocu/cmd_vel	(for the OCU)
+- /nav/cmd_vel	(for autonomous navigation)
+
 For external packages, the \b priority_wrapper
 (priority_wrapper::PriorityWrapper) node can be used to do this acquisition and
 release automatically. The drawback in that case is that the node sending the
