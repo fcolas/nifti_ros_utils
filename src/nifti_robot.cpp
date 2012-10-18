@@ -55,6 +55,12 @@ T getParam(ros::NodeHandle& n, const std::string& name, const T& defaultValue)
 	return defaultValue;
 }
 
+bool CANok = false;
+void exitCAN() {
+	if (!CANok) {
+		ROS_ERROR_STREAM("Cannot open CAN device. Check it is correctly configured.");
+	}
+}
 
 NiftiRobot::NiftiRobot():
 	// Lateral distance between center of both tracks
@@ -148,7 +154,9 @@ NiftiRobot::NiftiRobot():
 	bool bestInit;
 	bestInit = getParam<bool>(n_, "bestInit", true);
 	ROS_INFO_STREAM("trying to " << (bestInit?"best ":"") << "init " << c_CAN_device);
+	atexit(exitCAN);
 	nrInit(c_CAN_device, &params, bestInit);
+	CANok = true;
 	while (!nrGetFlippersInitState())
 	{
 		ROS_WARN_STREAM("Flippers not initialized: is emergency stop on? Retrying...");
