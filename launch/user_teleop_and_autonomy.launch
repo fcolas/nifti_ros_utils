@@ -1,16 +1,10 @@
 <launch>
 	
 	<!-- Launches the robot drivers for the Bluebotics hardware (not the bullet, not the arm) -->
-	<include file="$(find nifti_drivers_launchers)/launch/robot.launch"/>
-
-	<!-- Launches the laser driver (no processing) -->
-	<include file="$(find nifti_drivers_launchers)/launch/laser.launch"/>
-
-	<!-- Produces the feed for the omnicam and virtual PTZ (no detection) -->
-	<include file="$(find nifti_drivers_launchers)/launch/omnicamera.launch"/> 
-
-	<!-- Launches the IMU drivers (and related diagnostics) -->
-	<include file="$(find nifti_drivers_launchers)/launch/imu.launch"/> 
+        <!-- Launches the laser driver (no processing) -->
+        <!-- Produces the feed for the omnicam and virtual PTZ (no detection) -->
+        <!-- Launches the IMU drivers (and related diagnostics) -->
+	<include file="$(find nifti_drivers_launchers)/launch/ugv.launch"/>
 
         <include file="$(find monitoring)/launch/monitoring.launch"/>
 

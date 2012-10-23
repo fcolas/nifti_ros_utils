@@ -4,10 +4,8 @@
 	<include file="$(find nifti_drivers_launchers)/launch/robot.launch"/>
 
 	<!-- Launches the laser driver (no processing) -->
-	<include file="$(find nifti_drivers_launchers)/launch/laser.launch"/>
-
-	<!-- Produces the feed for the omnicam and virtual PTZ (no detection) -->
-	<include file="$(find nifti_drivers_launchers)/launch/omnicamera.launch"/> 
+        <!-- Produces the feed for the omnicam and virtual PTZ (no detection) -->
+	<include file="$(find nifti_drivers_launchers)/launch/laser_omnicam.launch"/>
 
 	<!-- Launches the IMU drivers (and related diagnostics) -->
 	<include file="$(find nifti_drivers_launchers)/launch/imu.launch"/> 
@@ -21,6 +19,9 @@
 
 	<!-- This produces the map and gives the /map TF -->
 	<include file="$(find nifti_mapping_launchers)/launch/map2d.launch"/>
+
+        <!-- Figure out what this does -->
+        <include file="$(find nifti_mapping_launchers)/launch/map3d.launch"/>
 
 	<!-- This produces traveled path -->
 	<include file="$(find nifti_mapping_launchers)/launch/tf_to_path_converter.launch"/>
