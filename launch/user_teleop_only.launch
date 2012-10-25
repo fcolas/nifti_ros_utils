@@ -12,7 +12,8 @@
 
 	<include file="$(find monitoring)/launch/monitoring.launch"/>
 
-	<!-- Add the arm code when it's ready -->
+	<!-- Launches the arm motors, the PTU, and the USB cam -->
+	<include file="$(find nifti_launchers)/launch/arm_and_cam.launch"/>
 	
 	<!-- This forwards /scan to /scan2d -->
 	<include file="$(find nifti_mapping_launchers)/launch/nifti_laser_assembler.launch"/>
