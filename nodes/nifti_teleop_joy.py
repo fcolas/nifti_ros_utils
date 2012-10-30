@@ -17,6 +17,7 @@ from nifti_robot_driver_msgs.msg import FlippersState, RobotStatusStamped, Flipp
 from nifti_teleop.srv import Acquire, Release
 
 from math import pi, floor, radians
+from time import sleep
 
 # TODO: should be part of the message definition
 ID_FLIPPER_FRONT_LEFT=3
@@ -180,6 +181,7 @@ class NiftiTeleopJoy(object):
 				gotit = True
 			except rospy.ROSException:
 				rospy.logwarn("Waiting for mux control services...")
+			sleep(1)
 		self.priority_acquire = rospy.ServiceProxy('/mux_cmd_vel/acquire',
 				Acquire)
 		self.priority_release = rospy.ServiceProxy('/mux_cmd_vel/release',
