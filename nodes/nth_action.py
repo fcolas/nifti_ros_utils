@@ -31,9 +31,9 @@ class FlipperPosture(object):
 		# 1: drive
 		1: (radians(-165), radians(-165), radians(115), radians(115)),
 		# 2: climb forward
-		2: (radians(-45), radians(-45), radians(0), radians(0)),
+		2: (radians(-45), radians(-45), radians(10), radians(10)),
 		# 3: climb backward
-		3: (radians(0), radians(0), radians(45), radians(45)),
+		3: (radians(-10), radians(-10), radians(45), radians(45)),
 		# 4: convex edge
 		4: (radians(40), radians(40), radians(-40), radians(-40)),
 		# 5: bestInit
