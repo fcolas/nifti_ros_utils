@@ -1,8 +1,24 @@
 <?xml version="1.0"?>
 <robot name="NIFTi">
-    <link name="base_link"/>
+    <link name="base_link">
+        <visual>
+            <origin xyz="0 0 -0.0705" rpy="1.5707963267 0 1.5707963267" />
+            <geometry>
+                <mesh scale="0.115 0.115 0.115"
+                    filename="package://nifti_robot_driver/robot_model/body.dae"/>
+            </geometry>
+        </visual>
+    </link>
 
-    <link name="left_track"/>
+    <link name="left_track">
+        <visual>
+            <origin xyz="0 0 -0.0705" rpy="1.5707963267 0 1.5707963267" />
+            <geometry>
+                <mesh scale="-0.115 0.115 0.115"
+                    filename="package://nifti_robot_driver/robot_model/bogie.dae"/>
+            </geometry>
+        </visual>
+    </link>
     <joint name="left_track_j" type="revolute">
         <parent link="base_link"/>
         <child link="left_track"/>
@@ -11,7 +27,15 @@
         <limit lower="-0.7" upper="0.7" effort="0" velocity="0" />
     </joint>
 
-    <link name="right_track"/>
+    <link name="right_track">
+        <visual>
+            <origin xyz="0 0 -0.0705" rpy="1.5707963267 0 1.5707963267" />
+            <geometry>
+                <mesh scale="0.115 0.115 0.115"
+                    filename="package://nifti_robot_driver/robot_model/bogie.dae"/>
+            </geometry>
+        </visual>    
+    </link>
     <joint name="right_track_j" type="revolute">
         <parent link="base_link"/>
         <child link="right_track"/>
@@ -20,7 +44,15 @@
         <limit lower="-0.7" upper="0.7" effort="0" velocity="0" />
     </joint>
 
-    <link name="front_left_flipper"/>
+    <link name="front_left_flipper">
+        <visual>
+            <origin xyz="0 0 0" rpy="3.3 0 1.5707963267" />
+            <geometry>
+                <mesh scale="0.115 0.115 0.115"
+                    filename="package://nifti_robot_driver/robot_model/flipper.dae"/>
+            </geometry>
+        </visual>
+    </link>
     <joint name="front_left_flipper_j" type="continuous">
         <parent link="left_track"/>
         <child link="front_left_flipper"/>
@@ -28,7 +60,15 @@
         <axis xyz="0 1 0"/>
     </joint>
 
-    <link name="front_right_flipper"/>
+    <link name="front_right_flipper">
+        <visual>
+            <origin xyz="0 0 0" rpy="3.3 0 1.5707963267" />
+            <geometry>
+                <mesh scale="-0.115 0.115 0.115"
+                    filename="package://nifti_robot_driver/robot_model/flipper.dae"/>
+            </geometry>
+        </visual>  
+    </link>
     <joint name="front_right_flipper_j" type="continuous">
         <parent link="right_track"/>
         <child link="front_right_flipper"/>
@@ -36,7 +76,15 @@
         <axis xyz="0 1 0"/>
     </joint>
 
-    <link name="rear_left_flipper"/>
+    <link name="rear_left_flipper">
+        <visual>
+            <origin xyz="0 0 0" rpy="-2.95 0 1.5707963267" />
+            <geometry>
+                <mesh scale="0.115 0.115 0.115"
+                    filename="package://nifti_robot_driver/robot_model/flipper.dae"/>
+            </geometry>
+        </visual>
+    </link>
     <joint name="rear_left_flipper_j" type="continuous">
         <parent link="left_track"/>
         <child link="rear_left_flipper"/>
@@ -44,7 +92,15 @@
         <axis xyz="0 1 0"/>
     </joint>
 
-    <link name="rear_right_flipper"/>
+    <link name="rear_right_flipper">
+        <visual>
+            <origin xyz="0 0 0" rpy="-2.95 0 1.5707963267" />
+            <geometry>
+                <mesh scale="-0.115 0.115 0.115"
+                    filename="package://nifti_robot_driver/robot_model/flipper.dae"/>
+            </geometry>
+        </visual>
+    </link>
     <joint name="rear_right_flipper_j" type="continuous">
         <parent link="right_track"/>
         <child link="rear_right_flipper"/>
@@ -52,7 +108,18 @@
         <axis xyz="0 1 0"/>
     </joint>
 
-    <link name="laser"/>
+    <link name="laser">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.5707963267 0 -1.5707963267" />
+            <geometry>
+                <mesh scale="0.001 0.001 0.001"
+                    filename="package://nifti_robot_driver/robot_model/laser.dae"/>
+            </geometry>
+            <material name="laser_color">
+                <color rgba="1 0.9 0.7 1"/>
+            </material>
+        </visual>  
+    </link>
     <joint name="laser_j" type="revolute">
         <parent link="base_link"/>
         <child link="laser"/>
@@ -68,7 +135,18 @@
         <origin xyz="0 0 0.1694" rpy="0 0 -1.5707963267"/>
     </joint>
 
-    <link name="omnicam"/>
+    <link name="omnicam">
+        <visual>
+            <origin xyz="-0.070 0.068 -0.3412" rpy="1.5707963267 0 0" />
+            <geometry>
+                <mesh scale="0.115 0.115 0.115"
+                    filename="package://nifti_robot_driver/robot_model/omnicam.stl"/>
+            </geometry>
+            <material name="omnicam_color">
+                <color rgba="0 0 0 1"/>
+            </material>
+        </visual>  
+    </link>
     <joint name="omnicam_j" type="fixed">
         <parent link="base_link"/>
         <child link="omnicam"/>
