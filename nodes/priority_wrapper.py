@@ -26,7 +26,7 @@ class PriorityWrapper(object):
 
 		# setting up priority requests
 		gotit = False
-		while not gotit:
+		while not (gotit or rospy.is_shutdown()):
 			try:
 				rospy.wait_for_service('/mux_cmd_vel/acquire', 10)
 				rospy.wait_for_service('/mux_cmd_vel/release', 10)
