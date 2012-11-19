@@ -5,5 +5,6 @@
 			name="nifti_laser_assembler" output="screen">
 		<param name="publish_in_motion" value="false"/>
 		<param name="using_gmapping" value="false" />
+		<remap from="/scan" to="/scan_filtered" />
 	</node>
 </launch>
