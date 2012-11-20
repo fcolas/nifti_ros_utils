@@ -4,16 +4,11 @@
         <!-- Launches the laser driver (no processing) -->
         <!-- Produces the feed for the omnicam and virtual PTZ (no detection) -->
         <!-- Launches the IMU drivers (and related diagnostics) -->
-	<include file="$(find nifti_drivers_launchers)/launch/ugv.launch"/>
-
-        <include file="$(find monitoring)/launch/monitoring.launch"/>
-
-	<!-- Launches the arm motors, the PTU, and the USB cam -->
-	<include file="$(find nifti_launchers)/launch/arm_and_cam.launch"/>
+	<include file="$(find nifti_drivers_launchers)/launch/ugv_complete_arm_usb_cam.launch"/>
 
 	<include file="$(find nifti_mapping_launchers)/launch/mapAndNav.launch"/>
 
 	<!-- This allows autonomous flipper control -->
-	<include file="$(find nifti_reactive_flippers_vertscan)/launch/fflip_touch.launch"/>
+	<!-- <include file="$(find nifti_reactive_flippers_vertscan)/launch/fflip_touch.launch"/> -->
 
 </launch>
