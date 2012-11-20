@@ -15,19 +15,10 @@
 	<!-- Launches the arm motors, the PTU, and the USB cam -->
 	<include file="$(find nifti_launchers)/launch/arm_and_cam.launch"/>
 	
-	<!-- This forwards /scan to /scan2d -->
-	<include file="$(find nifti_mapping_launchers)/launch/nifti_laser_assembler.launch"/>
-
-	<!-- This produces the map and gives the /map TF -->
-	<include file="$(find nifti_mapping_launchers)/launch/map2d.launch"/>
-
-        <!-- Figure out what this does -->
-        <include file="$(find nifti_mapping_launchers)/launch/map3d.launch"/>
-
-	<!-- This produces traveled path -->
-	<include file="$(find nifti_mapping_launchers)/launch/tf_to_path_converter.launch"/>
+	<!-- Launches the minimal set-up for mapping use for an end-user -->
+	<include file="$(find nifti_mapping_launchers)/launch/mappingForOCU.launch"/>
 
         <!-- This allows autonomous flipper control -->
-	<include file="$(find nifti_reactive_flippers_vertscan)/launch/fflip_touch.launch"/>
+	<!-- <include file="$(find nifti_reactive_flippers_vertscan)/launch/fflip_touch.launch"/> -->
 
 </launch>
