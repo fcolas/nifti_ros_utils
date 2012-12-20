@@ -19,7 +19,7 @@ class PriorityWrapper(object):
 		self.cmdvel_pub = rospy.Publisher(self.output_topic, Twist)
 		## subscriber for the velocity command topic
 		# @param ~input_topic (default: '/private/nav/cmd_vel')
-		sub = rospy.Subscriber(self.input_topic, Twist, self.cmdvel_cb)
+		sub = rospy.Subscriber(self.input_topic, Twist, self.cmdvel_cb, queue_size=10)
 
 		self.last_msg = rostime.Time(0)
 		self.last_request = rostime.Time(0)
