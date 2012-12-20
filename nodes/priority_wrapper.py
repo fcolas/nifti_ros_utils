@@ -17,9 +17,6 @@ class PriorityWrapper(object):
 		## publisher for the velocity command topic
 		# @param ~output_topic (default: '/nav/cmd_vel')
 		self.cmdvel_pub = rospy.Publisher(self.output_topic, Twist)
-		## subscriber for the velocity command topic
-		# @param ~input_topic (default: '/private/nav/cmd_vel')
-		sub = rospy.Subscriber(self.input_topic, Twist, self.cmdvel_cb, queue_size=10)
 
 		self.last_msg = rostime.Time(0)
 		self.last_request = rostime.Time(0)
@@ -38,14 +35,19 @@ class PriorityWrapper(object):
 				Acquire)
 		self.priority_release = rospy.ServiceProxy('/mux_cmd_vel/release',
 				Release)
+		## subscriber for the velocity command topic
+		# @param ~input_topic (default: '/private/nav/cmd_vel')
+		sub = rospy.Subscriber(self.input_topic, Twist, self.cmdvel_cb, queue_size=10)
 
 	def cmdvel_cb(self, msg):
 		now = rostime.get_rostime()
+		#print(now), " ",
 		if (now-self.last_request).to_sec()>0.5:
 			self.priority_acquire(self.output_topic)
 			self.last_request = now
 		self.cmdvel_pub.publish(msg)
 		self.last_msg = now
+		#print(rostime.get_rostime())
 
 	def run(self):
 		r = rospy.Rate(5)
