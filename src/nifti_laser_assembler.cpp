@@ -231,10 +231,10 @@ double NiftiLaserAssembler::get_laser_angle(const ros::Time &time) const
 	tf::StampedTransform tmp_tf;
 	geometry_msgs::Quaternion rot;
 	if (!tf_listener.waitForTransform(robot_frame, laser_frame, time,
-		ros::Duration(1.)))
+		ros::Duration(1.))) {
 		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
 				" and "<<robot_frame<<" before getting laser angle.");
-	
+	}
 	tf_listener.lookupTransform(robot_frame, laser_frame, time, tmp_tf);
 	
 		
@@ -263,9 +263,11 @@ bool NiftiLaserAssembler::check_no_motion(const ros::Time &time) const
 	if (delta>=ros::Duration(59.))
 		return false;
 	if (!tf_listener.waitForTransform(robot_frame, world_frame, time,
-		ros::Duration(1.)))
+		ros::Duration(1.))) {
 		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<robot_frame<<
 				" and "<<world_frame<<" before checking motion.");
+		return false;
+	}
 	tf_listener.lookupTwist(robot_frame, world_frame, start_time+delta*0.5,
 			delta, mean_speed);
 	ROS_DEBUG_STREAM("Motion: " << norm(mean_speed.linear) << " m/s, " <<
@@ -388,30 +390,32 @@ void NiftiLaserAssembler::append_scan(const sensor_msgs::PointCloud2& scan)
 	if (point_cloud.width<=0)
 	{
 		// transform into /base_link
-		tf_listener.waitForTransform(robot_frame, scan.header.frame_id,
-				scan.header.stamp, ros::Duration(1));
-		tf_listener.lookupTransform(robot_frame, scan.header.frame_id,
-				scan.header.stamp, base_transform);
-		pcl_ros::transformPointCloud(robot_frame, base_transform, scan,
-				point_cloud);
-		// set base transform for next scans
-		tf_listener.lookupTransform(robot_frame, world_frame,
-				scan.header.stamp, base_transform);
+		if (tf_listener.waitForTransform(robot_frame, scan.header.frame_id,
+				scan.header.stamp, ros::Duration(1))) {
+			tf_listener.lookupTransform(robot_frame, scan.header.frame_id,
+					scan.header.stamp, base_transform);
+			pcl_ros::transformPointCloud(robot_frame, base_transform, scan,
+					point_cloud);
+			// set base transform for next scans
+			tf_listener.lookupTransform(robot_frame, world_frame,
+					scan.header.stamp, base_transform);
+		}
 	} else
 	{
 		// transformation in /base_link at the original time
 		tf::StampedTransform current_transform;
-		tf_listener.waitForTransform(world_frame, scan.header.frame_id,
-				scan.header.stamp, ros::Duration(1));
-		tf_listener.lookupTransform(world_frame, scan.header.frame_id,
-				scan.header.stamp, current_transform);
-		pcl_ros::transformPointCloud(robot_frame,
-				base_transform*current_transform, scan, tmp_point_cloud);
-		// fusion of the clouds
-		point_cloud.width += tmp_point_cloud.width;
-		point_cloud.row_step += tmp_point_cloud.row_step;
-		point_cloud.data.insert(point_cloud.data.end(),
-				tmp_point_cloud.data.begin(), tmp_point_cloud.data.end());
+		if (tf_listener.waitForTransform(world_frame, scan.header.frame_id,
+				scan.header.stamp, ros::Duration(1))) {
+			tf_listener.lookupTransform(world_frame, scan.header.frame_id,
+					scan.header.stamp, current_transform);
+			pcl_ros::transformPointCloud(robot_frame,
+					base_transform*current_transform, scan, tmp_point_cloud);
+			// fusion of the clouds
+			point_cloud.width += tmp_point_cloud.width;
+			point_cloud.row_step += tmp_point_cloud.row_step;
+			point_cloud.data.insert(point_cloud.data.end(),
+					tmp_point_cloud.data.begin(), tmp_point_cloud.data.end());
+		}
 	}
 }
 
