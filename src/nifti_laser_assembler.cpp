@@ -268,8 +268,13 @@ bool NiftiLaserAssembler::check_no_motion(const ros::Time &time) const
 				" and "<<world_frame<<" before checking motion.");
 		return false;
 	}
-	tf_listener.lookupTwist(robot_frame, world_frame, start_time+delta*0.5,
-			delta, mean_speed);
+	try {
+		tf_listener.lookupTwist(robot_frame, world_frame, start_time+delta*0.5,
+				delta, mean_speed);
+	} catch (tf::ExtrapolationException) {
+		ROS_WARN_STREAM("Couldn't get twist to check (no) motion.");
+		return false;
+	}
 	ROS_DEBUG_STREAM("Motion: " << norm(mean_speed.linear) << " m/s, " <<
 			norm(mean_speed.angular) << " Rad/s for "<<delta.toSec()<<" s"); 
 	return ((norm(mean_speed.linear)*delta.toSec()<0.02)&&
