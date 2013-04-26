@@ -1094,6 +1094,38 @@ void NiftiRobot::update_config()
 		ROS_WARN_STREAM("Flippers in collision on the right");
 	}
 */
+	/*
+	 * Checking angles are reasonnable
+	 */
+	if (!((frontLeft>=-6*M_PI)&&(frontLeft<=6*M_PI))) {
+		ROS_WARN_STREAM("Front left angle reported outside expected window: "<<frontLeft<<"; ignoring configuration.");
+		return;
+	}
+	if (!((frontRight>=-6*M_PI)&&(frontRight<=6*M_PI))) {
+		ROS_WARN_STREAM("Front right angle reported outside expected window: "<<frontRight<<"; ignoring configuration.");
+		return;
+	}
+	if (!((rearLeft>=-6*M_PI)&&(rearLeft<=6*M_PI))) {
+		ROS_WARN_STREAM("Rear left angle reported outside expected window: "<<rearLeft<<"; ignoring configuration.");
+		return;
+	}
+	if (!((rearRight>=-6*M_PI)&&(rearRight<=6*M_PI))) {
+		ROS_WARN_STREAM("Rear right angle reported outside expected window: "<<rearRight<<"; ignoring configuration.");
+		return;
+	}
+	if (!((left_angle>=-M_PI_2)&&(left_angle<=M_PI_2))) {
+		ROS_WARN_STREAM("Left angle reported outside expected window: "<<left_angle<<"; ignoring configuration.");
+		return;
+	}
+	if (!((right_angle>=-M_PI_2)&&(right_angle<=M_PI_2))) {
+		ROS_WARN_STREAM("Right angle reported outside expected window: "<<right_angle<<"; ignoring configuration.");
+		return;
+	}
+	if (!((laser_angle>=-M_PI)&&(laser_angle<=M_PI))) {
+		ROS_WARN_STREAM("Laser angle reported outside expected window: "<<laser_angle<<"; ignoring configuration.");
+		return;
+	}
+
 
 	nifti_robot_driver_msgs::FlippersStateStamped flippers_state_msg;
 	flippers_state_msg.header.frame_id = robot_frame;
