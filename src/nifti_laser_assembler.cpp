@@ -22,11 +22,11 @@ T getParam(ros::NodeHandle& n, const std::string& name, const T& defaultValue)
 	T v;
 	if (n.getParam(name, v))
 	{
-		ROS_INFO_STREAM("Found parameter: " << name << ", value: " << v);
+		ROS_INFO_STREAM("[NLA] Found parameter: " << name << ", value: " << v);
 		return v;
 	}
 	else
-		ROS_WARN_STREAM("Cannot find value for parameter: " << name << ", assigning default: " << defaultValue);
+		ROS_WARN_STREAM("[NLA] Cannot find value for parameter: " << name << ", assigning default: " << defaultValue);
 	return defaultValue;
 }
 
@@ -180,7 +180,7 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	if (!tf_listener.waitForTransform(laser_frame, world_frame, ros::Time(0),
 			ros::Duration(30.)))
 	{
-		ROS_WARN_STREAM("Timeout (30s) while waiting between "<<laser_frame<<
+		ROS_WARN_STREAM("[NLA] Timeout (30s) while waiting between "<<laser_frame<<
 				" and "<<world_frame<<" at startup.");
 	}
 
@@ -218,7 +218,7 @@ NiftiLaserAssembler::~NiftiLaserAssembler()
  */
 void NiftiLaserAssembler::ptcld_ctrl_cb(const std_msgs::Bool& on)
 {
-	ROS_INFO_STREAM("Point cloud " << (on.data?"enabled.":"disabled."));
+	ROS_INFO_STREAM("[NLA] Point cloud " << (on.data?"enabled.":"disabled."));
 	ptcld_ctrl_on = on.data;
 }
 
@@ -232,8 +232,8 @@ double NiftiLaserAssembler::get_laser_angle(const ros::Time &time) const
 	geometry_msgs::Quaternion rot;
 	if (!tf_listener.waitForTransform(robot_frame, laser_frame, time,
 		ros::Duration(1.))) {
-		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
-				" and "<<robot_frame<<" before getting laser angle.");
+		/*ROS_WARN_STREAM("[NLA] Timeout (1s) while waiting between "<<laser_frame<<
+				" and "<<robot_frame<<" before getting laser angle.");*/
 	}
 	tf_listener.lookupTransform(robot_frame, laser_frame, time, tmp_tf);
 	
@@ -264,7 +264,7 @@ bool NiftiLaserAssembler::check_no_motion(const ros::Time &time) const
 		return false;
 	if (!tf_listener.waitForTransform(robot_frame, world_frame, time,
 		ros::Duration(1.))) {
-		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<robot_frame<<
+		ROS_WARN_STREAM("[NLA] Timeout (1s) while waiting between "<<robot_frame<<
 				" and "<<world_frame<<" before checking motion.");
 		return false;
 	}
@@ -272,10 +272,10 @@ bool NiftiLaserAssembler::check_no_motion(const ros::Time &time) const
 		tf_listener.lookupTwist(robot_frame, world_frame, start_time+delta*0.5,
 				delta, mean_speed);
 	} catch (tf::ExtrapolationException) {
-		ROS_WARN_STREAM("Couldn't get twist to check (no) motion.");
+		ROS_WARN_STREAM("[NLA] Couldn't get twist to check (no) motion.");
 		return false;
 	}
-	ROS_DEBUG_STREAM("Motion: " << norm(mean_speed.linear) << " m/s, " <<
+	ROS_DEBUG_STREAM("[NLA] Motion: " << norm(mean_speed.linear) << " m/s, " <<
 			norm(mean_speed.angular) << " Rad/s for "<<delta.toSec()<<" s"); 
 	return ((norm(mean_speed.linear)*delta.toSec()<0.02)&&
 			(norm(mean_speed.angular)*delta.toSec()<3*M_PI/180.));
@@ -306,7 +306,7 @@ void NiftiLaserAssembler::laserscan_cb(const sensor_msgs::LaserScan& scan)
 		angle = get_laser_angle(scan.header.stamp);
 	} 
 	catch (tf::ExtrapolationException e) {
-		ROS_ERROR_STREAM(e.what() << "Could not resolve rotating angle of the laser.");
+		ROS_WARN_STREAM("[NLA] Could not resolve rotating angle of the laser.");
 		return;
 	}
 	
@@ -314,7 +314,7 @@ void NiftiLaserAssembler::laserscan_cb(const sensor_msgs::LaserScan& scan)
 		if ((angle*previous_langle<=0.0) ||
 				((fabs(angle-previous_langle)<0.5*M_PI/180.)&&
 						(fabs(angle)<10*M_PI/180.))) {
-			ROS_DEBUG_STREAM("Publishing 2d scan.");
+			ROS_DEBUG_STREAM("[NLA] Publishing 2d scan.");
 			if (using_gmapping)
 			{
 				sensor_msgs::LaserScan inv_scan = scan;
@@ -342,12 +342,12 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::PointCloud2& scan)
 		angle = get_laser_angle(scan.header.stamp);
 	} 
 	catch (tf::ExtrapolationException e) {
-		ROS_ERROR_STREAM(e.what() << "Could not resolve rotating angle of the laser.");
+		ROS_WARN_STREAM("[NLA] Could not resolve rotating angle of the laser.");
 		return;
 	}
 	
 	if (fabs(angle)<=M_PI/2) {
-		//ROS_INFO_STREAM("Got scan in range.");
+		//ROS_INFO_STREAM("[NLA] Got scan in range.");
 		if (start_time.isZero())
 			start_time = scan.header.stamp;
 		append_scan(scan);
@@ -356,19 +356,19 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::PointCloud2& scan)
 
 	if ((fabs(previous_angle)<M_PI/2) &&
 			(fabs(angle)>=M_PI/2)) {
-		//ROS_INFO_STREAM("End");
+		//ROS_INFO_STREAM("[NLA] End");
 		if (ptcld_ctrl_on){
 			// could decide to update time stamps here (but require a full
 			// transform)
 			dynamic_point_cloud_pub.publish(point_cloud);
 			if (check_no_motion(scan.header.stamp)){
-				ROS_DEBUG_STREAM("Publishing static point cloud (" << point_cloud.width << " points).");
+				ROS_DEBUG_STREAM("[NLA] Publishing static point cloud (" << point_cloud.width << " points).");
 				point_cloud_pub.publish(point_cloud);
 			} else {
-				ROS_DEBUG_STREAM("Point cloud in motion.");
+				ROS_DEBUG_STREAM("[NLA] Point cloud in motion.");
 			}
 		} else {
-			ROS_DEBUG_STREAM("Dropping point cloud (disabled).");
+			ROS_DEBUG_STREAM("[NLA] Dropping point cloud (disabled).");
 		}
 		point_cloud.data.clear();
 		point_cloud.width = 0;
@@ -378,7 +378,7 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::PointCloud2& scan)
 	// if point cloud is full, we publish it
 	// TODO decide if relevant
 	if (point_cloud.width>=(unsigned)max_size) {
-		ROS_WARN_STREAM("max_size exceeded, clearing.");
+		ROS_WARN_STREAM("[NLA] Max_size exceeded, clearing.");
 		//point_cloud_pub.publish(point_cloud);
 		point_cloud.data.clear();
 		point_cloud.width = 0;
@@ -395,8 +395,10 @@ void NiftiLaserAssembler::append_scan(const sensor_msgs::PointCloud2& scan)
 	if (point_cloud.width<=0)
 	{
 		// transform into /base_link
-		if (tf_listener.waitForTransform(robot_frame, scan.header.frame_id,
-				scan.header.stamp, ros::Duration(1))) {
+		if ((tf_listener.waitForTransform(robot_frame, scan.header.frame_id,
+				scan.header.stamp, ros::Duration(1)))&&
+			(tf_listener.waitForTransform(robot_frame, world_frame,
+				scan.header.stamp, ros::Duration(1)))) {
 			tf_listener.lookupTransform(robot_frame, scan.header.frame_id,
 					scan.header.stamp, base_transform);
 			pcl_ros::transformPointCloud(robot_frame, base_transform, scan,
@@ -404,6 +406,8 @@ void NiftiLaserAssembler::append_scan(const sensor_msgs::PointCloud2& scan)
 			// set base transform for next scans
 			tf_listener.lookupTransform(robot_frame, world_frame,
 					scan.header.stamp, base_transform);
+		} else {
+			ROS_WARN_STREAM("[NLA] Could not initialize new point cloud with new scan.");
 		}
 	} else
 	{
@@ -420,6 +424,8 @@ void NiftiLaserAssembler::append_scan(const sensor_msgs::PointCloud2& scan)
 			point_cloud.row_step += tmp_point_cloud.row_step;
 			point_cloud.data.insert(point_cloud.data.end(),
 					tmp_point_cloud.data.begin(), tmp_point_cloud.data.end());
+		} else {
+			ROS_WARN_STREAM("[NLA] Could not append scan to current point cloud.");
 		}
 	}
 }
