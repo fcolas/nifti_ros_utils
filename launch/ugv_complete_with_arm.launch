@@ -9,6 +9,8 @@
 	<!-- Launches the network signal monitoring -->
 	<include file="$(find monitoring)/launch/monitoring.launch"/>
 
-	<!-- Launches the arm motors, the PTU, and the USB cam -->
-	<include file="$(find nifti_launchers)/launch/arm_and_cam.launch"/>
+	<!-- Launches the arm motors, the PTU, the thermocam and the RGBD cam -->
+	<include file="$(find nifti_arm)/launch/arm.launch"/>
+	<include file="$(find openni_cam)/launch/camera.launch"/>
+	 
 </launch>
