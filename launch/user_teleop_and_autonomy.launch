@@ -4,7 +4,7 @@
         <!-- Launches the laser driver (no processing) -->
         <!-- Produces the feed for the omnicam and virtual PTZ (no detection) -->
         <!-- Launches the IMU drivers (and related diagnostics) -->
-	<include file="$(find nifti_drivers_launchers)/launch/ugv_complete_arm_usb_cam.launch"/>
+	<include file="$(find nifti_drivers_launchers)/launch/ugv_complete_without_arm.launch"/>
 
 	<include file="$(find nifti_mapping_launchers)/launch/mapAndNav.launch"/>
 
