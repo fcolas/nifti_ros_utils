@@ -71,6 +71,12 @@ protected:
 	//! tan of min_angle to do shadow filtering (default: tan(0.1))
 	const double tan_shadow_filter_min_angle;
 
+	//! flag indicating if there is an arm or not
+	bool has_arm;
+
+	//! number of failures to get any arm tf
+	int arm_failures;
+
 	//! Time correction plus setting ranges
 	void time_correct(sensor_msgs::LaserScan& scan);
 
@@ -95,7 +101,10 @@ protected:
 NiftiLaserFiltering::NiftiLaserFiltering():
 	tf_listener(ros::Duration(60.)),
 	n_("~"),
-	tan_shadow_filter_min_angle(tan(M_PI/2 - getParam<double>(n_, "shadow_filter_min_angle", 0.1)))
+	tan_shadow_filter_min_angle(tan(M_PI/2 -
+				getParam<double>(n_, "shadow_filter_min_angle", 0.1))),
+	has_arm(getParam<bool>(n, "has_arm", true)),
+	arm_failures(0)
 {
 	// frame names
 	laser_frame = getParam<std::string>(n_, "laser_frame", "/laser");
@@ -118,7 +127,7 @@ NiftiLaserFiltering::NiftiLaserFiltering():
 				" and "<<world_frame<<" at startup.");
 
 	// laser scan subscriber
-	laser_scan_sub = n.subscribe("/scan", 50,
+	laser_scan_sub = n.subscribe("/scan", 250,
 			&NiftiLaserFiltering::scan_cb, this);
 }
 
@@ -144,20 +153,29 @@ void NiftiLaserFiltering::time_correct(sensor_msgs::LaserScan& scan){
  */
 void NiftiLaserFiltering::shadow_filter(sensor_msgs::LaserScan& scan)
 {
-	const double invalid = scan.range_max+1;
+	//const double invalid = scan.range_max+1;
 	const float sin_gamma = sin(scan.angle_increment);
 	const float cos_gamma = cos(scan.angle_increment);
-	float x,y;
+	float x,y,r0,r1,smallest;
+	const float r_min = scan.range_min;
+	const float r_max = scan.range_max;
 
 	const sensor_msgs::LaserScan scan_ref(scan);
 
+	r0 = scan_ref.ranges[0];
 	for (unsigned int i=1; i<scan_ref.ranges.size(); i++) {
-		x = scan_ref.ranges[i-1]*sin_gamma;
-		y = fabs(scan_ref.ranges[i] - scan_ref.ranges[i-1]*cos_gamma);
-		
-		if (y > x*tan_shadow_filter_min_angle){
-			scan.ranges[i-1] = invalid;
-			scan.ranges[i] = invalid;
+		r1 = scan_ref.ranges[i];
+		smallest = r1<r0?r1:r0;
+
+		if ((r1>=r_min)&&(r1<=r_max)) {
+			x = r0*sin_gamma;
+			y = fabs(r1 - r0*cos_gamma);
+			
+			if (y > x*tan_shadow_filter_min_angle){
+				scan.ranges[i-1] = -smallest;
+				scan.ranges[i] = -smallest;
+			}
+			r0 = r1;
 		}
 	}
 }
@@ -201,6 +219,9 @@ void NiftiLaserFiltering::robot_filter(sensor_msgs::LaserScan& scan)
 	const ros::Time time = scan.header.stamp;
 
 	double max_dist = 0.7;
+	if (has_arm) { // when extended the end of the arm is further away
+		max_dist = 1.4;
+	}
 	double eps = 0.015;
 
 	// create a small point cloud with only the close points
@@ -340,6 +361,73 @@ void NiftiLaserFiltering::robot_filter(sensor_msgs::LaserScan& scan)
 		ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
 				" and /omnicam for robot_filter (ignoring this part).");
 	}
+
+	// remove arm
+	if (has_arm) {
+		bool no_arm = true;
+		// upper arm
+		if (tf_listener.waitForTransform(laser_frame, "/shoulder", time,
+				ros::Duration(1.))) {
+			no_arm = false;
+			tf_listener.transformPointCloud("/shoulder", close_ptcld, transformed_ptcld);
+			for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+				x = transformed_ptcld.points[i].x;
+				y = transformed_ptcld.points[i].y;
+				z = transformed_ptcld.points[i].z;
+				if ((y*y+z*z<(eps+0.050/2)*(eps+0.050/2))&&(fabs(x-0.500/2)<eps+(0.500/2)))
+					blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+			}
+		} else {
+			ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+					" and /shoulder for arm of robot_filter (ignoring this part).");
+		}
+		// elbow + forearm
+		if (tf_listener.waitForTransform(laser_frame, "/elbow", time,
+				ros::Duration(1.))) {
+			no_arm = false;
+			tf_listener.transformPointCloud("/elbow", close_ptcld, transformed_ptcld);
+			for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+				x = transformed_ptcld.points[i].x;
+				y = transformed_ptcld.points[i].y;
+				z = transformed_ptcld.points[i].z;
+				// elbow
+				if ((x*x+z*z<(eps+0.052/2)*(eps+0.052/2))&&(fabs(y+(0.122/2-0.029))<eps+(0.122/2)))
+					blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+				// forearm
+				if ((y*y+z*z<(eps+0.050/2)*(eps+0.050/2))&&(fabs(x-0.500/2)<eps+(0.500/2)))
+					blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+			}
+		} else {
+			ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+					" and /elbow for arm of robot_filter (ignoring this part).");
+		}
+		// pan tilt
+		if (tf_listener.waitForTransform(laser_frame, "/ptu_joint", time,
+				ros::Duration(1.))) {
+			no_arm = false;
+			tf_listener.transformPointCloud("/ptu_joint", close_ptcld, transformed_ptcld);
+			for (unsigned int i=0; i<transformed_ptcld.points.size(); i++) {
+				x = transformed_ptcld.points[i].x;
+				y = transformed_ptcld.points[i].y;
+				z = transformed_ptcld.points[i].z;
+				if ((x*x+y*y+z*z<(eps+0.120)*(eps+0.120)))
+					blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
+			}
+		} else {
+			ROS_WARN_STREAM("Timeout (1s) while waiting between "<<laser_frame<<
+					" and /ptu_joint for arm of robot_filter (ignoring this part).");
+		}
+		if (no_arm) {
+			arm_failures += 1;
+			if (arm_failures>50) {
+				ROS_WARN_STREAM("Too many failures to find the arm /tf: disabling arm filtering.");
+				has_arm = false;
+			}
+		} else {
+			arm_failures = 0;
+		}
+	}
+	
 
 	// remove blacklisted points
 	//std::cout << blacklisted.size() << " -> ";
