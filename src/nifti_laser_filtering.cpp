@@ -394,7 +394,7 @@ void NiftiLaserFiltering::robot_filter(sensor_msgs::LaserScan& scan)
 				if ((x*x+z*z<(eps+0.052/2)*(eps+0.052/2))&&(fabs(y+(0.122/2-0.029))<eps+(0.122/2)))
 					blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
 				// forearm
-				if ((y*y+z*z<(eps+0.050/2)*(eps+0.050/2))&&(fabs(x-0.500/2)<eps+(0.500/2)))
+				if (((y+0.064)*(y+0.064)+z*z<(eps+0.050/2)*(eps+0.050/2))&&(fabs(x-0.450/2)<eps+(0.450/2)))
 					blacklisted.push_back(transformed_ptcld.channels[0].values[i]);
 			}
 		} else {
