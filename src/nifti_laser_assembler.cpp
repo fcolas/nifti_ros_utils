@@ -116,10 +116,16 @@ protected:
 	ros::Publisher relay_pub;
 
 	//! Original scan callback function
-	void laserscan_cb(const sensor_msgs::LaserScan& scan);
+	//void laserscan_cb(const sensor_msgs::LaserScan& scan);
 
 	//! Coloured scan callback function
 	void scan_cb(const sensor_msgs::PointCloud2& scan);
+
+	//! Last projected scan
+	sensor_msgs::LaserScan last_scan;
+
+	//! Reprojection from PointCloud to LaserScan
+	void extract_LaserScan(const sensor_msgs::PointCloud2& ptcld);
 
 	//! Get the new scan in the point cloud
 	void append_scan(const sensor_msgs::PointCloud2& scan);
@@ -193,10 +199,23 @@ NiftiLaserAssembler::NiftiLaserAssembler():
 	// laser scan subscriber
 	point_cloud_scan_sub = n.subscribe("/scan_point_cloud_color", 50,
 			&NiftiLaserAssembler::scan_cb, this);
+	/* Deprecated
 	if (publish2d||relay_scans) {
 		laser_scan_sub = n.subscribe("/scan_filtered", 50,
 				&NiftiLaserAssembler::laserscan_cb, this);
-	}
+	}*/
+	// initialization of reprojected scan
+	last_scan.header.frame_id = laser_frame;
+	last_scan.angle_min = -2.35619449615;
+	last_scan.angle_max = 2.35619449615;
+	last_scan.angle_increment = 0.00872664619237;
+	last_scan.time_increment = 0.000036968576751;
+	last_scan.scan_time = 0.02;
+	last_scan.range_min = 0.01;
+	last_scan.range_max = 20.0;
+	last_scan.ranges.resize(541);
+	last_scan.intensities.resize(541);
+
 
 	// point cloud control subscriber
 	ptcld_ctrl_sub = n.subscribe("/pointcloud_control", 50,
@@ -295,9 +314,76 @@ void invert_gmapping(const sensor_msgs::LaserScan& scan_in,
 	}
 }
 
+
+/*
+ * Reprojection from PointCloud to LaserScan
+ */
+void NiftiLaserAssembler::extract_LaserScan(const sensor_msgs::PointCloud2& ptcld)
+{
+	// update header
+	last_scan.header.stamp = ptcld.header.stamp;
+	
+	// reset array values
+	unsigned int i;
+	for (i=0; i<541; i++) {
+		last_scan.ranges[i] = last_scan.range_max + 1;
+		last_scan.intensities[i] = 0;
+	}
+	
+	// getting information to parse the point cloud
+	unsigned int pt_step = ptcld.point_step; // size of the poitn structure
+	// offsets of the relevent fields (init values)
+	unsigned int pt_x = 0;
+	unsigned int pt_y = 4;
+	unsigned int pt_z = 8;
+	unsigned int pt_int = 12;
+	// getting real values
+	// TODO check that the size and type are correct
+	for (unsigned int j=0; j<ptcld.fields.size(); j++) {
+		if (!ptcld.fields[j].name.compare("x")) {
+			pt_x = ptcld.fields[j].offset;
+		} else if (!ptcld.fields[j].name.compare("y")) {
+			pt_y = ptcld.fields[j].offset;
+		} else if (!ptcld.fields[j].name.compare("z")) {
+			pt_z = ptcld.fields[j].offset;
+		} else if (!ptcld.fields[j].name.compare("intensity")) {
+			pt_int = ptcld.fields[j].offset;
+		}
+	}
+
+	// traverse point cloud
+	for (i=0; i<ptcld.width; i++) {
+		float x, y, z, intensity;	// fields from the point
+		// unpacking values (TODO check endianness)
+		std::copy(reinterpret_cast<const char*>(&ptcld.data[i*pt_step+pt_x]),
+				reinterpret_cast<const char*>(&ptcld.data[i*pt_step+pt_x+4]),
+				reinterpret_cast<char*>(&x));
+		std::copy(reinterpret_cast<const char*>(&ptcld.data[i*pt_step+pt_y]),
+				reinterpret_cast<const char*>(&ptcld.data[i*pt_step+pt_y+4]),
+				reinterpret_cast<char*>(&y));
+		std::copy(reinterpret_cast<const char*>(&ptcld.data[i*pt_step+pt_z]),
+				reinterpret_cast<const char*>(&ptcld.data[i*pt_step+pt_z+4]),
+				reinterpret_cast<char*>(&z));
+		std::copy(reinterpret_cast<const char*>(&ptcld.data[i*pt_step+pt_int]),
+				reinterpret_cast<const char*>(&ptcld.data[i*pt_step+pt_int+4]),
+				reinterpret_cast<char*>(&intensity));
+		// computing angle, index and distance
+		float d = sqrt(x*x+y*y+z*z);
+		float angle = atan2(y, x);
+		int index = static_cast<int>(round((angle - last_scan.angle_min)/last_scan.angle_increment)); 
+		assert((index>=0)&&(index<541));
+
+		// setting distance and intensity in point cloud
+		last_scan.ranges[index] = d;
+		last_scan.intensities[index] = intensity;
+	}
+}
+
+
 /*
  * Original scan callback function
  */
+/* TODO deprecated
 void NiftiLaserAssembler::laserscan_cb(const sensor_msgs::LaserScan& scan)
 {
 	double angle;
@@ -329,7 +415,7 @@ void NiftiLaserAssembler::laserscan_cb(const sensor_msgs::LaserScan& scan)
 		relay_pub.publish(scan);
 	}
 	previous_langle = angle;
-}
+}*/
 
 /*
  * laser scan callback
@@ -345,6 +431,30 @@ void NiftiLaserAssembler::scan_cb(const sensor_msgs::PointCloud2& scan)
 		ROS_WARN_STREAM("[NLA] Could not resolve rotating angle of the laser.");
 		return;
 	}
+
+	// laserscan
+	if (publish2d||relay_scans) {
+		extract_LaserScan(scan);
+	}
+	if (publish2d) {
+		if ((angle*previous_langle<=0.0) ||
+				((fabs(angle-previous_langle)<0.5*M_PI/180.)&&
+						(fabs(angle)<10*M_PI/180.))) {
+			ROS_DEBUG_STREAM("[NLA] Publishing 2d scan.");
+			if (using_gmapping)
+			{
+				sensor_msgs::LaserScan inv_scan = last_scan;
+				invert_gmapping(last_scan, inv_scan);
+				scan2d_pub.publish(inv_scan);
+			} else {
+				scan2d_pub.publish(last_scan);
+			}
+		}
+	}
+	if (relay_scans) {
+		relay_pub.publish(last_scan);
+	}
+	previous_langle = angle;
 	
 	if (fabs(angle)<=M_PI/2) {
 		//ROS_INFO_STREAM("[NLA] Got scan in range.");
