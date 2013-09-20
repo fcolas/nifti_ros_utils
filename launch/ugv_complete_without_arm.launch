@@ -9,4 +9,8 @@
 	<!-- Launches the network signal monitoring -->
 	<include file="$(find monitoring)/launch/monitoring.launch"/>
 
+	<!-- Victim detection -->
+	<include file="$(find openni_cam)/launch/caminput.launch"/>
+	<include file="$(find openni_cam)/launch/victim1.launch"/>
+
 </launch>
