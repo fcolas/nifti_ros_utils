@@ -1,0 +1,24 @@
+<package>
+  <description brief="nifti_robot_driver">
+
+     nifti_robot_driver
+
+  </description>
+  <author>Francis Colas</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/nifti_robot_driver</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="std_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="sensor_msgs"/>
+  <depend package="nav_msgs"/>
+  <depend package="tf"/>
+  <depend package="nifti_robot_driver_msgs"/>
+  <depend package="diagnostic_updater"/>
+  <depend package="robot_state_publisher"/>
+
+</package>
+
+
