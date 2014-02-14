@@ -1,0 +1,14 @@
+<package>
+  <description brief="nifti_launchers">
+
+     nifti_launchers
+
+  </description>
+  <author>Francis Colas</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/nifti_launchers</url>
+
+</package>
+
+
