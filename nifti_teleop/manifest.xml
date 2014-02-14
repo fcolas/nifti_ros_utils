@@ -1,0 +1,23 @@
+<package>
+  <description brief="nifti_teleop">
+
+     Teleoperation package for the NIFTi robot.
+	 Currently only proposes a node to teleoperate the robot with a joystick.
+
+  </description>
+  <author>Francis Colas -- ASL, ETHZ</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/nifti_teleop</url>
+  <depend package="rospy"/>
+  <depend package="sensor_msgs"/>
+  <depend package="geometry_msgs"/>
+  <!--depend package="joy"/-->
+  <depend package="nifti_robot_driver_msgs"/>
+  <depend package="topic_tools"/>
+  <depend package="actionlib"/>
+  <depend package="tf"/>
+
+</package>
+
+
